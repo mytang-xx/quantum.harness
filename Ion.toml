@@ -1,0 +1,26 @@
+[options]
+skills-dir = "tools/skills"
+
+[options.targets]
+claude = ".claude/skills"
+
+[skills]
+# Local skills every harness gets
+onboard = { type = "local" }
+step    = { type = "local" }
+
+# Tensor networks & quantum
+quimb-tensor-network = { source = "a5c-ai/babysitter/quimb-tensor-network" }
+
+# Research workflow
+arxiv-search = { source = "yorkeccak/scientific-skills/arxiv-search" }
+jupyter-notebook = { source = "openai/skills/jupyter-notebook" }
+sympy = { source = "davila7/claude-code-templates/sympy" }
+
+# Visualization & writing
+scientific-visualization = { source = "davila7/claude-code-templates/scientific-visualization" }
+scientific-writing = { source = "davila7/claude-code-templates/scientific-writing" }
+latex-paper-en = { source = "bahayonghang/academic-writing-skills/latex-paper-en" }
+
+# Language
+julia = { source = "mindrally/skills/julia" }
