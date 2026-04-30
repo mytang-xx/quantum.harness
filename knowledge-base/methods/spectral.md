@@ -8,12 +8,13 @@ A user asks for `S(q,ω)`, dynamic structure factor, spectral function, Green's 
 
 ## What the agent should do
 
-1. **State honestly:** "Spectral functions are outside the harness's current ground-state scope. I have reference pointers but no tested recipe."
+1. **State in one line:** "S(q,ω) is outside current scope — but the ground state you need first is in scope."
 2. **Offer options via `AskUserQuestion`:**
-   - `"Literature pointers (Recommended)"` — "I run arxiv-search for the method + model. You get citations and a method overview. No new calculation."
-   - `"Off-skill attempt"` — "I write a script using general tDMRG / Chebyshev / Lanczos knowledge. Works but is not harness-verified — treat output with extra skepticism."
-   - `"Ground state first"` — "I set up the ground state (in scope), which is the prerequisite for any spectral method. You decide on spectral after."
-3. **If user picks off-skill:** proceed, but prepend every code block and result with a note: "Off-skill — not harness-verified."
+   - `"Ground state first (Recommended)"` — "In scope. Prerequisite for any spectral method. I run it now; you decide on spectral after."
+   - `"Literature pointers"` — "I run arxiv-search for tDMRG/Chebyshev/Lanczos methods on your model. No calculation yet."
+   - `"Off-skill attempt"` — "I write a spectral script from general knowledge. Not harness-verified — treat with extra skepticism."
+3. **If user picks literature:** show the method table from the section below. Don't dump it unprompted.
+4. **If user picks off-skill:** proceed, but prepend every code block and result with: "Off-skill — not harness-verified."
 
 ## Common spectral methods (reference only — not recipes)
 

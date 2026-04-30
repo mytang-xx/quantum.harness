@@ -215,7 +215,7 @@ ion self --help                          # Manage the Ion install
 - **Lead with the answer, qualify only if asked.** "E/N = -0.4341, converged, matches Bethe ansatz ✓" — not "I checked 5 things and here they are."
 - **Caveat-after, not caveat-first.** For contested regimes, state the consensus framing first ("doped Mott regime — strong correlations, metallic due to doping"), then qualify ("the contested question is X"). Never open with the hedge.
 - **One question at a time** when questions are needed; prefer `AskUserQuestion` with options over open-ended text.
-- **Keep any single output under 10 lines.** If more is needed, ask before continuing.
+- **Keep prose output under 10 lines.** `AskUserQuestion` options are rendered as buttons — they don't count toward this limit. If more prose is needed, ask before continuing.
 
 ### Content Rendering
 
