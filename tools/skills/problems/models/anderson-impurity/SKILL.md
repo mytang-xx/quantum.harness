@@ -1,42 +1,64 @@
 ---
 name: anderson-impurity
-description: Use when the user is working on an Anderson impurity model problem, including a local interacting impurity coupled to a bath, impurity benchmarks, hybridization functions, bath discretization, or Kondo/local-moment physics.
+description: Use when the user is working on an Anderson impurity ground-state problem — a local interacting impurity coupled to a non-interacting bath, with finite-bath benchmarks, hybridization functions, or Kondo / local-moment physics.
 ---
 
 # Anderson Impurity
 
-This skill solves Anderson impurity problems by making the local interacting sector, bath representation, and hybridization explicit.
+Solve Anderson impurity ground-state problems. The Hamiltonian decomposes into a local interacting piece, a bath, and a hybridization. Bath discretization quality is the dominant practical concern.
 
-## Problem Form
+## Diagnose
 
-Separate the Hamiltonian into local and bath pieces:
+- **Impurity orbitals / spins** — single-orbital symmetric? multi-orbital (handoff to `multiorbital-hubbard`)?
+- **Local interaction** — `U`, level energy `ε_d`. Symmetric Anderson uses `ε_d = -U/2`.
+- **Bath** — finite or continuous? If continuous, what's the hybridization function `Δ(ω)`?
+- **Bath size** if finite (`L_bath`).
+- **Filling / chemical potential**.
+- **Symmetries** (particle-hole, spin SU(2)).
+- **Target observable**: impurity occupancy `⟨n_d⟩`, double occupancy, local moment `⟨(n_↑ - n_↓)²⟩`, impurity spin susceptibility, Kondo-scale estimate.
 
-```text
-H_A = H_loc + H_bath
-```
+Build per `knowledge-base/conventions.md`. Standard form:
+`H = ε_d Σ_σ n_dσ + U n_d↑ n_d↓ + Σ_kσ ε_k c†_kσ c_kσ + Σ_kσ V_k (d†_σ c_kσ + h.c.)`.
 
-Ask for impurity orbitals/spins, local interaction, bath size or hybridization function, filling/chemical potential, symmetries, and target observable.
+## Workflow
 
-## Steering Defaults
+1. Choose bath representation: star geometry (direct from `Δ(ω)`) or chain geometry (after Lanczos-style mapping). Document.
+2. Set up sites; pin `(N↑, N↓)` sector.
+3. Pick method per the table.
+4. First short run; verify particle / spin numbers, impurity occupancy at trivial limits.
+5. Vary bath size (or chain length, bond dim) until target observable converges.
+6. Verify (next section).
 
-- Entry: finite-bath Hamiltonian, ED baseline, occupancy, double occupancy, and local moment.
-- Intermediate: bath discretization quality, hybridization checks, symmetry sectors, screening diagnostics, and comparison across solver choices.
+## Method recommendations
 
-## Method Guidance
+| Regime | Method | Card |
+|---|---|---|
+| Finite bath, small system (`L_bath` ≲ 8) | ED | `knowledge-base/methods/ed.md` |
+| Bath as a chain, longer chains | DMRG / MPS impurity solver | `knowledge-base/methods/dmrg.md` |
+| Continuous bath, low-energy Kondo scaling | NRG-style reasoning (out of current scope to run; note conceptually). | — |
+| DMFT lattice self-consistency | Out of current scope; flag and discuss the embedding context. | — |
 
-- **Finite-bath ED:** best first route for small impurity benchmarks and clear Hamiltonian bookkeeping.
-- **MPS impurity solvers:** useful for longer bath chains after star-to-chain mapping.
-- **NRG-style reasoning:** appropriate for low-energy Kondo screening and scale separation, even if not implemented directly.
-- **DMFT embedding:** relevant when the impurity model comes from a lattice self-consistency loop; keep the user-facing problem as impurity or Hubbard depending on intent.
+## Branch table
 
-## Software and Setup
+| Condition | Action |
+|---|---|
+| Question is about Kondo screening, local moment formation, screening scales | Call `kondo-effect`. |
+| Multi-orbital, Hund's coupling, Kanamori interactions | Switch to `multiorbital-hubbard`. |
+| Impurity arises from a lattice DMFT loop | Out of current scope; surface and discuss. |
 
-For compact ED sketches, use `numpy` and `scipy`; for tensor-network bath chains, use `quimb` if available through `make install quimb`. Do not invent a DMFT solver dependency; if the user wants one, discuss the package and add an install target only after agreement.
+## Verification
 
-## Outputs and Checks
+Default checks:
 
-Return local/bath Hamiltonian blocks, bath parameter interpretation, solver plan, observable checklist, or benchmark table. Include checks for bath discretization, impurity occupancy, local moment, particle-number or spin-sector consistency, and whether the finite bath can answer the requested question.
+- **Limit checks** via `knowledge-base/limits.md`: `V = 0` → impurity decouples (trivial atomic limit); `U = 0` → resonant level model (exactly solvable); symmetric Anderson at `ε_d = -U/2` → particle-hole symmetric, `⟨n_d⟩ = 1`.
+- **Symmetry**: total particle count, `S^z`, particle-hole at the symmetric point.
+- **Bath-size convergence**: report the trend of the observable as `L_bath` (or chain length) grows.
+- **Internal consistency**: variance; impurity occupancy; local moment.
 
-## Related Skills
+Optional check:
 
-Call `kondo-effect` for screening, local moments, Kondo scale, or impurity spin compensation. Use `knowledge-base/2302.04919-variational-benchmarks.md` for benchmark impurity definitions.
+- Symmetric Anderson Kondo scale via Haldane formula in `knowledge-base/limits.md` (`T_K`); compare against a finite-bath estimate where possible. Treat as order-of-magnitude consistency, not a benchmark match.
+
+## Related skills
+
+`kondo-effect`, `multiorbital-hubbard`, `mott-transition` (lattice context).

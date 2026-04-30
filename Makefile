@@ -59,4 +59,4 @@ render: ## Render a markdown file to HTML. Usage: make render FILE=<path.md>
 	tools/cli/render "$(FILE)"
 
 clean: ## Remove generated HTML artifacts
-	find . -name '*.html' -not -path './templates/*' -delete
+	find . -name '*.html' -not -path './tools/templates/*' -delete

@@ -1,47 +1,63 @@
 ---
 name: transverse-field-ising
-description: Use when the user is working on a transverse-field Ising model problem, including ground-state estimates, quantum criticality, finite-size scaling, benchmark setup, or method comparison for Ising lattice Hamiltonians.
+description: Use when the user is working on a transverse-field Ising ground-state problem on chains, ladders, or lattices, including criticality at the field-coupling balance, gap probes, or benchmark setup.
 ---
 
 # Transverse-Field Ising
 
-This skill solves transverse-field Ising model problems. It is not a lesson plan. The agent should diagnose the concrete task, recommend a route, and produce a usable calculation plan, code sketch, result interpretation, or benchmark setup.
+Solve transverse-field Ising ground-state problems. Lattice and `Γ/J` ratio determine method choice and what physics is accessible.
 
-## Problem Form
+## Diagnose
 
-Use the convention
+- **Lattice / dimension** (chain, ladder, square, triangular).
+- **Couplings**: `J` (Ising), `Γ` (transverse field). Sign of `J`: ferromagnetic vs antiferromagnetic.
+- **Boundary condition** (OBC default).
+- **System size** (or cylinder shape for 2D).
+- **Target observable**: ground-state energy, magnetization `⟨σ^z⟩`, gap, two-point correlations.
+- **Accuracy goal** and compute budget.
 
-```text
-H = J sum_<ij> sigma_i^z sigma_j^z + Gamma sum_i sigma_i^x
-```
+Build the Hamiltonian per `knowledge-base/conventions.md`. Standard form:
+`H = -J Σ_<ij> σ^z_i σ^z_j - Γ Σ_i σ^x_i` (ferromagnetic by sign convention).
 
-Confirm sign conventions if the user cares about ferro/antiferromagnetic language. Ask only for missing problem-defining inputs: lattice/dimension, system size, boundary condition, `J`, `Gamma`, target observable, accuracy goal, and compute budget.
+## Workflow
 
-## Steering Defaults
+1. Set up sites (Z2 symmetry sector, parity) and Hamiltonian per conventions.
+2. Pick method per the table.
+3. First short run; verify the parity sector and that the calculation respects Z2 if no field-breaking term is present.
+4. Sweep convergence parameter until the target observable stabilizes.
+5. Verify (next section).
+6. If the target is critical behavior, hand off to `criticality`.
 
-Lead with the route that can answer the user's problem with the least fragile machinery:
+## Method recommendations
 
-- Entry: exact diagonalization for small systems, or DMRG/MPS for 1D chains.
-- Intermediate: finite-size scaling, gap/order-parameter trends, variance or energy-error checks, and a second method when the conclusion depends on scaling.
+| Regime | Method | Card |
+|---|---|---|
+| 1D chain (any N) | DMRG | `knowledge-base/methods/dmrg.md` |
+| Tiny cluster (N ≲ 24), exact spectrum, debugging | ED | `knowledge-base/methods/ed.md` |
+| Cylinder (square / triangular strips) | DMRG | `knowledge-base/methods/dmrg.md` |
+| Imaginary-time approach | TEBD | `knowledge-base/methods/tebd.md` |
 
-If the task has meaningful branches, offer 2-3 real options. Do not offer methods you are not prepared to execute or scaffold.
+## Branch table
 
-## Method Guidance
+| Condition | Action |
+|---|---|
+| Question is about quantum critical behavior at `Γ ≈ J` (1D) or the equivalent transition | Run the calculation here, then call `criticality`. |
+| Long-range Ising (e.g., `1/r^α`) | Stay here; flag that bond dimension grows; document. |
+| User asks about real-time dynamics or finite-T | Out of current scope; offer to set up the ground-state computation that's needed first. |
 
-- **ED:** best for tiny clusters, debugging sign conventions, spectra, gaps, and reference values.
-- **DMRG/MPS:** natural for 1D chains and quasi-1D strips; use for ground states, gaps, magnetization, and correlations.
-- **QMC:** suitable when the formulation is sign-problem-free; good for critical behavior and larger unfrustrated systems.
-- **Variational/PQC/NQS:** useful when the user is benchmarking ansatz quality or comparing with the V-score paper.
-- **Fuzzy sphere / conformal routes:** only when the user explicitly asks about field-theory-facing criticality; treat as a criticality method, not the model identity.
+## Verification
 
-## Software and Setup
+Default checks:
 
-For Python-based ED, DMRG, and tensor-network sketches, prefer `quimb`, `cotengra`, `numpy`, `scipy`, and `matplotlib`. If these are missing, suggest `make install quimb` after checking `make help`. For notebook workflows, use the existing `jupyter-notebook` skill. For Julia-specific requests, use the `julia` skill, but do not invent an install target unless it exists.
+- **Limit checks** via `knowledge-base/limits.md`: at `Γ = 0`, ground state is a classical Ising ferromagnet (or antiferromagnet) with energy `E/N = -J z / 2` (`z` = coordination); at `J = 0`, ground state is fully polarized along `x` with `E/N = -Γ`.
+- **Symmetry**: Z2 (`σ^z → -σ^z`) should be respected; spontaneous breaking shows only with explicit symmetry-breaking field at finite size.
+- **Convergence**: bond-dim sweep gives a monotonic, asymptoting energy curve.
+- **Internal consistency**: energy variance small relative to E².
 
-## Outputs and Checks
+Optional check:
 
-Return one of: Hamiltonian construction, runnable small-system code, finite-size scaling plan, observable table, benchmark comparison, or interpretation. Always include sanity checks: limiting cases (`Gamma = 0`, large `Gamma`), symmetry expectations, system-size trend, and whether the chosen method can resolve the requested observable.
+- Compare to `knowledge-base/benchmark-numbers.md` for canonical lattices when a reference exists. For 1D chain at criticality (`Γ = J`): exact `E/N = -4/π ≈ -1.2732` (free-fermion via Jordan-Wigner; convention-dependent).
 
-## Related Skills
+## Related skills
 
-Call `criticality` for quantum phase transitions, gaps, scaling, exponents, universality, or fuzzy-sphere-style questions. Use `knowledge-base/2302.04919-variational-benchmarks.md` for V-score and benchmark context.
+`criticality` (for the QPT at `Γ = J` and its higher-D analogues).

@@ -1,43 +1,65 @@
 ---
 name: t-j
-description: Use when the user is working on a t-J model problem, including doped Mott systems, projected Hilbert spaces with no double occupancy, spin-charge interplay, cuprate-inspired models, or strong-coupling Hubbard reductions.
+description: Use when the user is working on a t-J ground-state problem — projected spinful fermions with no double occupancy, doped Mott systems, cuprate-inspired models, or strong-coupling Hubbard reductions.
 ---
 
 # t-J
 
-This skill solves `t-J` problems as projected spinful-fermion problems. It is related to large-`U` Hubbard, but it deserves separate treatment because the no-double-occupancy constraint changes the Hilbert space and diagnostics.
+Solve t-J ground-state problems. The no-double-occupancy projection makes the local Hilbert space three-dimensional (empty / up / down) and changes both diagnostics and method choice relative to Hubbard.
 
-## Problem Form
+## Diagnose
 
-Use the convention
+- **Lattice and dimension** (square default for 2D doped problems).
+- **Hole / electron count** (or filling `n = N_e / N`).
+- **`J/t` ratio** — independent parameter at the t-J level, derived as `4t²/U` only when reducing from Hubbard.
+- **Boundary condition / cylinder shape**.
+- **Added terms**: three-site terms (sometimes included in faithful Hubbard reductions), bond-dependent J.
+- **Goal**: direct t-J physics, or comparison against Hubbard at large `U`?
 
-```text
-H = -t sum_<ij>,sigma P (c_i,sigma^dag c_j,sigma + h.c.) P
-  + J sum_<ij> (S_i . S_j - 1/4 n_i n_j)
-```
+Build per `knowledge-base/conventions.md`:
+`H = -t Σ_<ij>,σ P (c†_iσ c_jσ + h.c.) P + J Σ_<ij> (S_i · S_j - n_i n_j / 4)` (with no-double-occupancy projector `P`).
 
-Ask for lattice, hole/electron count, `J/t`, boundary condition, added terms, and whether the goal is comparison to Hubbard or direct projected-model physics.
+## Workflow
 
-## Steering Defaults
+1. Set up sites with `("Electron"; conserve_qns=true)` in ITensors (or equivalent), pinned to the target `(N↑, N↓)`. Verify that double occupancy is excluded by the construction.
+2. Pick method per the table.
+3. First short run; verify projection, particle counts, fermionic signs.
+4. Sweep convergence parameter; track observable.
+5. Verify (next section).
+6. If the user is comparing to Hubbard or asking about Mott / large-U emergence, hand off.
 
-- Entry: projected finite-system setup, ED or DMRG baseline, density and spin correlations.
-- Intermediate: projection-aware basis, competing spin/charge/pairing diagnostics, finite-size effects, and comparison to large-`U` Hubbard when relevant.
+## Method recommendations
 
-## Method Guidance
+| Regime | Method | Card |
+|---|---|---|
+| Small cluster, exact reference | Projected ED | `knowledge-base/methods/ed.md` |
+| 1D chain, narrow cylinder | DMRG | `knowledge-base/methods/dmrg.md` |
+| Imaginary-time route | TEBD | `knowledge-base/methods/tebd.md` |
+| 2D doped variational comparisons (VMC, NQS) | Cite literature; do not run as default — out of current scope. | — |
 
-- **Projected ED:** best for tiny clusters and checking the constraint exactly.
-- **DMRG/MPS:** natural for chains and cylinders; good for stripes, hole motion, spin correlations, and pairing tendencies.
-- **Projected VMC:** important for 2D variational states and cuprate-inspired questions.
-- **Tensor networks/NQS:** useful when the user wants expressive 2D ansatz comparisons.
+## Branch table
 
-## Software and Setup
+| Condition | Action |
+|---|---|
+| User wants the connection to large-U Hubbard and Mott physics | Call `mott-transition`. |
+| Frustrated lattice (triangular t-J, etc.) | Call `frustration`. |
+| Questions about pairing / superconductivity / stripes in 2D doped t-J | Surface as out of current scope (variational territory); offer a 1D / narrow-cylinder DMRG analog. |
+| At zero doping, the model reduces to Heisenberg | Switch to `heisenberg`. |
 
-For Python sketches, use `numpy`, `scipy`, `quimb`, and `matplotlib` where useful; suggest `make install quimb` if missing. Be explicit about the projected local basis: empty, spin-up, spin-down; no double occupancy.
+## Verification
 
-## Outputs and Checks
+Default checks:
 
-Return projected Hamiltonian construction, basis definition, method plan, observable list, or interpretation. Include checks for no-double-occupancy enforcement, particle/hole count, spin symmetry if relevant, relation `J ~= 4 t^2 / U` only when deriving from Hubbard, and sensitivity to cylinder geometry.
+- **Projection enforcement**: every site has occupancy ∈ {0, ↑, ↓}; double occupancy literally absent in the basis.
+- **Limit checks** via `knowledge-base/limits.md`: at zero doping → Heisenberg; at infinite-`J` limit → spin-isolated singlet pairs; at `t/J → ∞` and small doping → kinetic-dominated regime.
+- **Symmetry**: particle counts; `S^z` (and SU(2) when isotropic); lattice symmetries.
+- **Convergence**: bond-dim sweep; cylinder-width comparison for 2D.
+- **Hubbard cross-check**: when `J = 4t²/U` is being claimed, run the corresponding Hubbard at large `U` and compare ground-state energies up to the expected `O((t/U)^4)` correction.
 
-## Related Skills
+Optional check:
 
-Call `mott-transition` when connecting to large-`U` Hubbard. Call `frustration` or `spin-liquid` when lattice and doping make those diagnostics relevant.
+- Use known integrable points (1D supersymmetric t-J at `J = 2t`) as a benchmark.
+
+## Related skills
+
+`hubbard`, `mott-transition`, `heisenberg` (zero-doping), `frustration`.

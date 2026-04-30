@@ -1,42 +1,65 @@
 ---
 name: t-v
-description: Use when the user is working on a spinless fermion t-V model problem, including hopping plus nearest-neighbor repulsion, charge ordering, fermionic benchmarks, exact diagonalization, or variational ground-state estimates.
+description: Use when the user is working on a spinless-fermion t-V ground-state problem, including hopping plus nearest-neighbor density-density repulsion, charge ordering, and CDW transitions.
 ---
 
 # t-V
 
-This skill solves spinless fermion `t-V` problems. Keep it separate from `t-j`: `t-V` is density interaction without spin exchange; `t-j` is projected spinful fermions with no double occupancy.
+Solve spinless-fermion t-V ground-state problems. Density-density repulsion `V` competes with kinetic delocalization, driving charge order at strong coupling.
 
-## Problem Form
+Distinguish from `t-J`: t-V has no spin index; t-J has projected spinful fermions with no double occupancy.
 
-Use the convention
+## Diagnose
 
-```text
-H = -t sum_<ij> (c_i^dag c_j + h.c.) + V sum_<ij> n_i n_j
-```
+- **Lattice and dimension** (chain default).
+- **Particle number / filling** (e.g., `N_f = N/2` for half-filling).
+- **`V/t` ratio** — drives metallic vs CDW phases.
+- **Boundary condition** (OBC default for DMRG; PBC for ED).
+- **Hopping sign** convention.
+- **Target observable**: `E/N`, charge structure factor `N(q)`, density-density correlations, CDW order parameter, charge gap.
 
-Ask for lattice, particle number or filling, `V/t`, boundary condition, hopping sign convention if relevant, and target observable.
+Build the Hamiltonian per `knowledge-base/conventions.md`. Standard form:
+`H = -t Σ_<ij> (c†_i c_j + h.c.) + V Σ_<ij> n_i n_j` (spinless fermions).
 
-## Steering Defaults
+## Workflow
 
-- Entry: finite spinless-fermion ED baseline and density-density correlations.
-- Intermediate: charge structure factor, finite-size checks, sign/geometry issues, and comparison to variational or tensor-network estimates.
+1. Set up sites with fixed-`N_f` sector; fermion ordering convention explicit.
+2. Pick method per the table.
+3. First run; confirm particle number conserved, fermionic signs handled.
+4. Sweep convergence parameter; track target observable.
+5. Verify (next section).
+6. If competing-order or critical-point physics emerges, hand off.
 
-## Method Guidance
+## Method recommendations
 
-- **ED:** good for small fixed-particle-number sectors and exact charge correlations.
-- **DMRG/MPS:** natural for 1D chains and cylinders; use for ground state, entanglement, and density correlations.
-- **QMC:** possible in selected sign-problem-free settings; do not assume it is available for arbitrary geometry.
-- **VMC/NQS/tensor networks:** useful for hard geometries, variational benchmarks, or comparisons with the V-score paper.
+| Regime | Method | Card |
+|---|---|---|
+| Small chain or 2D cluster (N ≲ 24) | ED (fixed-`N_f` sector) | `knowledge-base/methods/ed.md` |
+| 1D chain (any N), ladder | DMRG | `knowledge-base/methods/dmrg.md` |
+| Imaginary-time approach | TEBD | `knowledge-base/methods/tebd.md` |
+| Sign-problem-free 2D bipartite cases | QMC may be applicable; check sign condition before recommending. | — |
 
-## Software and Setup
+## Branch table
 
-For Python work, use `quimb`, `cotengra`, `numpy`, `scipy`, and `matplotlib`; suggest `make install quimb` if missing. For custom fermion bases, keep fixed-particle-number indexing explicit and validate anticommutation signs.
+| Condition | Action |
+|---|---|
+| Lattice has frustration (triangular t-V, etc.) | Call `frustration` for regime classification. |
+| User asks about the metal-CDW transition explicitly | Run the calculation here, then call `criticality`. |
+| User wants spinful-fermion physics or doped Mott | Switch to `hubbard` or `t-j`. |
 
-## Outputs and Checks
+## Verification
 
-Return Hamiltonian construction, fixed-sector basis setup, observable plan, benchmark table, or interpretation. Include checks for particle-number conservation, fermionic signs, energy normalization, density correlations, and known limits such as `V = 0`.
+Default checks:
 
-## Related Skills
+- **Limit checks** via `knowledge-base/limits.md`: `V = 0` → free fermions (exact tight-binding band); large `V` at half-filling → CDW with `E/N = -V z / 4` (for chain) or analogous lattice Madelung; particle-hole symmetry on bipartite lattices at half-filling.
+- **Symmetry**: particle number conservation; lattice translation; sublattice exchange (bipartite).
+- **Convergence**: bond-dim or basis-size sweep monotonic and asymptoting.
+- **Internal consistency**: variance, density profile near edges (Friedel oscillations expected for OBC).
 
-Call `frustration` if geometry, boundary conditions, or hopping structure create competing kinetic/interacting tendencies. Use `knowledge-base/2302.04919-variational-benchmarks.md` for benchmark context.
+Optional check:
+
+- Compare to `knowledge-base/benchmark-numbers.md` for the V=0 free-fermion limit and known integrable points.
+
+## Related skills
+
+`frustration`, `criticality`, `hubbard` (spinful analog).

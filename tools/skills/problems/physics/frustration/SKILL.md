@@ -1,32 +1,51 @@
 ---
 name: frustration
-description: Use when the user is asking about geometric or interaction frustration, competing interactions, sign-problem-prone regimes, triangular/kagome/pyrochlore lattices, J1-J2 competition, or why a quantum many-body problem is hard.
+description: Use when the user is asking about geometric or interaction frustration — competing interactions, sign-problem-prone regimes, triangular/kagome/pyrochlore lattices, J1-J2 competition, or why a given QMB problem is hard.
 ---
 
 # Frustration
 
-This skill diagnoses frustration as a source of competing low-energy states, sign problems, and method difficulty.
+Diagnose frustration in a specific model: identify its source, what it costs computationally, and how it constrains method choice.
 
-## Inputs to Fix
+## Diagnose
 
-Identify model, lattice, competing couplings, signs, boundary conditions, filling/doping if fermionic, and the user's target: classification, method choice, order competition, spin-liquid possibility, or benchmark difficulty.
+- **Source candidate** — geometric (triangular, kagome, pyrochlore), interaction-based (J1-J2 competition), fermionic (sign problem), or boundary-induced?
+- **Model and lattice**.
+- **Coupling regime** — at what parameter value does frustration become dominant?
+- **What the user wants** — classification, method choice, order-competition diagnosis, or "why is this so hard?"
 
-## Steering Defaults
+## Evidence to gather
 
-- Entry: explain the obstruction in the specific model and choose basic observables.
-- Intermediate: compare candidate orders, finite-size and geometry sensitivity, method limitations, and benchmark hardness.
+- **Classical degeneracy**: count the classical ground-state manifold for the model on the given lattice. Macroscopic degeneracy → strong geometric frustration (e.g., kagome, pyrochlore Heisenberg).
+- **Sign problem indicator**: for Hubbard / t-V, attempt to identify a Marshall sign / bipartite-decomposition argument. If none exists, QMC has a sign problem.
+- **DMRG cylinder convergence**: bond dimension required to converge grows much faster on frustrated lattices; document.
+- **Order-parameter competition**: compute structure factors at multiple candidate ordering wavevectors. Multiple comparable peaks → competition.
+- **Variational ansatz sensitivity**: in literature, several distinct ansatzes (different SL types, VBS, ordered) give close-by energies → strong frustration / contested ground state.
 
-## Method Guidance
+## Cross-checks
 
-- **ED:** first reference for tiny frustrated clusters and candidate-order competition.
-- **DMRG cylinders:** useful but geometry-biased; discuss width, wrapping, and boundary effects.
-- **VMC/NQS/tensor networks:** natural for frustrated 2D regimes and spin-liquid candidates.
-- **QMC:** do not recommend unless the exact sign-problem condition has been checked.
+| Competing explanation | Test that rules it out |
+|---|---|
+| "Just hard," not frustrated | Show a specific source of degeneracy or sign problem; without one, the difficulty may be size or accuracy, not frustration. |
+| Geometric vs interaction frustration | Set non-geometric couplings to default values; does the frustration persist? |
+| Boundary / finite-size artifact | Run multiple boundary conditions; if frustration vanishes with PBC vs OBC, it was finite-size. |
 
-## Outputs and Checks
+## Interpretation rules
 
-Return a frustration diagnosis, viable method list, observable plan, or benchmark interpretation. Check whether frustration is geometric, interaction-based, fermionic, or boundary-induced; these require different evidence.
+- Frustration is a *diagnosis*, not a method recommendation. Once classified, route to the method appropriate for the regime.
+- For QMC sign problems: do not promise sign-free QMC without explicit verification of the sign condition for the specific Hamiltonian and basis.
+- For DMRG on frustrated 2D: cylinder geometry biases the answer; report multiple geometries when possible.
+- A frustrated ground state is not automatically a spin liquid — also call `spin-liquid` for that hypothesis.
 
-## Model Hooks
+## Method-choice implications
 
-Common callers: `heisenberg`, `j1-j2`, `t-v`, `hubbard`, and `t-j`. Use `knowledge-base/2302.04919-variational-benchmarks.md` for the paper's hard-regime signals.
+| Frustration source | Implication |
+|---|---|
+| Geometric (triangular, kagome, pyrochlore) | DMRG cylinder + ED; QMC blocked. VMC/NQS for variational comparison. |
+| Interaction (J1-J2 near `0.5`) | DMRG with multiple geometries + ED on small clusters; literature debate active. |
+| Fermionic sign | Constrained-path AFQMC (with bias discussion) or variational routes. |
+| Boundary-induced | Compare PBC and OBC; if frustration only at OBC, it's not intrinsic. |
+
+## Model hooks
+
+`heisenberg` (triangular, kagome, pyrochlore), `j1-j2`, `t-v`, `hubbard` (with `t'`), `t-j`. Common downstream call: `spin-liquid` when the question is about an exotic non-magnetic ground state; `criticality` when frustration tunes a transition.

@@ -1,32 +1,52 @@
 ---
 name: mott-transition
-description: Use when the user is asking about Mott localization, metal-insulator transitions, Hubbard interaction strength, double occupancy, local moments, DMFT-style reasoning, or correlated-electron regimes.
+description: Use when the user is asking about Mott localization, metal-insulator transitions, Hubbard interaction strength, double occupancy, local moments, or correlated-electron regimes.
 ---
 
 # Mott Transition
 
-This skill diagnoses interaction-driven localization and metal-insulator behavior across Hubbard-like models.
+Diagnose interaction-driven localization vs metallic behavior on a concrete model. Distinguish Mott physics from band-insulator and Anderson-localization explanations.
 
-## Inputs to Fix
+## Diagnose
 
-Identify model, lattice or impurity setting, filling, bandwidth or hopping scale, interaction strength, temperature versus ground state, and observable. Distinguish a true Mott question from ordinary band insulator, Anderson localization, or finite-size gap questions.
+- **Hypothesis** — Mott insulator at the user's parameters? Mott metal-insulator crossover? Bandwidth-controlled transition?
+- **Model and lattice** — Hubbard, multi-orbital Hubbard, t-J on the boundary?
+- **Filling** — half-filled (canonical Mott setting) or doped?
+- **`U/t` (or `U/W`) value**.
+- **Available data** — what observables already computed?
+- **Ground-state vs finite-T context** — finite-T crossover and ground-state Mott phase boundary differ.
 
-## Steering Defaults
+## Evidence to gather
 
-- Entry: use density, double occupancy, local moment, charge gap proxy, and simple finite-size trends.
-- Intermediate: compare local versus spatial correlations, finite-size effects, hysteresis/transition criteria if relevant, DMFT suitability, and cross-method checks.
+- **Charge gap** — finite at half-filling for `U > U_c` (lattice-dependent; 0 for 1D, finite for 2D square at any `U > 0` in some senses). Computed via `E(N+1) + E(N-1) - 2 E(N)`.
+- **Double occupancy** `⟨n_↑ n_↓⟩` — large at small `U/t`, drops toward zero at large `U/t`.
+- **Local moment** `⟨(n_↑ - n_↓)²⟩` — saturates near 1 at large `U/t` (one electron per site, fully spin-active).
+- **Spin-spin correlations** — Heisenberg-like at large `U/t` half-filled; metallic / weak at small `U/t`.
+- **Density of states at Fermi level** (when accessible) — finite for metal, gap for insulator. Often inferred from spectral function rather than computed directly in DMRG.
+- **Conductivity proxy** — Drude weight (long-wavelength `f`-sum rule). Vanishing Drude → insulator.
 
-## Method Guidance
+For *how* to compute each, see the model skill (`hubbard`, `multiorbital-hubbard`, `t-j`) and method card.
 
-- **ED/DMRG:** useful for finite systems, chains, and gaps/correlations.
-- **QMC/AFQMC:** strong when sign-problem-free; constrained variants require bias discussion.
-- **DMFT:** natural for local self-energy and Mott metal-insulator transition questions.
-- **Variational/tensor-network methods:** useful in frustrated or doped regimes where unbiased routes are difficult.
+## Cross-checks
 
-## Outputs and Checks
+| Competing explanation | Test that rules it out |
+|---|---|
+| Band insulator | Gap exists in non-interacting limit (`U = 0`); Mott gap appears only above `U_c`. Check `U = 0` band structure. |
+| Anderson localization | No quenched disorder in the model; rule out trivially if the Hamiltonian is translation-invariant. |
+| Finite-size gap | Charge gap should remain finite as `L → ∞`; band-structure gap closes as `1/L`. |
+| Crossover, not a transition | At `T = 0` ground-state Mott vs metal is sharp; at finite `T` it's typically a crossover (DMFT picture). State which regime the user is in. |
 
-Return a Mott-regime diagnosis, method plan, observable checklist, or interpretation. Check filling, double occupancy trend, charge gap definition, local moment, finite-size artifacts, and whether the method can distinguish metal, band insulator, and Mott insulator.
+## Interpretation rules
 
-## Model Hooks
+- "Double occupancy decreases with `U/t`" alone does *not* prove a Mott transition. It's smooth in 1D Hubbard at any `U > 0`.
+- A clean Mott identification requires: finite charge gap *and* large local moment *and* spin correlations consistent with the effective Heisenberg picture at large `U/t`.
+- For half-filled bipartite lattices, large-`U` reduces to Heisenberg AFM with `J = 4t²/U` (`knowledge-base/limits.md`). The Mott phase carries spin order in this regime; lack of spin order at large `U` indicates frustration, not absence of Mott behavior.
+- For multi-orbital problems: orbital-selective Mott (some bands localized, others itinerant) is a distinct regime; flag it explicitly when relevant.
 
-Common callers: `hubbard`, `t-j`, and `multiorbital-hubbard`.
+## Frontier flag
+
+The 2D doped Hubbard phase diagram (and the question "is there a Mott transition at finite hole density?") is contested. Do not claim a clean Mott identification in the doped 2D regime without being explicit about the literature uncertainty.
+
+## Model hooks
+
+`hubbard` (canonical), `multiorbital-hubbard` (Hund-metal vs Mott), `t-j` (large-`U` Mott side), `anderson-impurity` (single-site Mott physics in DMFT context).

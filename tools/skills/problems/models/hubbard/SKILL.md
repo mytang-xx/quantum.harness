@@ -1,46 +1,67 @@
 ---
 name: hubbard
-description: Use when the user is working on a Hubbard model problem, including half-filled, doped, extended, or next-neighbor hopping variants; Mott physics; correlated electrons; ground-state estimates; or benchmark workflows.
+description: Use when the user is working on a Hubbard ground-state problem — half-filled, doped, with extended interactions, or with next-neighbor hopping; Mott physics, correlated electrons, ground-state estimates, or benchmarks.
 ---
 
 # Hubbard
 
-This skill solves Hubbard-model problems as correlated-electron tasks. Doping, extended interactions, `t'`, lattice, and DMFT are workflow choices inside this problem, not separate skill names.
+Solve Hubbard ground-state problems as correlated-electron tasks. Doping, extended terms (`t'`, `V`), lattice, and DMFT-style embedding are all workflow choices inside this problem — not separate skills.
 
-## Problem Form
+## Diagnose
 
-Base convention:
+- **Lattice and dimension** (chain, square default for 2D).
+- **Filling** or sector `(N↑, N↓)`. Half-filled: `N↑ = N↓ = N/2`.
+- **`U/t` ratio**.
+- **Hopping range**: just nearest-neighbor or also `t'`, `t2`?
+- **Extended interactions**: `V_1`, `V_2` density-density terms, if any.
+- **Boundary condition / cylinder shape**.
+- **Target observable**: `E/N`, double occupancy `⟨n↑ n↓⟩`, spin/charge correlations, gap, magnetic order parameter.
 
-```text
-H = -t sum_<ij>,sigma (c_i,sigma^dag c_j,sigma + h.c.)
-  + U sum_i n_i,up n_i,down
-```
+Build per `knowledge-base/conventions.md`:
+`H = -t Σ_<ij>,σ (c†_iσ c_jσ + h.c.) + U Σ_i n_i↑ n_i↓` (extend with `t'`, `V` as needed).
 
-Ask for lattice, filling or `N_up/N_down`, `U/t`, hopping range (`t'`, `t2`), boundary condition, whether `V1/V2` interactions exist, and the target observable.
+## Workflow
 
-## Steering Defaults
+1. Set up sites with `(N↑, N↓)` conservation; choose initial state in target sector.
+2. Pick method per the table.
+3. First short run; verify particle/spin numbers, particle-hole at half-filling, fermionic signs.
+4. Sweep convergence parameter; track observable.
+5. Verify (next section).
+6. If the question becomes a Mott / large-U / multi-orbital question, hand off.
 
-- Entry: small ED or DMRG baseline; compute energy, density, double occupancy, spin/charge correlations, and simple gap proxies.
-- Intermediate: diagnose half-filled versus doped, 1D versus 2D, sign-problem conditions, finite-size strategy, cross-method checks, and variance/error metrics.
+## Method recommendations
 
-If the user is in a large-`U` doped regime where no-double-occupancy physics is central, offer `t-j` as a faithful handoff, not as a forced replacement.
+| Regime | Method | Card |
+|---|---|---|
+| Small cluster (N ≲ 16 sites) | ED | `knowledge-base/methods/ed.md` |
+| 1D chain, ladder, narrow cylinder | DMRG | `knowledge-base/methods/dmrg.md` |
+| Imaginary-time route to ground state | TEBD | `knowledge-base/methods/tebd.md` |
+| Half-filled bipartite at moderate `U` | AFQMC may be sign-free; recommend only after checking. | — |
+| Local self-energy / Mott transition framing | DMFT — out of current scope unless an install target lands; surface explicitly. | — |
 
-## Method Guidance
+## Branch table
 
-- **ED:** exact references for small clusters, particle-number sectors, double occupancy, and debugging fermion signs.
-- **DMRG/MPS:** strong for 1D chains and cylinders; useful for doped systems but sensitive to width and boundary choices.
-- **AFQMC/QMC:** powerful when sign-problem-free, especially half-filled bipartite repulsive cases; constrained-path variants are approximate and need bias discussion.
-- **DMFT:** appropriate for local self-energy, Mott transition, and impurity-mapped questions; not a top-level problem name.
-- **VMC/NQS/tensor networks:** relevant for frustrated/doped 2D regimes and variational benchmarks.
+| Condition | Action |
+|---|---|
+| `U/t ≫ 1` and finite hole density | Switch to `t-j` (faithful large-U reduction with `J = 4t²/U`). |
+| Question is about Mott localization, double occupancy, charge gap | Call `mott-transition`. |
+| Multiple orbitals or Hund's coupling | Switch to `multiorbital-hubbard`. |
+| Question is about quantum critical behavior (e.g., Mott QCP) | Call `criticality` after the calculation. |
+| Frustrated lattice (triangular Hubbard, etc.) | Call `frustration`. |
 
-## Software and Setup
+## Verification
 
-For Python ED/TN sketches, prefer `quimb`, `cotengra`, `numpy`, `scipy`, and `matplotlib`; suggest `make install quimb` if missing. If the user asks for TeNPy, Julia, or a specialized QMC/DMFT package, first check that the tool is installable in `Makefile`; otherwise explain the dependency and ask whether to add an install target.
+Default checks:
 
-## Outputs and Checks
+- **Limit checks** via `knowledge-base/limits.md`: `U = 0` → free fermions on lattice (compute analytically); `U → ∞` half-filled bipartite → Heisenberg AFM with `J = 4t²/U`; atomic limit `t = 0` → trivial occupation.
+- **Symmetry**: `(N↑, N↓)` conservation; SU(2) for `H_Hubbard` with no field; particle-hole symmetry at half-filling on bipartite lattices.
+- **Convergence**: bond-dim sweep + cylinder-width when 2D.
+- **Internal consistency**: variance, double-occupancy trend (decreases with `U/t`), spin-spin correlations build up at large `U`.
 
-Return Hamiltonian construction, sector definition, method recommendation, code sketch, diagnostic table, or interpretation. Include checks for particle number, spin balance, fermionic signs, `U = 0` and large-`U` limits, double occupancy trends, and whether the selected method can resolve the requested physics.
+Optional check:
 
-## Related Skills
+- 1D chain at half-filling: compare to Lieb-Wu integral equations (`knowledge-base/benchmark-numbers.md`). For 2D, the field is contested at intermediate `U` and finite doping — report values with their convergence trend rather than claiming a benchmark.
 
-Call `mott-transition` for localization, metal-insulator behavior, double occupancy, local moments, or DMFT-style reasoning. Use `knowledge-base/2302.04919-variational-benchmarks.md` for benchmark definitions and V-score context.
+## Related skills
+
+`mott-transition`, `t-j`, `multiorbital-hubbard`, `frustration`, `criticality`.

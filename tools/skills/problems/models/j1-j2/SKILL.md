@@ -1,46 +1,66 @@
 ---
 name: j1-j2
-description: Use when the user is working on a J1-J2 spin model problem, especially frustrated square-lattice or other next-nearest-neighbor Heisenberg variants, competing magnetic orders, spin-liquid candidates, or variational benchmarks.
+description: Use when the user is working on a J1-J2 spin-model ground-state problem, especially frustrated square-lattice Heisenberg with competing NN and NNN couplings, competing magnetic orders, or spin-liquid candidates.
 ---
 
 # J1-J2
 
-This skill solves `J1-J2` spin problems, where competing nearest- and next-nearest-neighbor interactions make method choice and diagnostics regime-dependent.
+Solve J1-J2 spin-model ground-state problems. Competing nearest- and next-nearest-neighbor couplings make the regime `J2/J1 ≈ 0.5` (square lattice) one of the canonical hard / contested benchmarks in QMB.
 
-## Problem Form
+## Diagnose
 
-Use the convention
+- **Spin** (S=1/2 default).
+- **Lattice** (square default; triangular and other variants exist).
+- **`J2/J1` ratio** — drives the phase diagram entirely on the square lattice.
+- **Coupling signs** — J1 antiferromagnetic, J2 antiferromagnetic standard.
+- **Boundary condition / cylinder shape** — heavily affects DMRG results.
+- **System size** (cluster for ED; cylinder `L_y × L_x` for DMRG).
+- **Target observable**: `E/N`, structure factor, dimer correlations, spin gap.
 
-```text
-H = J1 sum_<ij>,a sigma_i^a sigma_j^a
-  + J2 sum_<<ij>>,a sigma_i^a sigma_j^a
-```
+Build the Hamiltonian per `knowledge-base/conventions.md`. Standard form:
+`H = J1 Σ_<ij> S_i · S_j + J2 Σ_<<ij>> S_i · S_j` (NN and NNN).
 
-Confirm lattice, `J2/J1`, signs, spin size, boundary condition, cluster/cylinder shape, and target observable.
+## Workflow
 
-## Steering Defaults
+1. Set up the Hamiltonian; pin sector via `S^z_total = 0` (singlet) for AFM finite-N.
+2. Pick method per the table.
+3. Short first run on a small cluster or narrow cylinder; confirm conservation laws and sign convention.
+4. Sweep bond dim (DMRG) or extend cylinder width; track the target observable.
+5. Verify (next section).
+6. If user is asking about spin-liquid candidacy or phase classification, hand off via the branch table.
 
-- Entry: small ED or DMRG baseline; compute energy, correlations, and candidate order indicators.
-- Intermediate: frustration-aware method choice, competing order diagnostics, finite-size/cylinder-shape sensitivity, and benchmark/variance checks.
+## Method recommendations
 
-Never treat `J1-J2` as merely "Heisenberg with another parameter" when `J2/J1` places it near a competing-order or spin-liquid regime.
+| Regime | Method | Card |
+|---|---|---|
+| Small cluster (N ≲ 32), exact comparison | ED | `knowledge-base/methods/ed.md` |
+| Narrow cylinder (`L_y` ≲ 8) | DMRG | `knowledge-base/methods/dmrg.md` |
+| Imaginary-time route to ground state | TEBD | `knowledge-base/methods/tebd.md` |
+| Wide-cylinder / 2D thermodynamic limit | Beyond current scope. Surface uncertainty; report what cylinder DMRG + ED constrain. | — |
+| Frustrated 2D variational comparisons (VMC, NQS, PEPS) | Cite results, do not run; flag as out of current scope. | — |
 
-## Method Guidance
+## Branch table
 
-- **ED:** best for small clusters, spectra, level crossings, and checking candidate order tendencies.
-- **DMRG:** strong for cylinders and quasi-1D cuts; discuss geometry bias and finite-width extrapolation.
-- **VMC/NQS:** appropriate for competing variational states and spin-liquid candidate comparisons.
-- **PEPS/tensor networks:** useful for 2D states when the user wants a tensor-network route; make bond dimension and extrapolation explicit.
-- **QMC:** generally not the default in frustrated regimes; only suggest when the specific formulation is sign-problem-free.
+| Condition | Action |
+|---|---|
+| `J2/J1 ∈ [0.45, 0.55]` (intermediate regime) | Continue here for setup; the question is almost certainly about phase identification — call `spin-liquid` for the diagnostic. |
+| User wants the source of frustration explained | Call `frustration`. |
+| User wants critical-point characterization (deconfined criticality, Z2 transition) | Call `criticality` after running. |
+| `J2/J1 → 0` | Reduces to NN Heisenberg; switch to `heisenberg` if the user is no longer in the J2-relevant regime. |
 
-## Software and Setup
+## Verification
 
-For Python sketches, use `quimb`, `cotengra`, `numpy`, `scipy`, and `matplotlib`; suggest `make install quimb` if needed. Use small ED code to verify sign conventions before larger tensor-network or variational runs.
+Default checks:
 
-## Outputs and Checks
+- **Limit checks** via `knowledge-base/limits.md`: `J2 = 0` → NN Heisenberg (use square-lattice benchmark from `benchmark-numbers.md` if available); `J1 = 0` → decoupled sublattices (each is NN Heisenberg).
+- **Symmetry**: total `S^z = 0` for AFM; lattice point group respected.
+- **Convergence**: bond-dim sweep + cylinder-width comparison. For the intermediate regime, document both — the answer often depends on the geometry choice.
+- **Internal consistency**: variance, sub-leading bond-dim corrections.
 
-Return a parameterized Hamiltonian, method plan, diagnostic table, code skeleton, or interpretation. Include checks for energy normalization, boundary/shape effects, candidate order structure factors, and whether the proposed method can distinguish competing phases at the requested size.
+Optional check:
 
-## Related Skills
+- For canonical `J2/J1` regimes (Néel at small `J2`, stripe at large `J2`), compare to ranges in `knowledge-base/benchmark-numbers.md`. **For `J2/J1 ≈ 0.5`, do not claim a benchmark match**: the field has not closed the question. Report your converged value, your sizes, and the active uncertainty.
 
-Call `frustration` for regime classification and `spin-liquid` when the task concerns nonmagnetic phases or spin-liquid diagnostics. Use `knowledge-base/2302.04919-variational-benchmarks.md` for benchmark difficulty signals.
+## Related skills
+
+`heisenberg` (J2 = 0 reduction), `frustration`, `spin-liquid`, `criticality`.

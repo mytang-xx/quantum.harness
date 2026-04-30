@@ -43,15 +43,33 @@ Dimension, lattice, filling, doping, boundary condition, disorder strength, and 
 
 ## Knowledge Base Role
 
-`knowledge-base/` is allowed, but it is factual reference storage only. It may contain paper notes, definitions, equations, benchmark facts, and citation material. It must not become a user-facing route, curriculum, task catalog, prerequisite reading path, or method execution manual.
+`knowledge-base/` carries data and method-level reference. It is not a curriculum, reading path, or task catalog.
 
-Actionable method procedures belong in problem skills or tools. When composing skills, follow the broader Superpowers design style: clear trigger conditions, progressive disclosure, explicit workflows, real user checkpoints, and verification before completion. Keep the visible surface problem-driven; add more structure only when it removes real complexity.
+Current cards:
+
+- `conventions.md` — sign / normalization defaults; Hamiltonian forms.
+- `limits.md` — exact reductions and known limits (U=0, U→∞ → t-J, XXZ Δ=1, …).
+- `benchmark-numbers.md` — reference E/N, gaps, order parameters with citations.
+- `symmetry-cheatsheet.md` — conserved quantities, lattice point groups.
+- `methods/{ed,dmrg,tebd}.md` — per-method notation, canonical Julia code shape, knobs, pitfalls.
+- `2302.04919-variational-benchmarks.md` — V-score paper notes.
+
+Skills cite these cards; they never hardcode the data. New cards land when a real skill begins citing them.
+
+## Skill shapes
+
+Two shapes, both problem/research-driven:
+
+- **Model skills** (`tools/skills/problems/models/*`) drive calculations: `Diagnose → Workflow → Method recommendations → Branch table → Verification`.
+- **Physics skills** (`tools/skills/problems/physics/*`) evaluate evidence: `Diagnose → Evidence to gather → Cross-checks → Interpretation rules → Model hooks`.
+
+Skills cite KB for any number, convention, or method-specific code shape. Skills hold workflow only — no hardcoded numbers, no embedded code skeletons, no canonical recipes.
 
 ## Tools & Languages
 
-No specific language committed yet. Candidate TN ecosystems:
-- **Julia:** ITensors.jl, TensorKit.jl + MPSKit/PEPSKit/MERAKit/TNRKit
-- **Python:** quimb + cotengra, TeNPy
+Default stack: **Julia + ITensors.jl** (ITensors.jl, ITensorMPS.jl, MPSKit.jl, KrylovKit.jl). Install via `make install julia && make install itensors`. Method cards in `knowledge-base/methods/` use this stack for canonical code shapes.
+
+Python (`quimb` + `cotengra`) remains available as a fallback for tensor-network sketches via `make install quimb`. Skills can route to either when both work; method cards are Julia-flavored.
 
 ## Installed Skills
 
