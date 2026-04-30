@@ -22,8 +22,9 @@ latex-paper-en = { source = "bahayonghang/academic-writing-skills/latex-paper-en
 julia = { source = "mindrally/skills/julia" }
 ion-cli = { type = "local" }
 
-# Onboarding
+# UX
 onboard = { type = "local" }
+solve = { type = "local" }
 
 # Problem skills: models
 transverse-field-ising = "tools/skills/problems/models/transverse-field-ising"

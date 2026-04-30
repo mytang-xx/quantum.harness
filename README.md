@@ -1,69 +1,85 @@
 # Quantum Many-Body Physics Harness
 
-Research harness for solving quantum many-body problems with tensor-network methods. Targets entry/medium-level **ground-state lattice problems** — spin chains, Hubbard / t-J / t-V models, Anderson impurities, frustrated magnets — and the diagnostic physics questions that come with them (criticality, frustration, spin liquids, Mott transitions, Kondo effect).
-
-The harness is **agent-led, user-ratified**: you bring a concrete problem, the agent diagnoses it, recommends a method, sets up the calculation, runs it, and verifies against known limits and benchmarks. Decisions are surfaced only when there's a real branch.
+Agent-driven problem-solving harness for quantum many-body physics. You bring a concrete problem — the agent sets up the calculation, runs it, verifies the result, and surfaces decisions only when they matter.
 
 ## Quick Start
 
 ```bash
-# Full setup: Ion + skills + domain stack (Julia + ITensors)
-make setup && make domain-setup
-
-# Optional: NetKet for VMC / neural quantum states
-make install netket
-
-# Optional: quimb (Python TN alternative)
-make install quimb
-
-# See all targets
-make help
+make setup && make domain-setup    # Ion + skills + Julia/ITensors stack
+make install netket                # optional: VMC / neural quantum states
+make install quimb                 # optional: Python TN alternative
 ```
 
-Then ask a concrete problem in your Claude / Codex session — the right problem skill activates automatically. If you're not sure where to start, say "where do I start" or invoke `/onboard`.
+Then describe your problem. Examples:
+
+- "Ground state of 1D Heisenberg, N=20"
+- "Is kagome Heisenberg a spin liquid?"
+- "Hubbard square lattice, U/t=8, half-filled — Mott phase?"
+
+The harness diagnoses the problem, picks a method, runs, verifies, and reports in ≤3 lines with a convergence plot. You steer what happens next.
+
+Say "where do I start" if you don't have a problem yet.
+
+## What it covers
+
+**Models** — transverse-field Ising, Heisenberg, J1-J2, t-V, Hubbard, t-J, Anderson impurity, multiorbital Hubbard.
+
+**Physics questions** — criticality, frustration, spin liquids, Mott transitions, Kondo effect.
+
+**Methods** — DMRG, ED, TEBD, VMC/NQS (NetKet). Stubs for spectral functions and finite-T (literature pointers + off-skill paths).
+
+**Scope** — ground-state lattice problems, entry to medium level. Contested cases (kagome, J1-J2 ≈ 0.5, 2D doped Hubbard) are flagged with literature context rather than overclaimed. Dynamics, finite-T, and open systems are future directions.
+
+## How it works
+
+1. **You describe a problem.** The agent infers the setup from your prompt — no questionnaire.
+2. **The agent acts.** Picks a method, runs the calculation, auto-generates a convergence plot. Scripts saved to `scripts/`, results to `results/`.
+3. **You see a short report.** ≤3 lines: result, method reasoning, verification status.
+4. **You pick what's next.** 2–3 concrete options — visualization, parameter scan, deeper analysis, writeup, or stop. Recommended option first.
+5. **Repeat** until you're done.
+
+For frontier or contested problems, the agent leads with a literature summary before offering computation — because computation alone can't close those questions.
 
 ## Repository layout
 
 ```
-tools/skills/problems/
-  models/          Hamiltonian-family skills: TFIM, Heisenberg, J1-J2, t-V,
-                   Hubbard, t-J, Anderson impurity, multiorbital Hubbard
-  physics/         Diagnostic skills: criticality, frustration, spin-liquid,
-                   Mott transition, Kondo effect
+tools/skills/
+  solve/             Interactive problem-solving loop
+  onboard/           First-touch intake + domain setup
+  problems/models/   8 Hamiltonian-family skills
+  problems/physics/  5 diagnostic physics skills
 
-knowledge-base/    Reference data the skills cite:
-  conventions.md           sign and normalization defaults
-  limits.md                exact reductions and known limits
-  benchmark-numbers.md     reference E/N, gaps, with citations
-  symmetry-cheatsheet.md   conserved quantities per lattice
-  methods/{ed,dmrg,tebd}.md  per-method notation, code shape, knobs, pitfalls
-  2302.04919-variational-benchmarks.md   paper-specific notes
+knowledge-base/
+  conventions.md     Sign and normalization defaults
+  limits.md          Exact reductions and known limits
+  benchmark-numbers.md  Reference values with citations
+  symmetry-cheatsheet.md  Conserved quantities per lattice
+  methods/           Per-method code shape, knobs, pitfalls
+                     (dmrg, ed, tebd, vmc-nqs, anderson-impurity-ed,
+                      spectral stub, finite-t stub)
 
-tools/cli/         CLI helpers (`render`, ...)
-tools/templates/   HTML render template
-docs/              Design specs and design history
-Makefile           Bootstrap + on-demand installs
-AGENTS.md          Agent-facing design contract (canonical)
-Ion.toml           Skill manifest (managed by Ion)
+Makefile             Setup + on-demand installs
+AGENTS.md            Agent-facing design contract
+Ion.toml             Skill manifest
 ```
 
-## Design principle
+## Design
 
-**Skills hold problem-level workflow.** Diagnose, decide, branch, verify. They never hardcode reference numbers or method-specific code; they cite the knowledge base for both.
+**Skills** hold problem-level workflow — diagnose, act, verify, branch. They never hardcode reference numbers or method-specific code.
 
-**Knowledge base holds data + method-level reference.** Numbers with citations, conventions, limits, per-method code shape and pitfalls. When a published value gets revised, KB updates and skills don't break.
+**Knowledge base** holds data and method reference — benchmark values, conventions, limits, per-method code shapes. Updating KB never breaks a skill.
 
-Two skill shapes, both problem/research-driven:
+Two skill shapes:
 
-- **Model skills** drive calculations: Diagnose → Workflow → Method recommendations → Branch table → Verification.
-- **Physics skills** evaluate evidence: Diagnose → Evidence to gather → Cross-checks → Interpretation rules.
+- **Model skills** drive calculations: infer setup → run → verify → report → next-steps.
+- **Physics skills** evaluate evidence: frame the question → gather indicators → cross-check → interpret.
 
-The harness is not a tutorial. Learning happens as a side effect of watching capable problem solving, not as the product.
+## For agents
 
-## Scope
+See `AGENTS.md` for the full design contract. Key norms:
 
-Current coverage: **ground-state lattice problems with frontier-flagged uncertainty** — entry/medium baselines plus contested cases inside the same domain (kagome ground state, J1-J2 around `J2/J1 ≈ 0.5`, 2D doped Hubbard, …). For contested cases the harness reports literature ranges and residual uncertainty rather than claiming closure.
-
-**Future directions** (out of scope today; added as new skills when real problems demand them): real-time dynamics, finite-T thermodynamics, open quantum systems, topology beyond spin liquids, continuum / field-theory methods, multi-aspect research orchestration.
-
-For the design contract and controlling principles, see `AGENTS.md`. For design history and current spec, see `docs/superpowers/specs/`.
+- Act first on clear defaults. Offer alternatives after the result, not before.
+- Report ≤3 lines + plot. Details on request.
+- Use `AskUserQuestion` for all choices — 2–3 options, recommended first, one-line tradeoff each.
+- Label off-skill work honestly.
+- For frontier regimes, lead with literature via `arxiv-search`.

@@ -148,6 +148,10 @@ Python (`quimb` + `cotengra`) remains available as a fallback for tensor-network
 
 ## Installed Skills
 
+UX skills:
+- **onboard** — first-touch intake, domain setup, route to problem skill
+- **solve** — interactive problem-solving loop: intake → act → report → next-steps → loop
+
 Local problem skills:
 - **models:** transverse-field-ising, heisenberg, j1-j2, t-v, hubbard, t-j, anderson-impurity, multiorbital-hubbard
 - **physics:** criticality, frustration, spin-liquid, mott-transition, kondo-effect
