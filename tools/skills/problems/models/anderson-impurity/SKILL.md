@@ -30,7 +30,7 @@ If multi-orbital, hand off to `multiorbital-hubbard`. Build per `knowledge-base/
 
 | Regime | Method | Card |
 |---|---|---|
-| Finite bath, small system (`L_bath` ≲ 8) | ED | `knowledge-base/methods/ed.md` |
+| Finite bath, small system (`L_bath` ≲ 8) | ED | `knowledge-base/methods/anderson-impurity-ed.md` |
 | Bath as a chain, longer chains | DMRG / MPS impurity solver | `knowledge-base/methods/dmrg.md` |
 | Continuous bath, low-energy Kondo scaling | NRG-style reasoning (out of current scope to run; note conceptually). | — |
 | DMFT lattice self-consistency | Out of current scope; flag and discuss the embedding context. | — |

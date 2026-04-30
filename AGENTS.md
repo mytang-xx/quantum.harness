@@ -69,7 +69,7 @@ Current cards:
 - `limits.md` — exact reductions and known limits (U=0, U→∞ → t-J, XXZ Δ=1, …).
 - `benchmark-numbers.md` — reference E/N, gaps, order parameters with citations.
 - `symmetry-cheatsheet.md` — conserved quantities, lattice point groups.
-- `methods/{ed,dmrg,tebd}.md` — per-method notation, canonical Julia code shape, knobs, pitfalls.
+- `methods/{ed,dmrg,tebd,anderson-impurity-ed,spectral}.md` — per-method notation, canonical Julia code shape, knobs, pitfalls. `spectral.md` is a stub (pointers only, no tested recipe).
 - `2302.04919-variational-benchmarks.md` — V-score paper notes.
 
 Skills cite these cards; they never hardcode the data. New cards land when a real skill begins citing them.
