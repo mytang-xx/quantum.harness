@@ -4,3 +4,7 @@ raw/
 tools/skills/ion-cli
 .claude/skills/
 CLAUDE.md
+
+# Claude runtime state
+.claude/scheduled_tasks.lock
+.claude/cache/
