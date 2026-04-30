@@ -1,38 +1,59 @@
 ---
 name: onboard
-description: Use when the user is new to the harness, asks "where do I start", or opens with an unclear / empty problem. Routes them to the right problem skill without architecture lecture or tutorial.
+description: Use when the user is new to the harness, asks "where do I start", or opens with an unclear / empty problem. Sets up software and routes to the right problem skill.
 ---
 
 # Onboard
 
-First-touch intake for the harness. Get the user productive on a real problem within one exchange. No tutorial, no architecture lecture.
+First-touch intake. Set up the environment, then get the user onto a real problem fast.
 
 ## When to activate
 
 - "I'm new here" / "where do I start" / "how do I use this".
 - Empty or unclear opening.
-- User explicitly invokes `/onboard` or asks for orientation.
+- User explicitly invokes `/onboard`.
+- First session detected (no `julia-env/` directory).
 
 ## Workflow
 
-1. **Check the install.** Verify Julia + ITensors are present (`julia --version`, `julia --project=julia-env -e 'using ITensors'`). If missing, run `make install julia` and `make install itensors`. Don't block the conversation on these — explain in one line and keep going.
+### 1. Setup — do it, don't ask
 
-2. **Ask one question** — open, short:
-   > "What problem are you trying to solve?"
+Run these checks silently. Fix what's missing. Report a one-line summary.
 
-3. **Route to the matched skill.** Infer the model or physics topic from the answer and hand off. The matched skill takes over. If ambiguous, use `AskUserQuestion` with 2-3 candidate skills as options — don't list all 13.
+```bash
+# Julia
+command -v julia || make install julia
 
-4. **If nothing fits**, be honest in one line — "That's outside current scope (ground-state lattice problems). Want me to try an off-skill approach, or help you reframe?"
+# ITensors stack
+[ -d julia-env ] && julia --project=julia-env -e 'using ITensors' 2>/dev/null || make install itensors
+
+# Verify
+julia --project=julia-env -e 'using ITensors; println("ITensors $(pkgversion(ITensors)) ready")'
+```
+
+If everything is installed, say: "Julia + ITensors ready." (one line)
+If something was missing and installed, say: "Installed Julia + ITensors. Ready." (one line)
+If install fails, say what failed and offer to debug — don't proceed to problem intake until the stack works.
+
+### 2. Problem intake — one question
+
+> "What problem are you trying to solve?"
+
+That's it. Don't list models. Don't explain the architecture.
+
+### 3. Route
+
+Infer the model or physics topic from the answer. Hand off to the matched skill. This skill exits.
+
+If ambiguous, use `AskUserQuestion` with 2–3 candidate skills — short labels, one-line tradeoff each, recommended first. Don't list all 13.
+
+If nothing fits: "That's outside current scope (ground-state lattice problems). Want me to try an off-skill approach, or help you reframe?"
 
 ## What this skill does NOT do
 
-- Lecture about the harness architecture.
-- Walk through a tutorial calculation.
-- Demand the user read AGENTS.md or the README first.
-- Force the install to complete before any conversation.
+- Lecture about the harness.
+- Walk through a tutorial.
+- Ask the user to read docs.
+- Show a menu of 13 skills.
 
-The agent's job here is to start solving a real problem as fast as possible. If a model or physics skill applies, this skill should be a single short exchange, then it exits.
-
-## Related skills
-
-All `tools/skills/problems/models/*` and `tools/skills/problems/physics/*` skills are the routing targets. After the handoff, the chosen skill runs the workflow; this skill does not stay involved.
+One exchange to setup + route, then exit.
