@@ -1,12 +1,10 @@
 # Quantum Many-Body Physics Harness
 
-Research harness for quantum many-body physics using tensor network methods. Covers theoretical foundations (second quantization, Green's functions, Fermi liquid theory, path integrals) and computational approaches (MPS, PEPS, DMRG, TEBD, MERA, TN contractions).
+Problem-solving harness for ground-state lattice problems in quantum many-body physics. Computational approaches: DMRG, ED, TEBD, VMC/NQS via Julia (ITensors) and Python (NetKet).
 
 ## Core Harness Philosophy
 
-This repo is a problem-solving harness. Agents solve concrete quantum many-body problems under light human steering. Users bring problems; agents diagnose, recommend, execute, verify, and surface only the decisions that genuinely matter. Good judgment is demonstrated through action — users absorb it by watching competent work happen.
-
-Agents should behave like capable juniors solving concrete quantum many-body problems under light human steering. The user should not need to know the roadmap, choose every subroutine, or stay motivated through repeated correction. The harness should diagnose the situation, recommend a path, carry out the work, check results, and surface only the decisions that genuinely matter.
+Agents solve concrete problems under light human steering. Users bring problems; agents diagnose, recommend, execute, verify, and surface only the decisions that genuinely matter. Good judgment is demonstrated through action — users absorb it by watching competent work happen.
 
 ### Strategic Steering Principle
 
