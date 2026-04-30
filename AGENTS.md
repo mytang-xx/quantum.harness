@@ -207,7 +207,7 @@ ion self --help                          # Manage the Ion install
 ### Output norms — users' attention is expensive
 
 - **Report results in ≤3 lines.** Energy, verification status, one-line interpretation. That's it. Details on request.
-- **Use `AskUserQuestion` for all choices.** User clicks a button, doesn't type. Options have short labels. Recommended option is first.
+- **Use `AskUserQuestion` for all choices.** User clicks a button, doesn't type. 2–3 options, each with a short label and a one-line description stating the tradeoff. Recommended option is first with "(Recommended)" in the label. This is the Strategic Steering Principle in UI form.
 - **Never dump checklists, verification details, convention notes, or method-card content** unless the user explicitly asks. The agent runs verification internally; the user sees the result, not the process.
 - **Lead with the answer, qualify only if asked.** "E/N = -0.4341, converged, matches Bethe ansatz ✓" — not "I checked 5 things and here they are."
 - **Caveat-after, not caveat-first.** For contested regimes, state the consensus framing first ("doped Mott regime — strong correlations, metallic due to doping"), then qualify ("the contested question is X"). Never open with the hedge.
