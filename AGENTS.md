@@ -4,9 +4,7 @@ Research harness for quantum many-body physics using tensor network methods. Cov
 
 ## Core Harness Philosophy
 
-This repo is a harness for problem-solving agents, not a teaching system.
-
-The previous tutorial, roadmap, and negative-feedback design is intentionally discarded. Do not preserve old routines, knowledge-base workflows, or skill structures for compatibility if they make the user work like a highly motivated student. Users come to agents to solve problems. Any learning should happen as a side effect of watching good judgment, not as the main product.
+This repo is a problem-solving harness. Agents solve concrete quantum many-body problems under light human steering. Users bring problems; agents diagnose, recommend, execute, verify, and surface only the decisions that genuinely matter. Good judgment is demonstrated through action — users absorb it by watching competent work happen.
 
 Agents should behave like capable juniors solving concrete quantum many-body problems under light human steering. The user should not need to know the roadmap, choose every subroutine, or stay motivated through repeated correction. The harness should diagnose the situation, recommend a path, carry out the work, check results, and surface only the decisions that genuinely matter.
 

@@ -16,7 +16,7 @@ Then describe your problem. Examples:
 - "Is kagome Heisenberg a spin liquid?"
 - "Hubbard square lattice, U/t=8, half-filled — Mott phase?"
 
-The harness diagnoses the problem, picks a method, runs, verifies, and reports in ≤3 lines with a convergence plot. You steer what happens next.
+The harness diagnoses the problem, picks a method, runs, verifies, and reports with a convergence plot.
 
 Say "where do I start" if you don't have a problem yet.
 
