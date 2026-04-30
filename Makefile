@@ -1,6 +1,6 @@
 .PHONY: setup test clean help install $(addprefix install-,$(INSTALLABLE))
 
-INSTALLABLE := quarto quimb julia itensors
+INSTALLABLE := quarto quimb julia itensors netket
 
 help: ## Show available targets and installable tools
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
@@ -59,6 +59,13 @@ install-itensors: ## Install ITensors.jl + ITensorMPS.jl + KrylovKit.jl into jul
 	@cd julia-env && julia --project=. -e 'using Pkg; Pkg.add(["ITensors", "ITensorMPS", "KrylovKit", "MPSKit", "Plots"])'
 	@echo "Julia/ITensors environment ready in julia-env/"
 	@echo "Activate with: julia --project=julia-env"
+
+install-netket: ## Install NetKet + JAX for VMC / neural quantum states into .venv
+	@command -v uv >/dev/null 2>&1 || { echo "uv not found. Install uv first: https://docs.astral.sh/uv/getting-started/installation/"; exit 1; }
+	@[ -d .venv ] || uv venv .venv
+	@uv pip install netket jax jaxlib flax optax matplotlib
+	@echo "NetKet environment ready in .venv"
+	@echo "Activate with: source .venv/bin/activate"
 
 render: ## Render a markdown file to HTML. Usage: make render FILE=<path.md>
 	@if [ -z "$(FILE)" ]; then echo "Usage: make render FILE=<path.md>"; exit 1; fi

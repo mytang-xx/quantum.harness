@@ -33,7 +33,7 @@ Build per `knowledge-base/conventions.md`: `H = -t P(c†c+h.c.)P + J Σ(S·S - 
 | Small cluster, exact reference | Projected ED | `knowledge-base/methods/ed.md` |
 | 1D chain, narrow cylinder | DMRG | `knowledge-base/methods/dmrg.md` |
 | Imaginary-time route | TEBD | `knowledge-base/methods/tebd.md` |
-| 2D doped variational comparisons (VMC, NQS) | Cite literature; do not run as default — out of current scope. | — |
+| 2D doped variational (VMC / NQS) | VMC via NetKet for projected wavefunctions. Requires `make install netket`. | `knowledge-base/methods/vmc-nqs.md` |
 
 ## Branch table
 

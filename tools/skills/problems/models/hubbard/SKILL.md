@@ -34,6 +34,7 @@ Build per `knowledge-base/conventions.md`: `H = -t Σ (c†c + h.c.) + U Σ n↑
 | 1D chain, ladder, narrow cylinder | DMRG | `knowledge-base/methods/dmrg.md` |
 | Imaginary-time route to ground state | TEBD | `knowledge-base/methods/tebd.md` |
 | Half-filled bipartite at moderate `U` | AFQMC may be sign-free; recommend only after checking. | — |
+| Frustrated / doped 2D variational (VMC / NQS) | Compare ansatz energies. Requires `make install netket`. | `knowledge-base/methods/vmc-nqs.md` |
 | Local self-energy / Mott transition framing | DMFT — out of current scope unless an install target lands; surface explicitly. | — |
 
 ## Branch table

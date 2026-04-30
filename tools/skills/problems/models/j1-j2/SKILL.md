@@ -34,7 +34,7 @@ Build per `knowledge-base/conventions.md`: `H = J1 Σ S_i·S_j + J2 Σ S_i·S_j`
 | Narrow cylinder (`L_y` ≲ 8) | DMRG | `knowledge-base/methods/dmrg.md` |
 | Imaginary-time route to ground state | TEBD | `knowledge-base/methods/tebd.md` |
 | Wide-cylinder / 2D thermodynamic limit | Beyond current scope. Surface uncertainty; report what cylinder DMRG + ED constrain. | — |
-| Frustrated 2D variational comparisons (VMC, NQS, PEPS) | Cite results, do not run; flag as out of current scope. | — |
+| Frustrated 2D variational (VMC / NQS) | VMC via NetKet; compare ansatz energies and V-scores. Requires `make install netket`. | `knowledge-base/methods/vmc-nqs.md` |
 
 ## Branch table
 

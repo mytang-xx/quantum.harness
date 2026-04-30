@@ -34,7 +34,8 @@ Only surface a real choice when the prompt is genuinely ambiguous about the latt
 | Small cluster (N ≲ 24 sites), exact spectrum, debugging | ED | `knowledge-base/methods/ed.md` |
 | Cylinder (square / triangular / kagome strips, `L_y` small) | DMRG | `knowledge-base/methods/dmrg.md` |
 | Imaginary-time route to ground state, gap probes | TEBD | `knowledge-base/methods/tebd.md` |
-| Frustrated 2D thermodynamic limit | Beyond current scope; surface uncertainty and report what cylinder DMRG / ED on small clusters can constrain. | — |
+| Frustrated 2D variational (VMC / NQS) | Compare ansatz energies on kagome / triangular. Requires `make install netket`. | `knowledge-base/methods/vmc-nqs.md` |
+| Frustrated 2D thermodynamic limit | Beyond current scope for exact methods; surface uncertainty. VMC + DMRG cylinder can constrain. | — |
 
 ## Branch table
 
