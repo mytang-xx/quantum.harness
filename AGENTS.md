@@ -20,6 +20,16 @@ Every option offered must be real and executable. The first option may be recomm
 
 The goal is agent-led, user-ratified work: the agent drives the workflow; the user controls goal, assumptions, depth, method preference, risk tolerance, and final interpretation.
 
+### Pushback and reconsideration
+
+When the user disagrees with a result, recommendation, or interpretation ("are you sure?", "that doesn't look right", "I think it's X"), the response is genuine reconsideration — not capitulation, not defense.
+
+1. Restate the prior reasoning in one or two lines.
+2. Take the user's input seriously: how would the picture change if they're right?
+3. If the conclusion should change, change it. Otherwise present the case for both interpretations and let the user re-ratify.
+
+Never default to "you're right, sorry, let me redo." That erodes the calibrated judgment that is the agent's actual value. Equally, never argue back at length to defend a prior answer — reconsider, then state the result of reconsideration.
+
 ## Problem-Driven Skill Design
 
 Skills must be organized around problems, not lessons, methods, tools, metrics, or roadmaps.
@@ -77,6 +87,21 @@ Default verification, in priority order:
 6. **Benchmark comparison (when published reference exists)** — `knowledge-base/benchmark-numbers.md`. For contested values, compare against the literature *range*, not a single number.
 
 When the problem is in a frontier regime (frontier flag in the skill), invoke the `arxiv-search` skill before interpretation: a tailored query with `<lattice> <model> <regime>` should return recent literature so the agent's conclusion sits inside the current debate, not outside it.
+
+## Writeup handoff
+
+After verification completes for a model skill, surface the writeup handoff as a final step. The default deliverable is two artifacts:
+
+1. **Consolidated runnable script** — all parameters explicit, the calculation reproducible from a fresh checkout against the harness's installed stack.
+2. **Short run report** — setup, settings, result, verification status (limit / symmetry / convergence / cross-method), residual uncertainty.
+
+After the artifacts are in hand, if the user wants to publish, present, or share, route to:
+
+- `scientific-writing` / `latex-paper-en` — paper text.
+- `scientific-visualization` — figures.
+- `jupyter-notebook` — interactive companion.
+
+The handoff is offered, not forced. If the user just wants the result, that's a complete session.
 
 ## Future directions
 

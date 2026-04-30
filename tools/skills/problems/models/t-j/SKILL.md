@@ -61,6 +61,10 @@ Optional check:
 
 - Use known integrable points (1D supersymmetric t-J at `J = 2t`) as a benchmark.
 
+## Writeup handoff
+
+After verification, if the user wants to communicate the result, consolidate to a runnable script + short run report, then route to `scientific-writing` / `latex-paper-en` / `scientific-visualization`. See AGENTS.md "Writeup handoff".
+
 ## Related skills
 
 `hubbard`, `mott-transition`, `heisenberg` (zero-doping), `frustration`.

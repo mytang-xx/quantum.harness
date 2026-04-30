@@ -63,6 +63,10 @@ Optional check:
 
 - 1D chain at half-filling: compare to Lieb-Wu integral equations (`knowledge-base/benchmark-numbers.md`). For 2D, the field is contested at intermediate `U` and finite doping — report values with their convergence trend rather than claiming a benchmark.
 
+## Writeup handoff
+
+After verification, if the user wants to communicate the result, consolidate to a runnable script + short run report, then route to `scientific-writing` / `latex-paper-en` / `scientific-visualization`. See AGENTS.md "Writeup handoff".
+
 ## Related skills
 
 `mott-transition`, `t-j`, `multiorbital-hubbard`, `frustration`, `criticality`.

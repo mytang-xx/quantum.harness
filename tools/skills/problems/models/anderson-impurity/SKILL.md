@@ -60,6 +60,10 @@ Optional check:
 
 - Symmetric Anderson Kondo scale via Haldane formula in `knowledge-base/limits.md` (`T_K`); compare against a finite-bath estimate where possible. Treat as order-of-magnitude consistency, not a benchmark match.
 
+## Writeup handoff
+
+After verification, if the user wants to communicate the result, consolidate to a runnable script + short run report, then route to `scientific-writing` / `latex-paper-en` / `scientific-visualization`. See AGENTS.md "Writeup handoff".
+
 ## Related skills
 
 `kondo-effect`, `multiorbital-hubbard`, `mott-transition` (lattice context).

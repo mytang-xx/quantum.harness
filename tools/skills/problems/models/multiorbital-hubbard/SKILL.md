@@ -66,6 +66,10 @@ Optional check:
 
 - For three-orbital Kanamori at canonical fillings, compare to `knowledge-base/2302.04919-variational-benchmarks.md` and other published benchmarks where `U`, `J_Hund` match.
 
+## Writeup handoff
+
+After verification, if the user wants to communicate the result, consolidate to a runnable script + short run report, then route to `scientific-writing` / `latex-paper-en` / `scientific-visualization`. See AGENTS.md "Writeup handoff".
+
 ## Related skills
 
 `hubbard` (single-orbital reduction), `anderson-impurity` (impurity-flavored), `mott-transition`, `kondo-effect`.

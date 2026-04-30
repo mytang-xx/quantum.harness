@@ -61,6 +61,10 @@ Optional check:
 
 - Compare to `knowledge-base/benchmark-numbers.md` for the V=0 free-fermion limit and known integrable points.
 
+## Writeup handoff
+
+After verification, if the user wants to communicate the result, consolidate to a runnable script + short run report, then route to `scientific-writing` / `latex-paper-en` / `scientific-visualization`. See AGENTS.md "Writeup handoff".
+
 ## Related skills
 
 `frustration`, `criticality`, `hubbard` (spinful analog).

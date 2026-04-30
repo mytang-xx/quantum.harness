@@ -68,6 +68,10 @@ The intermediate regime `J2/J1 ∈ [0.45, 0.55]` on the square lattice is among 
 
 When the user is in a frontier regime, invoke the `arxiv-search` skill with a tailored query (e.g., `J1-J2 square spin liquid`, `J1-J2 deconfined criticality`) to surface the current debate before interpreting your evidence. Then call `spin-liquid` for the diagnostic and `criticality` if a transition is being characterized.
 
+## Writeup handoff
+
+After verification, if the user wants to communicate the result, consolidate to a runnable script + short run report, then route to `scientific-writing` / `latex-paper-en` / `scientific-visualization`. See AGENTS.md "Writeup handoff".
+
 ## Related skills
 
 `heisenberg` (J2 = 0 reduction), `frustration`, `spin-liquid`, `criticality`.

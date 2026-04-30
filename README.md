@@ -24,7 +24,7 @@ make install quarto
 make help
 ```
 
-Then ask a concrete problem in your Claude / Codex session — the right problem skill activates automatically.
+Then ask a concrete problem in your Claude / Codex session — the right problem skill activates automatically. If you're not sure where to start, say "where do I start" or invoke `/onboard`.
 
 ## Repository layout
 
