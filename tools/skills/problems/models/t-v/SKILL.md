@@ -55,6 +55,7 @@ Default checks:
 - **Symmetry**: particle number conservation; lattice translation; sublattice exchange (bipartite).
 - **Convergence**: bond-dim or basis-size sweep monotonic and asymptoting.
 - **Internal consistency**: variance, density profile near edges (Friedel oscillations expected for OBC).
+- **Cross-method validation** (when feasible) — re-run a small fixed-`N_f` cluster with an independent method (DMRG ↔ ED), and check sign-problem-free QMC agreement when applicable. See AGENTS.md "Verification practice".
 
 Optional check:
 

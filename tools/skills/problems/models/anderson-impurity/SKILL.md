@@ -54,6 +54,7 @@ Default checks:
 - **Symmetry**: total particle count, `S^z`, particle-hole at the symmetric point.
 - **Bath-size convergence**: report the trend of the observable as `L_bath` (or chain length) grows.
 - **Internal consistency**: variance; impurity occupancy; local moment.
+- **Cross-method validation** (when feasible) — re-solve at smaller bath with ED for an exact reference; for chain-mapped problems, cross-check star vs chain bath geometry. See AGENTS.md "Verification practice".
 
 Optional check:
 

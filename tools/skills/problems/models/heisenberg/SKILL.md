@@ -61,6 +61,7 @@ Default checks (always run):
 - **Symmetry** — total `S^z` conservation; expected ground-state sector (singlet for finite AFM); lattice point group respected (see `knowledge-base/symmetry-cheatsheet.md`).
 - **Convergence** — bond-dim or basis-size sweep produces a monotonic, asymptoting curve. Report the curve, not just the final value.
 - **Internal consistency** — energy variance is small relative to `E²` at the reported accuracy.
+- **Cross-method validation** (when feasible) — re-run on a small cluster with an independent method (DMRG ↔ ED, or DMRG ↔ TEBD imaginary-time) and confirm agreement. See AGENTS.md "Verification practice".
 
 Optional check (when a published reference exists):
 

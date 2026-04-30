@@ -66,6 +66,8 @@ The harness is not a tutorial. Learning happens as a side effect of watching cap
 
 ## Scope
 
-Current coverage: **ground-state lattice problems at entry/medium level**, plus the diagnostic physics questions listed above. New families (real-time dynamics, finite-T, open systems, topological orders beyond spin liquids) are added when real problems demand them, not preemptively.
+Current coverage: **ground-state lattice problems with frontier-flagged uncertainty** — entry/medium baselines plus contested cases inside the same domain (kagome ground state, J1-J2 around `J2/J1 ≈ 0.5`, 2D doped Hubbard, …). For contested cases the harness reports literature ranges and residual uncertainty rather than claiming closure.
 
-For the design contract and the controlling principles, see `AGENTS.md`. For design history and current spec, see `docs/superpowers/specs/`.
+**Future directions** (out of scope today; added as new skills when real problems demand them): real-time dynamics, finite-T thermodynamics, open quantum systems, topology beyond spin liquids, continuum / field-theory methods, multi-aspect research orchestration.
+
+For the design contract and controlling principles, see `AGENTS.md`. For design history and current spec, see `docs/superpowers/specs/`.

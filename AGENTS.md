@@ -65,6 +65,33 @@ Two shapes, both problem/research-driven:
 
 Skills cite KB for any number, convention, or method-specific code shape. Skills hold workflow only — no hardcoded numbers, no embedded code skeletons, no canonical recipes.
 
+## Verification practice
+
+Default verification, in priority order:
+
+1. **Limit checks** — sign convention and trivial-parameter limits via `knowledge-base/limits.md`.
+2. **Symmetry** — conserved quantities respected; expected sector occupied.
+3. **Convergence** — bond-dim / basis-size / Trotter-step / bath-size sweeps that asymptote.
+4. **Internal consistency** — energy variance small relative to E².
+5. **Cross-method validation (when feasible)** — re-run with an independent method (e.g., DMRG + ED on the same small cluster, DMRG + TEBD imaginary-time) and confirm agreement within both methods' accuracy budgets. Disagreement → setup error or insufficient convergence in one method.
+6. **Benchmark comparison (when published reference exists)** — `knowledge-base/benchmark-numbers.md`. For contested values, compare against the literature *range*, not a single number.
+
+When the problem is in a frontier regime (frontier flag in the skill), invoke the `arxiv-search` skill before interpretation: a tailored query with `<lattice> <model> <regime>` should return recent literature so the agent's conclusion sits inside the current debate, not outside it.
+
+## Future directions
+
+Out of scope for the current harness, added as new skills only when real problems demand them:
+
+- Real-time dynamics (`S(q,ω)`, quench dynamics, ETH).
+- Finite-temperature physics (METTS, susceptibility vs T, specific heat).
+- Open quantum systems (Lindbladian dynamics, dissipation).
+- Topological order beyond spin liquids (SPT, fractons).
+- Continuum-limit / field-theory methods (CFT identification, fuzzy sphere, RG).
+- Empirical method-on-problem lore (per-problem bond-dim / size / failure-mode notes).
+- Composition layer for multi-aspect research questions.
+
+Do not preemptively scaffold these. When a real problem creates the demand, add the corresponding skill (and KB cards) following the same problem-driven design.
+
 ## Tools & Languages
 
 Default stack: **Julia + ITensors.jl** (ITensors.jl, ITensorMPS.jl, MPSKit.jl, KrylovKit.jl). Install via `make install julia && make install itensors`. Method cards in `knowledge-base/methods/` use this stack for canonical code shapes.

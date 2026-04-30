@@ -60,6 +60,7 @@ Default checks:
 - **Symmetry**: orbital occupancies; total particle count; `S^z` and total `S²` when SU(2) is preserved; rotational invariance check at the local level.
 - **Hilbert space sanity**: confirm the basis size matches the analytic `4^M`-style count.
 - **Convergence**: bond-dim sweep; bath-size sweep for impurity problems.
+- **Cross-method validation** (when feasible) — for multi-orbital impurity problems, re-solve at smaller orbital count or with density-density-only interactions as a sanity check; ED ↔ MPS cross-check on small bath. See AGENTS.md "Verification practice".
 
 Optional check:
 

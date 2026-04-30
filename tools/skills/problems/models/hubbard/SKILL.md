@@ -57,6 +57,7 @@ Default checks:
 - **Symmetry**: `(N↑, N↓)` conservation; SU(2) for `H_Hubbard` with no field; particle-hole symmetry at half-filling on bipartite lattices.
 - **Convergence**: bond-dim sweep + cylinder-width when 2D.
 - **Internal consistency**: variance, double-occupancy trend (decreases with `U/t`), spin-spin correlations build up at large `U`.
+- **Cross-method validation** (when feasible) — re-run on a small `(N↑, N↓)` cluster with an independent method (DMRG ↔ ED), and check the U→∞ Heisenberg mapping at large U/t. See AGENTS.md "Verification practice".
 
 Optional check:
 

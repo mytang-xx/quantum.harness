@@ -56,10 +56,17 @@ Default checks:
 - **Symmetry**: total `S^z = 0` for AFM; lattice point group respected.
 - **Convergence**: bond-dim sweep + cylinder-width comparison. For the intermediate regime, document both — the answer often depends on the geometry choice.
 - **Internal consistency**: variance, sub-leading bond-dim corrections.
+- **Cross-method validation** (when feasible) — re-run on a small cluster with an independent method (DMRG ↔ ED on the same cluster), and across cylinder geometries (`L_y` and wrapping). Disagreement on the intermediate regime is a known phenomenon — document, don't average it away. See AGENTS.md "Verification practice".
 
 Optional check:
 
 - For canonical `J2/J1` regimes (Néel at small `J2`, stripe at large `J2`), compare to ranges in `knowledge-base/benchmark-numbers.md`. **For `J2/J1 ≈ 0.5`, do not claim a benchmark match**: the field has not closed the question. Report your converged value, your sizes, and the active uncertainty.
+
+## Frontier flag
+
+The intermediate regime `J2/J1 ∈ [0.45, 0.55]` on the square lattice is among the canonical open problems in QMB. Competing claims (gapless U(1) spin liquid, gapped Z2, valence-bond crystal) coexist in the literature, with the answer often depending on geometry, sizes, and method. **Do not claim closure in this regime.**
+
+When the user is in a frontier regime, invoke the `arxiv-search` skill with a tailored query (e.g., `J1-J2 square spin liquid`, `J1-J2 deconfined criticality`) to surface the current debate before interpreting your evidence. Then call `spin-liquid` for the diagnostic and `criticality` if a transition is being characterized.
 
 ## Related skills
 

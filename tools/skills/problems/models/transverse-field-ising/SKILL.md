@@ -53,6 +53,7 @@ Default checks:
 - **Symmetry**: Z2 (`σ^z → -σ^z`) should be respected; spontaneous breaking shows only with explicit symmetry-breaking field at finite size.
 - **Convergence**: bond-dim sweep gives a monotonic, asymptoting energy curve.
 - **Internal consistency**: energy variance small relative to E².
+- **Cross-method validation** (when feasible) — re-run on a small system with an independent method (DMRG ↔ ED, DMRG ↔ TEBD imaginary-time) and confirm agreement. See AGENTS.md "Verification practice".
 
 Optional check:
 

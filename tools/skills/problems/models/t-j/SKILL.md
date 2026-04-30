@@ -55,6 +55,7 @@ Default checks:
 - **Symmetry**: particle counts; `S^z` (and SU(2) when isotropic); lattice symmetries.
 - **Convergence**: bond-dim sweep; cylinder-width comparison for 2D.
 - **Hubbard cross-check**: when `J = 4t²/U` is being claimed, run the corresponding Hubbard at large `U` and compare ground-state energies up to the expected `O((t/U)^4)` correction.
+- **Cross-method validation** (when feasible) — re-run on a small projected cluster with an independent method (projected ED ↔ DMRG). See AGENTS.md "Verification practice".
 
 Optional check:
 
