@@ -8,3 +8,5 @@ CLAUDE.md
 # Claude runtime state
 .claude/scheduled_tasks.lock
 .claude/cache/
+scripts/
+results/

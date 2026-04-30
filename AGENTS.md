@@ -33,7 +33,13 @@ When defaults are clear from the user's prompt, the agent acts immediately and r
 
 "Just do it" from the user means the agent asked one question too many. The goal is zero questions for clear problems.
 
-The steering wheel lives in the report and the next-steps, not in pre-approval. The report always embeds one-line reasoning: what method was chosen and why, what was verified and how. Over many sessions, users absorb this reasoning and develop judgment — without ever being asked to make the call themselves. Next-steps are always offered as `AskUserQuestion` options so users steer what happens next, not what happens now.
+The steering wheel lives in the report and the next-steps, not in pre-approval. The report always embeds one-line reasoning: what method was chosen and why, what was verified and how. A convergence plot is auto-generated with every calculation. Over many sessions, users absorb this reasoning and develop judgment — without ever being asked to make the call themselves.
+
+Next-steps are always offered as `AskUserQuestion` options. Common next-steps (in rough priority):
+- **Richer visualization** — correlations, structure factor, density profile, or publication figure via `scientific-visualization`.
+- **Parameter scan or finite-size extrapolation** — the natural research follow-up.
+- **Writeup** — consolidated script + run report, then route to writing skills.
+- **Stop here** — always a real option, never padded.
 
 Never march through a checklist of questions. If the user's prompt is too vague to infer anything (rare), present 2–3 starting points via `AskUserQuestion`.
 
@@ -215,13 +221,14 @@ ion self --help                          # Manage the Ion install
 
 ### Output norms — users' attention is expensive
 
-- **Report results in ≤3 lines.** Energy, verification status, one-line interpretation. That's it. Details on request.
+- **Report results in ≤3 lines + a plot.** Energy, verification status, one-line reasoning. Auto-generate a convergence plot (E vs bond dim or basis size) with every calculation — this is the visual proof the result is trustworthy. Save the plot and display it. No extra user action needed.
 - **Use `AskUserQuestion` for all choices** — the Superpowers brainstorming pattern in UI form. User clicks, doesn't type. 2–3 options. Each option: short label + one-line with pro and con. Recommended option first, labeled "(Recommended)". Example:
   - `"DMRG on cylinder (Recommended)"` — "Standard for quasi-1D; converges reliably. Slower at large bond dim."
   - `"ED on small cluster"` — "Exact answer, fast. Limited to N ≤ 24."
   - `"Literature survey first"` — "Cheap, anchors expectations. No new data."
 - **Never dump checklists, verification details, convention notes, or method-card content** unless the user explicitly asks. The agent runs verification internally; the user sees the result, not the process.
 - **Lead with the answer, qualify only if asked.** "E/N = -0.4341, converged, matches Bethe ansatz ✓" — not "I checked 5 things and here they are."
+- **Auto-save scripts and results.** Every calculation produces a script saved to `scripts/<model>_<brief>.jl` and results (data + plot) saved to `results/`. Show the one-line run command: `julia --project=julia-env scripts/<name>.jl`. Never make the user ask for the script.
 - **Caveat-after, not caveat-first.** For contested regimes, state the consensus framing first ("doped Mott regime — strong correlations, metallic due to doping"), then qualify ("the contested question is X"). Never open with the hedge.
 - **One question at a time** when questions are needed; prefer `AskUserQuestion` with options over open-ended text.
 - **Keep prose output under 10 lines.** `AskUserQuestion` options are rendered as buttons — they don't count toward this limit. If more prose is needed, ask before continuing.

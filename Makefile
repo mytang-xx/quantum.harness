@@ -56,7 +56,7 @@ install-julia: ## Install Julia via juliaup (default harness language)
 install-itensors: ## Install ITensors.jl + ITensorMPS.jl + KrylovKit.jl into julia-env/
 	@command -v julia >/dev/null 2>&1 || { echo "Julia not found. Run: make install julia"; exit 1; }
 	@mkdir -p julia-env
-	@cd julia-env && julia --project=. -e 'using Pkg; Pkg.add(["ITensors", "ITensorMPS", "KrylovKit", "MPSKit"])'
+	@cd julia-env && julia --project=. -e 'using Pkg; Pkg.add(["ITensors", "ITensorMPS", "KrylovKit", "MPSKit", "Plots"])'
 	@echo "Julia/ITensors environment ready in julia-env/"
 	@echo "Activate with: julia --project=julia-env"
 
