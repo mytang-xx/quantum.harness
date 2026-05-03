@@ -1,0 +1,16 @@
+{
+  "arxiv": [
+    "cond-mat/9306057",
+    "cond-mat/0701105"
+  ],
+  "doi": [],
+  "stub": [
+    {
+      "slug": "hewson-1993-kondo-problem",
+      "title": "The Kondo Problem to Heavy Fermions",
+      "authors": "A. C. Hewson",
+      "year": "1993",
+      "note": "Canonical book reference for Anderson and Kondo impurity physics; publisher access required."
+    }
+  ]
+}

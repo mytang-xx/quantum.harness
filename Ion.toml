@@ -12,6 +12,7 @@ quimb-tensor-network = { source = "a5c-ai/babysitter/quimb-tensor-network" }
 arxiv-search = { source = "yorkeccak/scientific-skills/arxiv-search" }
 jupyter-notebook = { source = "openai/skills/jupyter-notebook" }
 sympy = { source = "davila7/claude-code-templates/sympy" }
+download-ref = { type = "local" }
 
 # Visualization & writing
 scientific-visualization = { source = "davila7/claude-code-templates/scientific-visualization" }

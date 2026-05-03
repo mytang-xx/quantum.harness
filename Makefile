@@ -1,4 +1,25 @@
+# Zulip bridge for the quantum many-body harness - connects to ManyBodyHarness
+# on https://zulip.hkust-gz.edu.cn. Archive lands under .zulip/ in the repo and is
+# gitignored locally so it never round-trips to GitHub.
+#
+# On a fresh clone this directory does not exist. The onboard skill creates it
+# after the user downloads zuliprc from https://zulip.hkust-gz.edu.cn. Override
+# ZULIP_CONFIG_DIR only if you keep that private API key file somewhere else.
+
+ZULIP_STREAM            := ManyBodyHarness
+ZULIP_SITE              := https://zulip.hkust-gz.edu.cn
+ZULIP_CONFIG_DIR_DEFAULT := $(HOME)/.config/zlp-harness/hkust-gz
+ZULIP_CONFIG_DIR         ?= $(ZULIP_CONFIG_DIR_DEFAULT)
+ZULIP_LOCAL             := $(CURDIR)/.zulip
+
+export ZULIP_CONFIG_FILE := $(ZULIP_CONFIG_DIR)/zuliprc
+export ZLP_ARCHIVE_ROOT  := $(ZULIP_LOCAL)
+export ZLP_RUN_ROOT      := $(ZULIP_LOCAL)/.run
+
+ZLP := zlp
+
 .PHONY: setup test clean help install $(addprefix install-,$(INSTALLABLE))
+.PHONY: zulip-whoami zulip-pull zulip-send zulip-topics zulip-messages zulip-config
 
 INSTALLABLE := quarto quimb julia itensors netket
 
@@ -14,6 +35,31 @@ setup: ## Minimal bootstrap — Ion + skills only
 	ion add
 	@echo ""
 	@echo "Base setup complete. Run 'make domain-setup' to install the domain stack."
+
+# Stable KEY=VALUE contract for the zlp-harness plugin's zlp-onboard skill.
+# Adding new keys is additive; older skill versions ignore unknown lines.
+zulip-config: ## Show Zulip bridge configuration
+	@echo "ZULIP_SITE=$(ZULIP_SITE)"
+	@echo "ZULIP_STREAM=$(ZULIP_STREAM)"
+	@echo "ZULIP_CONFIG_DIR_DEFAULT=$(ZULIP_CONFIG_DIR_DEFAULT)"
+
+zulip-whoami: ## Verify Zulip credentials for this harness
+	$(ZLP) whoami
+
+zulip-topics: ## List topics in the configured Zulip stream
+	$(ZLP) topics --stream "$(ZULIP_STREAM)"
+
+zulip-messages: ## Show Zulip messages. Optional: TOPIC=<name> LIMIT=50 FORMAT=md
+	$(ZLP) messages --stream "$(ZULIP_STREAM)" $(if $(TOPIC),--topic "$(TOPIC)") --limit "$(or $(LIMIT),50)" --format "$(or $(FORMAT),md)"
+
+zulip-pull: ## Mirror Zulip messages into .zulip/. Optional: TOPIC=<name> IMPORT_HISTORY=1
+	$(ZLP) pull --stream "$(ZULIP_STREAM)" $(if $(TOPIC),--topic "$(TOPIC)") $(if $(IMPORT_HISTORY),--import-history)
+
+zulip-send: ## Send a Zulip message. Required: TOPIC=<name> and MSG=... or MSG_FILE=...
+	@test -n "$(TOPIC)" || { echo "TOPIC=... required"; exit 1; }
+	@test -n "$(MSG)$(MSG_FILE)" || { echo "MSG=... or MSG_FILE=... required"; exit 1; }
+	$(ZLP) send --stream "$(ZULIP_STREAM)" --topic "$(TOPIC)" \
+	  $(if $(MSG),--msg "$(MSG)") $(if $(MSG_FILE),--msg-file "$(MSG_FILE)")
 
 DOMAIN_TOOLS := julia itensors
 
