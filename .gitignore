@@ -1,5 +1,6 @@
 raw/
 .zulip/
+.DS_Store
 knowledge-base/literature/**/.raw/
 knowledge-base/literature/**/.figures/
 

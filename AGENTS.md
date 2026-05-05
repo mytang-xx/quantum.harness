@@ -2,9 +2,13 @@
 
 Problem-solving harness for ground-state lattice problems in quantum many-body physics. Computational approaches: DMRG, ED, TEBD, VMC/NQS via Julia (ITensors) and Python (NetKet).
 
+**Audience.** This file is user-facing — loaded into every harness session. Dev-side scaffolding (milestones, design logs) lives under `docs/`, never inlined here.
+
 ## Core Harness Philosophy
 
 Agents solve concrete problems under light human steering. Users bring problems; agents diagnose, recommend, execute, verify, and surface only the decisions that genuinely matter. Good judgment is demonstrated through action — users absorb it by watching competent work happen.
+
+The harness is fixed at runtime. Users encounter a stable system; only the user learns, by absorbing judgment from the harness's reports. Harness changes happen in dev cycles, never during user sessions.
 
 ### Strategic Steering Principle
 
@@ -15,6 +19,8 @@ This is a strategic design pattern, not user-facing language. Do not mention "fa
 Every option offered must be real and executable. The first option may be recommended, but the other options must not be fake, punitive, or low-effort. If the user chooses a non-recommended path, follow it faithfully unless there is a concrete technical blocker. If blocked, explain the blocker and offer the closest viable alternatives.
 
 The goal is agent-led, user-ratified work: the agent drives the workflow; the user controls goal, assumptions, depth, method preference, risk tolerance, and final interpretation.
+
+The user's control is exercised by *ratifying* harness-recommended options — clicking the recommended button, ignoring the diagnose proposal, or overriding when desired — not by pre-specifying. A fresh user may have no method preference; the harness still produces a plan, and the user ratifies by silence or selection. Pre-specification is welcome but never required.
 
 ### Act first, offer alternatives after
 
@@ -80,7 +86,9 @@ Current cards:
 - `limits.md` — exact reductions and known limits (U=0, U→∞ → t-J, XXZ Δ=1, …).
 - `benchmark-numbers.md` — reference E/N, gaps, order parameters with citations.
 - `symmetry-cheatsheet.md` — conserved quantities, lattice point groups.
-- `methods/{ed,dmrg,tebd,vmc-nqs,anderson-impurity-ed,spectral,finite-t}.md` — per-method notation, code shape, knobs, pitfalls. `vmc-nqs.md` uses Python/NetKet. `spectral.md` and `finite-t.md` are stubs (pointers only, no tested recipe).
+- `magic-conventions.md` — Pauli / clock-shift conventions, SRE definitions, partition modes, qudit generalizations, Wegner-duality SRE preservation.
+- `magic-benchmarks.md` — reference SRE / long-range-magic values across canonical models, reported as literature ranges.
+- `methods/{ed,dmrg,tebd,vmc-nqs,anderson-impurity-ed,spectral,finite-t,pauli-markov,ttn}.md` — per-algorithm notation, code shape, knobs, pitfalls. `vmc-nqs.md` uses Python/NetKet. `spectral.md` and `finite-t.md` are stubs (pointers only, no tested recipe).
 - `literature/<method>/` — rendered methodology references organized by method, each with its own `INDEX.md`. Raw PDFs, Semantic Scholar metadata, and extracted figures live in local-only `.raw/` / `.figures/` subfolders and must remain gitignored.
 - `2302.04919-variational-benchmarks.md` — V-score paper notes.
 
@@ -150,8 +158,17 @@ UX skills:
 - **solve** — interactive problem-solving loop: intake → act → report → next-steps → loop
 
 Local problem skills:
-- **models:** transverse-field-ising, heisenberg, j1-j2, t-v, hubbard, t-j, anderson-impurity, multiorbital-hubbard
-- **physics:** criticality, frustration, spin-liquid, mott-transition, kondo-effect
+- **models:** transverse-field-ising, heisenberg, j1-j2, t-v, hubbard, t-j, anderson-impurity, multiorbital-hubbard, spin-1-xxz, potts-clock
+- **physics:** criticality, frustration, spin-liquid, mott-transition, kondo-effect, magic, confinement
+
+Problem-solving primitives (generic; topic-agnostic, compose with the problem skills above):
+- **finite-size-scan** — sweep `L` for any observable; auto convergence check.
+- **parameter-scan** — sweep any axis (Hamiltonian or estimator parameter) for any observable.
+- **scaling-fit** — finite-size collapse, exponent extraction with uncertainty.
+- **cross-method-check** — verify the same observable with an independent method or diagnostic.
+- **run-stage** — execute one stage of a multi-stage method-card pipeline; emits a manifest.
+- **run-report** — assemble consolidated script + structured run report from manifests.
+- **slurm-grid** — submit an embarrassingly-parallel grid; resume on partial completion.
 
 External/support skills:
 - **quimb-tensor-network** — quimb/QuTiP tensor network: MPS, PEPS, DMRG, TEBD
@@ -224,7 +241,7 @@ ion self --help                          # Manage the Ion install
 ### Output norms — users' attention is expensive
 
 - **Report results in ≤3 lines + a plot.** Energy, verification status, one-line reasoning. Auto-generate a convergence plot (E vs bond dim or basis size) with every calculation — this is the visual proof the result is trustworthy. Save the plot and display it. No extra user action needed.
-- **Use `AskUserQuestion` for all choices** — the Superpowers brainstorming pattern in UI form. User clicks, doesn't type. 2–3 options. Each option: short label + one-line with pro and con. Recommended option first, labeled "(Recommended)". Example:
+- **Use `AskUserQuestion` at genuine forks** — pre-action branches and post-result next-steps. Never for pre-flight ratification of clear defaults; never silently at a real fork. Both interrogating clear defaults and silently picking at real forks deny the user the steering wheel. At a real fork, think faithfully like a human: surface 2–3 options with pros / cons and the recommended one (the Superpowers brainstorming pattern in UI form). User clicks, doesn't type. Each option: short label + one-line with pro and con. Recommended option first, labeled "(Recommended)". Example:
   - `"DMRG on cylinder (Recommended)"` — "Standard for quasi-1D; converges reliably. Slower at large bond dim."
   - `"ED on small cluster"` — "Exact answer, fast. Limited to N ≤ 24."
   - `"Literature survey first"` — "Cheap, anchors expectations. No new data."

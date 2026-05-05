@@ -14,6 +14,15 @@ jupyter-notebook = { source = "openai/skills/jupyter-notebook" }
 sympy = { source = "davila7/claude-code-templates/sympy" }
 download-ref = { type = "local" }
 
+# Problem-solving primitives (generic; topic-agnostic)
+finite-size-scan = { type = "local" }
+parameter-scan = { type = "local" }
+scaling-fit = { type = "local" }
+cross-method-check = { type = "local" }
+run-stage = { type = "local" }
+run-report = { type = "local" }
+slurm-grid = { type = "local" }
+
 # Visualization & writing
 scientific-visualization = { source = "davila7/claude-code-templates/scientific-visualization" }
 scientific-writing = { source = "davila7/claude-code-templates/scientific-writing" }
@@ -36,6 +45,8 @@ hubbard = "tools/skills/problems/models/hubbard"
 t-j = "tools/skills/problems/models/t-j"
 anderson-impurity = "tools/skills/problems/models/anderson-impurity"
 multiorbital-hubbard = "tools/skills/problems/models/multiorbital-hubbard"
+spin-1-xxz = "tools/skills/problems/models/spin-1-xxz"
+potts-clock = "tools/skills/problems/models/potts-clock"
 
 # Problem skills: physics
 criticality = "tools/skills/problems/physics/criticality"
@@ -43,3 +54,5 @@ frustration = "tools/skills/problems/physics/frustration"
 spin-liquid = "tools/skills/problems/physics/spin-liquid"
 mott-transition = "tools/skills/problems/physics/mott-transition"
 kondo-effect = "tools/skills/problems/physics/kondo-effect"
+magic = "tools/skills/problems/physics/magic"
+confinement = "tools/skills/problems/physics/confinement"
