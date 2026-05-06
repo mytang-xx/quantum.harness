@@ -28,7 +28,7 @@ Per AGENTS.md "multi-stage orchestration lives in method cards, not skills", the
 1. Parse the method card's stage declaration: input artifacts, output artifacts, executor (`julia`, `python`, …), runtime knobs.
 2. Verify all input artifacts exist; if missing, surface a precise message naming the missing file and the prior stage that produces it.
 3. Verify the output artifact does *not* already exist (or the calling skill explicitly requested overwrite). Resume-friendly: if the output exists and is well-formed, return it without re-running.
-4. Execute the stage. Stream stdout / stderr to `results/<run>/<stage>.log`.
+4. Execute the stage. Stream stdout / stderr to `results/<run>/<stage>.log`. The launched script must flush stdout after each progress line (per AGENTS.md "Output norms" — block-buffered stdout hides progress when redirected to a file or slurm log). For programs whose source you do not control, wrap with `stdbuf -oL` / `unbuffer` / `srun --unbuffered`.
 5. On success: write `results/<run>/<stage>.manifest.json` recording the inputs, outputs, runtime, hash of the script, and any method-card-declared diagnostics (e.g., `τ_int`, energy variance, residual). The manifest is the input to the next stage and to `/run-report`.
 6. On failure: classify (transient / logic / OOM / convergence-out-of-budget), retry per policy, surface honestly if not recoverable.
 
