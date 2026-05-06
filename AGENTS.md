@@ -94,6 +94,8 @@ Current cards:
 
 Skills cite these cards; they never hardcode the data. New cards land when a real skill begins citing them.
 
+**Provenance discipline.** Every numerical anchor on a KB card must carry one of three tags: *Literal* (a verbatim passage from a rendered literature file under `knowledge-base/literature/<method>/`, with line number), *Analytic* (closed-form derivation from a stated definition or limit), or *Harness anchor* (verified empirical value from a tagged run in this repo, with a cross-check method named). Untagged numerical entries are not benchmarks. The `/verify-kb-anchors` primitive cross-checks each tag against its declared source — invoke it during `/reproduce-paper` before compute, and as a pre-commit gate after editing a KB card.
+
 ## Skill shapes
 
 Two shapes, both problem/research-driven:
