@@ -26,18 +26,19 @@ For parameter sweeps that map onto an array of cells, compose with `/parameter-s
 ## Workflow
 
 1. **Pre-check**: cluster profile resolves (`tools/cluster/<active>.md`); ssh alias works (`ssh <alias> echo ok`); local git tree state recorded.
-2. **First-run bootstrap** (only if needed; idempotent):
+2. **Partition selection — probe queue, then ratify with user via Superpowers fork**: before submit, never silently default to the cluster profile's `default-cpu` row. Read the calling skill's resource-class hint (cpu / gpu / high-mem), filter candidate partitions from the profile table, then probe live queue load via `ssh <alias> 'sinfo -o "%P %a %.10l %.6D %.6t"'` (or the cluster profile's status command). Present 2–3 candidates to the user via `AskUserQuestion` — recommended option first, each option with: partition name, current load (idle/mix/alloc/down node counts), cores/memory specs, expected queue wait, one-line pro / con. The user ratifies. Defaults are not free; an idle high-core partition can be a free win, and a congested default-cpu partition can be a hidden multi-hour wait. Per AGENTS.md "warm-clear-concise UX rule".
+3. **First-run bootstrap** (only if needed; idempotent):
    - Test if `<repo_path_remote>` exists on cluster. If not, `git clone` per the profile's `bootstrap_one_time` snippet.
    - Test if `<repo>/julia-env/Manifest.toml` is instantiated (use `tools/cli/setup-julia.sh verify <repo>/julia-env <smoke-pkg>` via ssh — exit code 0 means ready). If not, dispatch `/setup-julia --target remote:<alias>` to install Julia (per `bootstrap_one_time`'s module-load or juliaup recipe), configure mirror per profile's `region`, and run `Pkg.instantiate()`.
    - If the cluster's `bootstrap_one_time` declares cluster-specific quirks beyond Julia (license server, depot path, etc.), run them once, write a `~/.harness-bootstrapped` marker on the cluster.
-3. **Ship**:
+4. **Ship**:
    - `git`: stage and commit if working tree dirty (only with user authorization for this run); `git push origin <branch>`; `ssh <alias> "cd <repo> && git fetch && git checkout <branch> && git pull"`.
    - `rsync`: `rsync -avz --exclude='/results' --exclude='/.git' . <alias>:<repo>/`.
-4. **Submit**: `ssh <alias> "cd <repo> && sbatch <script>"`. Capture job id. For array jobs, the cell map is rsynced to `results/<run>/cells/` first.
-5. **Monitor**: poll `ssh <alias> "squeue -j <jobid> -h -o '%T %M %R'"`. **Critical first check — settle-time within 1–3 min of submit**: tail at least one cell's log to confirm actual compute is happening, not just "RUNNING" status. Sbatch can start a cell, hit a startup error (wrong PATH, missing module, OOM-at-init, broken sbatch.sh), and exit within seconds — but the cell may briefly show RUNNING before flipping to FAILED/COMPLETED. Catching this early prevents a fire-and-forget failure across the whole grid. Per AGENTS.md "Monitor before declaring success".  After the early settle, periodically poll for state transitions (PENDING → RUNNING → COMPLETED/FAILED) and tail one log every 30–60 min for multi-hour jobs.
-6. **Fetch**: when COMPLETED, `rsync -avz <alias>:<repo>/results/<run>/ results/<run>/`.
-7. **Diagnose**: classify exit per cell (success / OOM / walltime / logic / convergence-out-of-budget) using `sacct -j <jobid> --format=JobID,State,ExitCode,MaxRSS,Elapsed`. Surface failures with classification.
-8. **Hand back**: job record + local results path + per-cell status table.
+5. **Submit**: `ssh <alias> "cd <repo> && sbatch <script>"` (with the partition picked in step 2). Capture job id. For array jobs, the cell map is rsynced to `results/<run>/cells/` first.
+6. **Monitor**: poll `ssh <alias> "squeue -j <jobid> -h -o '%T %M %R'"`. **Critical first check — settle-time within 1–3 min of submit**: tail at least one cell's log to confirm actual compute is happening, not just "RUNNING" status. Sbatch can start a cell, hit a startup error (wrong PATH, missing module, OOM-at-init, broken sbatch.sh), and exit within seconds — but the cell may briefly show RUNNING before flipping to FAILED/COMPLETED. Catching this early prevents a fire-and-forget failure across the whole grid. Per AGENTS.md "Monitor before declaring success". After the early settle, periodically poll for state transitions (PENDING → RUNNING → COMPLETED/FAILED) and tail one log every 30–60 min for multi-hour jobs.
+7. **Fetch**: when COMPLETED, `rsync -avz <alias>:<repo>/results/<run>/ results/<run>/`.
+8. **Diagnose**: classify exit per cell (success / OOM / walltime / logic / convergence-out-of-budget) using `sacct -j <jobid> --format=JobID,State,ExitCode,MaxRSS,Elapsed`. Surface failures with classification.
+9. **Hand back**: job record + local results path + per-cell status table.
 
 ## Resume semantics
 
