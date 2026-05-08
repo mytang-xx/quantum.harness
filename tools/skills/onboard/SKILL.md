@@ -73,7 +73,7 @@ If the subagent fails outright (docs site is paywalled / JS-only with no API / 4
 Pre-amble:
 > *"OK, let's walk through 4 things — each one fills in a field of your cluster profile."*
 
-1. *"What's the ssh alias you use to reach the cluster login node? (whatever's in your `~/.ssh/config`)."*
+1. *"Paste the ssh command you use to reach the login node — e.g., `ssh -i ~/.ssh/id_rsa user@host`. A `~/.ssh/config` stanza works too."* Parse `host` / `user` / `identity_file` (and optional `port`) from the single input; default the alias to the cluster short-name. One paste → four fields, no question pile.
 2. AskUserQuestion: *"Which workload manager does the cluster use?"* with options: `Slurm` / `PBS / Torque` / `LSF` / `Plain ssh, no scheduler` / `Not sure — I'll probe`.
 3. *"What's your default queue or partition? You can override per job — this is just where jobs go if nothing else is specified."*
 4. AskUserQuestion: *"Which region is the cluster in?"* with options: `Mainland China (mirrors will be set up downstream)` / `Outside mainland China (default mirrors)` / `Air-gapped / no internet from login` / `Not sure`.

@@ -6,7 +6,10 @@ HPC2 — HKUST(GZ) institutional Slurm cluster. CPU-heavy stack with a small GPU
 
 ## Connection
 
-- `ssh.alias` = `hpc2` (entry in `~/.ssh/config`).
+- `ssh.host` = `hpc2login.hpc.hkust-gz.edu.cn`
+- `ssh.user` = `hzhou361`
+- `ssh.identity_file` = `~/.ssh/id_rsa`
+- `ssh.alias` = `hpc2` (the harness invokes `ssh hpc2` / `rsync … hpc2:…`; on a fresh laptop, append the equivalent `Host hpc2` stanza from the four fields above to `~/.ssh/config`).
 - `repo_path_remote` = `~/harness-qmb` (where the harness checkout lives on the cluster login node).
 
 ## Scheduler

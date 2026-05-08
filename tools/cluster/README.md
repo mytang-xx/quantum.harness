@@ -14,7 +14,7 @@ A skill that needs cluster information reads `active.md` (or the env-var-picked 
 Each card is markdown; skills parse the headers and tables, not free-form prose. The required sections are:
 
 1. **Identity** — cluster name, purpose, who maintains it. One line.
-2. **Connection** — `ssh.alias` (the entry in your `~/.ssh/config`), `repo_path_remote` (where the harness checkout lives on the cluster).
+2. **Connection** — `ssh.host`, `ssh.user`, `ssh.identity_file` (path), `ssh.port` (omit for default 22), `ssh.alias` (the convenience name in `~/.ssh/config`; the harness uses this as the handle), `repo_path_remote` (where the harness checkout lives on the cluster). The first three are the source of truth — a fresh laptop can reconstruct the `~/.ssh/config` stanza directly from them, so the repo alone is sufficient to bootstrap access.
 3. **Scheduler** — `scheduler.type` (`slurm` / `pbs` / `lsf` / `none`), default queue / partition for the user.
 4. **Partitions** — table of `(name, class, cores, memory, max_wall, GPU)`. The `class` column tags each row (`default-cpu`, `gpu`, `high-mem`, `debug`, `long`, `emergency`); skills pick the row by class, not by name.
 5. **Filesystem** — `home`, `scratch` (or absent), project paths; quotas; whether `/scratch` exists.
