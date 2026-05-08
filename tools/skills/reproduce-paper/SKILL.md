@@ -21,6 +21,8 @@ Plan and orchestrate a paper reproduction across multiple figures and main resul
 
 ## Workflow
 
+Steps 1–5 plan; steps 6–9 are the pre-compute discipline (trusted reference, script audit, reference comparison, convergence); steps 10–13 run paper-grade compute and close. The workflow only advances from 9 to 10 when 6–9 are clean. Where a step puts a real choice in front of the user, invoke `Superpowers:brainstorming` to present 2–3 options with pros / cons and a recommendation. Other steps run silently with sensible defaults; on `/verify` ✗ they stop and surface the report, and the user steers from there.
+
 1. **Parse the paper.** Read `knowledge-base/literature/<method>/<paper>/INDEX.md` (or the rendered markdown) for figure list, model coverage, observable list, and the main-results enumeration. If no `INDEX.md` exists, prompt the user to run `download-ref` first.
 
 2. **Categorize each figure.** Tag every figure with one of:
@@ -42,11 +44,19 @@ Plan and orchestrate a paper reproduction across multiple figures and main resul
    - Methodology figs are emitted when they are derivable from the harness (schematics may not always be — fall back to citing the paper directly).
    - Cross-check figs run when the harness has the secondary diagnostic available; route via `/cross-method-check`.
 
-6. **Execute.** Walk the plan; each figure is one or more primitive calls. `/parameter-scan` for sweeps (single- or multi-axis), `/scaling-fit` for collapses, `/cross-method-check` for verification, `/slurm` underneath for cluster compute. Each cell writes a manifest into `results/<run>/cells/<cell_id>/manifest.json`; each primitive writes its summary table into `results/<run>/`.
+6. **Pick a trusted reference.** *Always a fork.* For each substantive figure, identify one parameter point where the same observable has a known-correct answer — analytic limit, independent method (e.g., deterministic Pauli-basis lift, ED + exact sum), published benchmark, or brute-force on a small problem. The reference need not lie on the paper's grid; what matters is that the answer is trusted and the script's code path reaches it. Invoke `Superpowers:brainstorming` with 2–3 candidate references.
 
-7. **/verify the figures.** Before claiming a figure reproduced, dispatch `/verify` in `script` mode (script vs paper methodology) and `result` mode (numbers vs paper-reported values). Catches estimator-class proxies and regime-gaps before they propagate into the writeup.
+7. **Audit the script.** Dispatch `/verify` in `script` mode against (a) the paper's methodology section and (b) the relevant KB method card — does the script handle every documented pitfall? On ✓ continue silently. On ✗ or ⚠ stop and surface the audit report; user steers.
 
-8. **Assemble the close** (writeup handoff per AGENTS.md, embedded here):
+8. **Run the script at the trusted reference, compare.** Execute at the chosen reference parameter point — at whatever scale the reference requires (laptop, cluster, anywhere). Dispatch `/verify` in `result` mode against the reference value. On ✓ continue silently. On ✗ stop.
+
+9. **Convergence at one point.** Vary the method's controlling knob (chain length / bond dimension / basis size) at one parameter point. Confirm the answer asymptotes. On drift, stop. (Defense layer against "converges to a stable but wrong value with small error bar"; step 8 is the primary catch.)
+
+10. **Paper-grade compute.** Dispatch the full grid via `/parameter-scan` + `/slurm`. Inherit the paper's settings by default. Invoke `Superpowers:brainstorming` only if the cluster offers a real budget choice (partition / time / `χ` / `N_S`).
+
+11. **Compare paper-grade to paper.** Dispatch `/verify` in `result` mode for each substantive figure against paper-reported values. On disagreement, stop; user decides next move.
+
+12. **Assemble the close** (writeup handoff per AGENTS.md, embedded here):
    - Walk the run directory: collect every cell manifest, every primitive's CSV / PNG, every script.
    - Generate `results/<run>/consolidated.{jl,py}`: all parameters explicit, no environment-var defaults, reproducible from a fresh checkout against the harness's installed stack.
    - Generate `results/<run>/run-report.md` with:
@@ -58,7 +68,7 @@ Plan and orchestrate a paper reproduction across multiple figures and main resul
      - **Reproduction** — paths to the consolidated script + run command.
    - Embed the auto-generated plots inline (markdown image links to `results/<run>/figs/*.png`).
 
-9. **Surface gaps honestly.** Figures the harness cannot reach (proprietary data, hardware experiments, models out of scope) are listed with the gap classification — not silently skipped. The user can then decide to fill the gap manually or accept the partial reproduction.
+13. **Surface gaps honestly.** Figures the harness cannot reach (proprietary data, hardware experiments, models out of scope) are listed with the gap classification — not silently skipped. The user can then decide to fill the gap manually or accept the partial reproduction.
 
 ## Categorization heuristics
 
@@ -84,18 +94,19 @@ Per AGENTS.md output norms, reports stay terse — but paper reproduction has a 
 | Methodology figures (schematics) | `results/<run>/figs/method-<id>.png` | When derivable; otherwise paper-citation note. |
 | Per-cell / per-figure manifest | `results/<run>/cells/<cell_id>/manifest.json`, `results/<run>/manifests/fig-<id>.json` | Always. |
 | `/verify` reports per figure | `results/<run>/verify_<figure>_<date>.md` | Always (script mode + result mode). |
-| Consolidated runnable script | `results/<run>/consolidated.{jl,py}` | Always (Step 8 close). |
-| Run report mapping main results → figs → verification status | `results/<run>/run-report.md` | Always (Step 8 close). |
+| Consolidated runnable script | `results/<run>/consolidated.{jl,py}` | Always (Step 12 close). |
+| Run report mapping main results → figs → verification status | `results/<run>/run-report.md` | Always (Step 12 close). |
 
 ## Composition
 
-This skill is *primarily an orchestrator* (with the close embedded in Step 8). Most steps delegate:
+This skill is *primarily an orchestrator* (with the close embedded in Step 12). Most steps delegate:
 
 - **Wavefunction stages** → model skill + method card (DMRG / TTN / ED / TEBD / VMC-NQS).
 - **Parameter sweeps** (single- or multi-axis) → `/parameter-scan`.
 - **Critical scaling** → `/scaling-fit`.
 - **Cross-checks** → `/cross-method-check`.
-- **Verification** (script / result against paper) → `/verify`.
+- **Verification** (script / result against paper or KB or trusted reference) → `/verify`.
+- **User-facing forks** (trusted-reference pick, cluster budget choice, post-audit redirects) → `Superpowers:brainstorming`. Option presentation lives there, not duplicated in this skill.
 - **Multi-stage compute scripts** → method card declares stages; the per-cell compute script walks them and writes per-stage manifests. Plain shell, not a separate skill.
 - **Cluster execution** → `/slurm` (called by `/parameter-scan` for grid sweeps; can be called directly for single big runs). Cluster profile from `tools/cluster/<active>.md`.
 
@@ -111,7 +122,7 @@ The orchestrator's value is in the *plan* (the dependency graph + methodology/ve
 - This skill is *paper-agnostic*: any paper with an `INDEX.md` and a recognizable model + method coverage can be run through it. It is not magic-paper-specific.
 - For papers covering models out of harness scope, the plan stage surfaces the gap and offers (a) a partial-coverage run, (b) escalation to `arxiv-search` for related papers in scope, or (c) cancellation.
 - Methodology absorption (the Pragmatist's blind spot) is the *purpose* of this skill — emitting verification and methodology figs alongside substantive ones is what distinguishes paper reproduction from a `solve`-loop chain. A user who asked for the "main result" gets the result *plus* the verification anchors that earn the result.
-- Per AGENTS.md "Writeup handoff", the consolidated script + run report is the close of this skill (Step 8); the user can route to `scientific-writing` / `latex-paper-en` / `scientific-visualization` / `jupyter-notebook` for downstream artifacts.
+- Per AGENTS.md "Writeup handoff", the consolidated script + run report is the close of this skill (Step 12); the user can route to `scientific-writing` / `latex-paper-en` / `scientific-visualization` / `jupyter-notebook` for downstream artifacts.
 
 ## Related skills
 
