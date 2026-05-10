@@ -104,9 +104,13 @@ function validate_compute_manifest!(d::AbstractDict, path::String)
         error("Compute gate failed for $path: manifest artifact path mismatch")
     get(d["artifacts"], "script", nothing) == SCRIPT_PATH ||
         error("Compute gate failed for $path: script artifact path mismatch")
-    for field in ("cL", "se", "mean_R", "accept")
+    for field in ("cL", "se", "accept")
         d[field] isa Real && isfinite(d[field]) ||
             error("Compute gate failed for $path: required numeric field '$field' is not finite")
+    end
+    if haskey(d, "mean_R") && d["mean_R"] !== nothing
+        d["mean_R"] isa Real && isfinite(d["mean_R"]) ||
+            error("Compute gate failed for $path: mean_R is present but not finite")
     end
     return true
 end
@@ -1007,13 +1011,14 @@ function compute_cL_cell(L::Int, h::Float64; chi=30, n_steps=10^5, n_warmup=10^4
                           estimator::Symbol=:ratio,
                           initial_state=nothing,
                           symmetry_checks=Any[],
+                          sample_blocks::Int=20,
                           pauli_chi::Int=16,
                           pauli_chi_check::Int=0,
                           pauli_chi_tol::Float64=0.02,
                           symmetry_tol::Float64=1e-6)
     @assert iseven(L) && L ≥ 4
     Lh = L ÷ 2
-    use_mps_norm = estimator == :pauli_mps_norm
+    use_mps_norm = estimator in (:pauli_mps_norm, :pauli_mps_born_direct)
 
     full_cache = nothing
     half_cache1 = nothing
@@ -1086,6 +1091,47 @@ function compute_cL_cell(L::Int, h::Float64; chi=30, n_steps=10^5, n_warmup=10^4
          pauli_trunc_L=high.trunc_L, pauli_trunc_H=high.trunc_H,
          pauli_chi_check=pauli_chi_check, pauli_chi_error=compression_error,
          symmetry_evidence=symmetry_evidence)
+    elseif estimator == :pauli_mps_born_direct
+        isempty(symmetry_checks) &&
+            error("Pauli-MPS Born-direct estimator requires declared symmetry_checks for the target MPS states")
+        symmetry_evidence = mps_constraint_evidence(
+            symmetry_checks,
+            Dict("full" => (psi=psi_L_mps, sites=sites_L),
+                 "half" => (psi=psi_Lh_mps, sites=sites_Lh));
+            default_tolerance=symmetry_tol,
+        )
+        pauli_chi_check = pauli_chi_check > pauli_chi ? pauli_chi_check : 2 * pauli_chi
+        raw_B_L = pauli_mps_tensors(psi_L_mps, sites_L)
+        raw_B_H = pauli_mps_tensors(psi_Lh_mps, sites_Lh)
+        function sampled_cL_at_chi(χP::Int)
+            B_L, trunc_L = compress_pauli_mps(raw_B_L, χP, 1e-12)
+            B_H, trunc_H = compress_pauli_mps(raw_B_H, χP, 1e-12)
+            res = pauli_mps_born_direct_cL(B_L, B_H; n_samples=n_steps,
+                                           seed=seed,
+                                           n_blocks=sample_blocks)
+            return (cL=res.cL, se=res.se, trunc_L=trunc_L, trunc_H=trunc_H,
+                    born_norm_full=res.born_norm_full, born_norm_half=res.born_norm_half,
+                    mean_abs2_full=res.mean_abs2_full, mean_abs2_half=res.mean_abs2_half)
+        end
+        low = sampled_cL_at_chi(pauli_chi)
+        high = sampled_cL_at_chi(pauli_chi_check)
+        estimator_shift = abs(high.cL - low.cL)
+        shift_noise = sqrt(high.se^2 + low.se^2)
+        compression_excess = max(0.0, estimator_shift - 2 * shift_noise)
+        compression_excess <= pauli_chi_tol ||
+            error("Pauli-MPS Born-direct compression not converged at L=$L h=$h: max(0, |cL(χP=$pauli_chi_check)-cL(χP=$pauli_chi)| - 2σ)=$compression_excess > $pauli_chi_tol (raw shift=$estimator_shift, σ=$shift_noise)")
+        se_total = sqrt(high.se^2 + estimator_shift^2)
+        (cL=high.cL, se=se_total, accept=1.0, mean_R=nothing, se_R=nothing,
+         proposal="pauli_mps_born_direct_sampling", block_size=max(1, n_steps ÷ sample_blocks),
+         n_recorded=2 * n_steps, expectation_backend="pauli_mps_born_direct_sampling",
+         pauli_trunc_L=high.trunc_L, pauli_trunc_H=high.trunc_H,
+         pauli_chi_check=pauli_chi_check, pauli_chi_error=estimator_shift,
+         pauli_chi_excess=compression_excess,
+         pauli_chi_shift_noise=shift_noise,
+         sampling_se=high.se, born_norm_full=high.born_norm_full,
+         born_norm_half=high.born_norm_half,
+         mean_abs2_full=high.mean_abs2_full, mean_abs2_half=high.mean_abs2_half,
+         symmetry_evidence=symmetry_evidence)
     elseif estimator == :ratio && full_cache === nothing
         pauli_markov_cL_eq24(expect_L, expect_Lh, L;
                              n_steps=n_steps, n_warmup=n_warmup, seed=seed,
@@ -1110,6 +1156,13 @@ function compute_cL_cell(L::Int, h::Float64; chi=30, n_steps=10^5, n_warmup=10^4
             pauli_trunc_H=get(res, :pauli_trunc_H, nothing),
             pauli_chi_check=get(res, :pauli_chi_check, nothing),
             pauli_chi_error=get(res, :pauli_chi_error, nothing),
+            pauli_chi_excess=get(res, :pauli_chi_excess, nothing),
+            pauli_chi_shift_noise=get(res, :pauli_chi_shift_noise, nothing),
+            sampling_se=get(res, :sampling_se, nothing),
+            born_norm_full=get(res, :born_norm_full, nothing),
+            born_norm_half=get(res, :born_norm_half, nothing),
+            mean_abs2_full=get(res, :mean_abs2_full, nothing),
+            mean_abs2_half=get(res, :mean_abs2_half, nothing),
             symmetry_evidence=get(res, :symmetry_evidence, Any[]),
             initial_state=initial_state)
 end
@@ -1161,7 +1214,7 @@ function main()
     proposal = Symbol(harness_get_string(cell_settings, "proposal", get(ENV, "FIG4_PROPOSAL", "paper")))
     @assert proposal in (:paper, :group)
     estimator = Symbol(harness_get_string(cell_settings, "estimator", get(ENV, "FIG4_ESTIMATOR", "ratio")))
-    @assert estimator in (:ratio, :bridge, :pauli_mps_norm)
+    @assert estimator in (:ratio, :bridge, :pauli_mps_norm, :pauli_mps_born_direct)
     pauli_chi = harness_get_int(cell_settings, "pauli_chi", parse(Int, get(ENV, "FIG4_PAULI_CHI", "16")))
     pauli_chi_check = harness_get_int(cell_settings, "pauli_chi_check",
                                       parse(Int, get(ENV, "FIG4_PAULI_CHI_CHECK", string(2 * pauli_chi))))
@@ -1169,18 +1222,25 @@ function main()
                                       parse(Float64, get(ENV, "FIG4_PAULI_CHI_TOL", "0.02")))
     symmetry_tol = harness_get_float(cell_settings, "symmetry_tol",
                                      parse(Float64, get(ENV, "FIG4_SYMMETRY_TOL", "1e-6")))
+    sample_blocks = harness_get_int(cell_settings, "sample_blocks",
+                                    parse(Int, get(ENV, "FIG4_SAMPLE_BLOCKS", "20")))
     initial_state = get(cell_settings, "initial_state", nothing)
     symmetry_checks = get(cell_settings, "symmetry_checks", Any[])
-    if estimator == :pauli_mps_norm && initial_state === nothing
-        error("estimator=pauli_mps_norm requires settings.initial_state to declare the target sector's MPS state preparation")
+    if estimator in (:pauli_mps_norm, :pauli_mps_born_direct) && initial_state === nothing
+        error("estimator=$estimator requires settings.initial_state to declare the target sector's MPS state preparation")
     end
-    if estimator == :pauli_mps_norm && isempty(symmetry_checks)
-        error("estimator=pauli_mps_norm requires settings.symmetry_checks to declare target-sector verification")
+    if estimator in (:pauli_mps_norm, :pauli_mps_born_direct) && isempty(symmetry_checks)
+        error("estimator=$estimator requires settings.symmetry_checks to declare target-sector verification")
     end
-    run_deviations = estimator == :pauli_mps_norm ?
+    run_deviations = if estimator == :pauli_mps_norm
         unique([provenance["deviations"]...,
-                "MPS compressed Pauli-MPS normalizer contraction replaces paper TTN/local-Metropolis Eq.-24 sampler"]) :
+                "MPS compressed Pauli-MPS normalizer contraction replaces paper TTN/local-Metropolis Eq.-24 sampler"])
+    elseif estimator == :pauli_mps_born_direct
+        unique([provenance["deviations"]...,
+                "MPS Born-direct Pauli-MPS sampling replaces paper TTN/local-Metropolis Eq.-24 sampler"])
+    else
         provenance["deviations"]
+    end
     if estimator == :bridge
         allow_bridge = harness_get_bool(cell_settings, "allow_experimental_bridge",
                                         get(ENV, "FIG4_ALLOW_EXPERIMENTAL_BRIDGE", "false") == "true")
@@ -1193,7 +1253,9 @@ function main()
     isdir(cell_dir) || mkpath(cell_dir)
 
     estimator_label = estimator == :pauli_mps_norm ?
-        "compressed Pauli-MPS normalizer contraction" : "cached Eq.-(24) ratio-chain diagnostic"
+        "compressed Pauli-MPS normalizer contraction" :
+        (estimator == :pauli_mps_born_direct ?
+         "Born-direct Pauli-MPS sampling" : "cached Eq.-(24) ratio-chain diagnostic")
     println("\n############ /verify-recommended Fig 4 reproduction ($estimator_label) ############")
     @printf("Hamiltonian : H = -Σ σ_i^x σ_j^x - h Σ σ_i^z   (PBC, translation invariant)\n")
     @printf("Anchor      : L_min = %d (exact-sum SRE on ED ground state)\n", L_min)
@@ -1238,14 +1300,20 @@ function main()
                               pbc=pbc, proposal=proposal, estimator=estimator,
                               initial_state=initial_state,
                               symmetry_checks=symmetry_checks,
+                              sample_blocks=sample_blocks,
                               pauli_chi=pauli_chi, pauli_chi_check=pauli_chi_check,
                               pauli_chi_tol=pauli_chi_tol, symmetry_tol=symmetry_tol)
         dt = time() - t0
         cL_data[(L, h)] = res.cL
         cL_err[(L, h)]  = res.se
         accept_all[(L, h)] = res.accept
-        @printf("    c_L = %+.5f ± %.5f   (mean_R=%.4e, accept=%.2f, %.1f s)\n",
-                res.cL, res.se, res.mean_R, res.accept, dt)
+        if res.mean_R === nothing
+            @printf("    c_L = %+.5f ± %.5f   (accept=%.2f, %.1f s)\n",
+                    res.cL, res.se, res.accept, dt)
+        else
+            @printf("    c_L = %+.5f ± %.5f   (mean_R=%.4e, accept=%.2f, %.1f s)\n",
+                    res.cL, res.se, res.mean_R, res.accept, dt)
+        end
         manifest_path = cell_only ? joinpath(cell_dir, "manifest.json") :
                         joinpath(cell_dir, @sprintf("manifest_L%d_h%.2f.json", L, h))
         cell_record = Dict(
@@ -1256,6 +1324,7 @@ function main()
                               "pauli_chi_check"=>pauli_chi_check,
                               "pauli_chi_tol"=>pauli_chi_tol,
                               "symmetry_tol"=>symmetry_tol,
+                              "sample_blocks"=>sample_blocks,
                               "initial_state"=>initial_state,
                               "symmetry_checks"=>symmetry_checks,
                               "proposal_kernel"=>string(proposal),
@@ -1267,7 +1336,8 @@ function main()
             "E_L"=>res.E_L, "E_Lh"=>res.E_Lh, "wall_seconds"=>dt,
             "n_steps"=>n_steps, "chi"=>chi, "pauli_chi"=>pauli_chi,
             "pauli_chi_check"=>pauli_chi_check, "pauli_chi_tol"=>pauli_chi_tol,
-            "symmetry_tol"=>symmetry_tol, "pbc"=>pbc, "L_min"=>L_min,
+            "symmetry_tol"=>symmetry_tol, "sample_blocks"=>sample_blocks,
+            "pbc"=>pbc, "L_min"=>L_min,
             "initial_state"=>initial_state,
             "symmetry_checks"=>symmetry_checks,
             "proposal"=>res.proposal, "proposal_kernel"=>string(proposal),
@@ -1277,6 +1347,13 @@ function main()
             "pauli_trunc_L"=>res.pauli_trunc_L,
             "pauli_trunc_H"=>res.pauli_trunc_H,
             "pauli_chi_error"=>res.pauli_chi_error,
+            "pauli_chi_excess"=>res.pauli_chi_excess,
+            "pauli_chi_shift_noise"=>res.pauli_chi_shift_noise,
+            "sampling_se"=>res.sampling_se,
+            "born_norm_full"=>res.born_norm_full,
+            "born_norm_half"=>res.born_norm_half,
+            "mean_abs2_full"=>res.mean_abs2_full,
+            "mean_abs2_half"=>res.mean_abs2_half,
             "symmetry_evidence"=>res.symmetry_evidence,
             "expectation_backend"=>res.expectation_backend,
             "protocol_hash"=>provenance["protocol_hash"],
@@ -1341,6 +1418,7 @@ function main()
         "pauli_chi_check" => pauli_chi_check,
         "pauli_chi_tol" => pauli_chi_tol,
         "symmetry_tol" => symmetry_tol,
+        "sample_blocks" => sample_blocks,
         "n_steps" => n_steps,
         "pbc"     => pbc,
         "initial_state" => initial_state,
@@ -1431,6 +1509,8 @@ function main()
         println("  Estimator: single-chain Π_{P,2} ∝ |⟨P⟩|⁴, ratio R = |⟨P^(1)⟩|⁴|⟨P^(2)⟩|⁴/|⟨P⟩|⁴.")
     elseif estimator == :bridge
         println("  Estimator: bridge ratio of Eq.-(24) normalizers, using full-target and product-target samples.")
+    elseif estimator == :pauli_mps_born_direct
+        println("  Estimator: exact Born sampling from the Pauli-MPS |b(P)|² distribution; method deviation from paper TTN/local-Metropolis sampler.")
     else
         println("  Estimator: compressed Pauli-MPS normalizer contraction; method deviation from paper TTN/local-Metropolis sampler.")
     end

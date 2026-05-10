@@ -1,5 +1,6 @@
 using LinearAlgebra
 using Random
+using Statistics
 
 function pauli_mps_tensor(A::Array{ComplexF64,3})
     s_dim, l_dim, r_dim = size(A)
@@ -72,6 +73,124 @@ function compress_pauli_mps(Bs::Vector{Array{ComplexF64,3}}, maxdim::Int, cutoff
         end
     end
     return out, trunc_err
+end
+
+struct PauliMPSBornSampler
+    Bs::Vector{Array{ComplexF64,3}}
+    right::Vector{Matrix{ComplexF64}}
+    norm::Float64
+end
+
+function PauliMPSBornSampler(Bs::Vector{Array{ComplexF64,3}})
+    L = length(Bs)
+    right = Vector{Matrix{ComplexF64}}(undef, L + 1)
+    right[L + 1] = ones(ComplexF64, 1, 1)
+    for i in L:-1:1
+        _, l_dim, _ = size(Bs[i])
+        env = zeros(ComplexF64, l_dim, l_dim)
+        for code in 0:3
+            Bα = @view Bs[i][code + 1, :, :]
+            env .+= Bα * right[i + 1] * Bα'
+        end
+        right[i] = env
+    end
+    norm = real(right[1][1, 1])
+    norm > 0 || error("Pauli-MPS Born norm must be positive, got $norm")
+    return PauliMPSBornSampler(Bs, right, norm)
+end
+
+pauli_mps_born_norm(s::PauliMPSBornSampler) = s.norm
+
+function sample_pauli_string(s::PauliMPSBornSampler, rng::AbstractRNG)
+    L = length(s.Bs)
+    p = zeros(Int, L)
+    left = ones(ComplexF64, 1, 1)
+    for i in 1:L
+        weights = zeros(Float64, 4)
+        left_candidates = Vector{Matrix{ComplexF64}}(undef, 4)
+        for code in 0:3
+            Bα = @view s.Bs[i][code + 1, :, :]
+            next_left = Bα' * left * Bα
+            w = real(tr(next_left * s.right[i + 1]))
+            weights[code + 1] = max(w, 0.0)
+            left_candidates[code + 1] = next_left
+        end
+        total = sum(weights)
+        total > 0 || error("No positive Born conditional weight at site $i")
+        threshold = rand(rng) * total
+        acc = 0.0
+        chosen = 3
+        for code in 0:3
+            acc += weights[code + 1]
+            if threshold <= acc
+                chosen = code
+                break
+            end
+        end
+        p[i] = chosen
+        left = left_candidates[chosen + 1]
+    end
+    return p
+end
+
+function log_mean_with_block_se(xs::Vector{Float64}, n_blocks::Int)
+    n = length(xs)
+    block = n ÷ n_blocks
+    block < 1 && error("n_samples=$n is too small for n_blocks=$n_blocks")
+    logs = Float64[]
+    for b in 1:n_blocks
+        lo = (b - 1) * block + 1
+        hi = b == n_blocks ? n : b * block
+        push!(logs, log(mean(@view xs[lo:hi])))
+    end
+    return log(mean(xs)), length(logs) > 1 ? std(logs) / sqrt(length(logs)) : 0.0
+end
+
+function pauli_mps_born_direct_logz4(Bs::Vector{Array{ComplexF64,3}};
+                                     n_samples::Int=100_000,
+                                     seed=0xD1EC7,
+                                     n_blocks::Int=20)
+    sampler = PauliMPSBornSampler(Bs)
+    rng = MersenneTwister(UInt32(seed))
+    vals = Vector{Float64}(undef, n_samples)
+    for k in 1:n_samples
+        p = sample_pauli_string(sampler, rng)
+        vals[k] = abs2(pauli_mps_amplitude(Bs, p))
+    end
+    log_mean, se = log_mean_with_block_se(vals, n_blocks)
+    return (
+        logz4=log(pauli_mps_born_norm(sampler)) + log_mean,
+        se=se,
+        n_samples=n_samples,
+        n_blocks=n_blocks,
+        born_norm=pauli_mps_born_norm(sampler),
+        mean_abs2=mean(vals),
+    )
+end
+
+function pauli_mps_born_direct_cL(Bfull::Vector{Array{ComplexF64,3}},
+                                  Bhalf::Vector{Array{ComplexF64,3}};
+                                  n_samples::Int=100_000,
+                                  seed=0xD1EC7,
+                                  n_blocks::Int=20)
+    full = pauli_mps_born_direct_logz4(Bfull; n_samples=n_samples, seed=seed,
+                                       n_blocks=n_blocks)
+    half = pauli_mps_born_direct_logz4(Bhalf; n_samples=n_samples,
+                                       seed=UInt32(seed) + UInt32(0x9E37),
+                                       n_blocks=n_blocks)
+    return (
+        cL=full.logz4 - 2 * half.logz4,
+        se=sqrt(full.se^2 + 4 * half.se^2),
+        logz4_full=full.logz4,
+        logz4_half=half.logz4,
+        n_samples=n_samples,
+        n_blocks=n_blocks,
+        born_norm_full=full.born_norm,
+        born_norm_half=half.born_norm,
+        mean_abs2_full=full.mean_abs2,
+        mean_abs2_half=half.mean_abs2,
+        expectation_backend="pauli_mps_born_direct_sampling",
+    )
 end
 
 @inline squared_pauli_matrix(Bα) = kron(Bα, Bα)

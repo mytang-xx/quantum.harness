@@ -60,16 +60,24 @@ function require_manifest_provenance(d::AbstractDict, f::String)
     haskey(d["artifacts"], "manifest") || error("Manifest artifacts missing manifest path: $f")
     d["status"] == "success" || error("Manifest is not success-tagged: $f")
     backend = string(d["expectation_backend"])
-    (startswith(backend, "mps_cached_") || backend == "pauli_mps_compressed_norm") ||
+    (startswith(backend, "mps_cached_") || backend == "pauli_mps_compressed_norm" ||
+     backend == "pauli_mps_born_direct_sampling") ||
         error("Manifest does not use an accepted MPS expectation backend: $f")
     d["cL"] isa Real || error("Manifest cL is not numeric: $f")
     d["se"] isa Real || error("Manifest se is not numeric: $f")
-    if backend == "pauli_mps_compressed_norm"
+    if backend in ("pauli_mps_compressed_norm", "pauli_mps_born_direct_sampling")
         d["pauli_chi_error"] isa Real || error("Manifest missing numeric pauli_chi_error: $f")
         d["pauli_chi_error"] <= d["pauli_chi_tol"] ||
             error("Manifest Pauli-MPS compression gate failed: $f")
         d["se"] >= d["pauli_chi_error"] ||
             error("Manifest se does not cover Pauli-MPS compression error: $f")
+        if backend == "pauli_mps_born_direct_sampling"
+            any(x -> occursin("Born-direct Pauli-MPS sampling replaces paper TTN/local-Metropolis Eq.-24 sampler", string(x)), d["deviations"]) ||
+                error("Born-direct manifest is missing the required method-deviation record: $f")
+            d["sampling_se"] isa Real || error("Manifest missing numeric sampling_se: $f")
+            d["se"] >= d["sampling_se"] ||
+                error("Manifest se does not cover Born-direct sampling error: $f")
+        end
         d["symmetry_evidence"] isa Vector && !isempty(d["symmetry_evidence"]) ||
             error("Manifest missing symmetry evidence for Pauli-MPS norm backend: $f")
         checks = d["symmetry_checks"]
@@ -201,7 +209,9 @@ function main()
     backends = sort(unique([string(d["expectation_backend"]) for d in values(cells)]))
     Ls_full  = [L_min; Ls_chain...]
     estimator_label = estimator == "pauli_mps_norm" ?
-        "compressed Pauli-MPS normalizer contraction" : "cached Eq.-(24) ratio-chain diagnostic"
+        "compressed Pauli-MPS normalizer contraction" :
+        (estimator == "pauli_mps_born_direct" ?
+         "Born-direct Pauli-MPS sampling" : "cached Eq.-(24) ratio-chain diagnostic")
 
     @printf("Aggregator: L_chain=%s   h_grid=%s   L_min=%d   χ=%d   χ_P=%d→%d   N_S=%d   PBC=%s   proposal=%s/%s   estimator=%s   backends=%s\n",
             string(Ls_chain), string(h_grid), L_min, chi, pauli_chi, pauli_chi_check, n_steps, string(pbc),

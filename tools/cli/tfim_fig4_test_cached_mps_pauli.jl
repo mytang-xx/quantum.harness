@@ -82,6 +82,20 @@ function main()
     @assert !isempty(norm_cell.symmetry_evidence)
     @assert all(item -> item["status"] == "pass", norm_cell.symmetry_evidence)
 
+    born_cell = compute_cL_cell(8, h; chi=16, n_steps=1_000, n_warmup=0,
+                                seed_offset=5, estimator=:pauli_mps_born_direct,
+                                initial_state=initial_state,
+                                symmetry_checks=symmetry_checks,
+                                sample_blocks=5,
+                                pauli_chi=16, pauli_chi_check=32,
+                                pauli_chi_tol=0.20)
+    @assert born_cell.expectation_backend == "pauli_mps_born_direct_sampling"
+    @assert isfinite(born_cell.cL)
+    @assert born_cell.se >= born_cell.pauli_chi_error
+    @assert born_cell.se >= born_cell.sampling_se
+    @assert born_cell.mean_R === nothing
+    @assert born_cell.n_recorded == 2_000
+
     @printf("cached MPS Pauli regression passed at L=%d h=%.2f E=%.8f\n", L, h, E)
 end
 
