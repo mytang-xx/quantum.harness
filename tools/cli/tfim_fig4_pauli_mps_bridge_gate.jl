@@ -50,8 +50,16 @@ function main()
     @printf("  exact ED/WHT c_L = %+.8f\n", exact)
     flush(stdout)
 
-    E_L, psi_L, sites_L = dmrg_groundstate(L, h, chi; nsweeps=20, pbc=true)
-    E_H, psi_H, sites_H = dmrg_groundstate(L ÷ 2, h, chi; nsweeps=20, pbc=true)
+    initial_state = Dict(
+        "terms" => Any[
+            Dict("coefficient" => 1.0, "product_state" => Dict("repeat" => "X+")),
+            Dict("coefficient" => 1.0, "product_state" => Dict("repeat" => "X-")),
+        ],
+    )
+    E_L, psi_L, sites_L = dmrg_groundstate(L, h, chi; nsweeps=20, pbc=true,
+                                           initial_state=initial_state)
+    E_H, psi_H, sites_H = dmrg_groundstate(L ÷ 2, h, chi; nsweeps=20, pbc=true,
+                                           initial_state=initial_state)
     @printf("  DMRG energies: E_L=%.10f E_H=%.10f\n", E_L, E_H)
     flush(stdout)
 

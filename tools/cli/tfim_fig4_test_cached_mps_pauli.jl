@@ -59,12 +59,28 @@ function main()
     @assert isapprox(cached.mean_R, stateless.mean_R; atol=1e-10, rtol=1e-10)
     @assert isapprox(cached.cL, stateless.cL; atol=1e-10, rtol=1e-10)
 
+    initial_state = Dict(
+        "terms" => Any[
+            Dict("coefficient" => 1.0, "product_state" => Dict("repeat" => "X+")),
+            Dict("coefficient" => 1.0, "product_state" => Dict("repeat" => "X-")),
+        ],
+    )
+    symmetry_checks = Any[
+        Dict("id"=>"full_state_sector", "kind"=>"uniform_pauli_expectation",
+             "target"=>"full", "pauli_code"=>3, "expected_abs"=>1.0, "tolerance"=>1e-6),
+        Dict("id"=>"half_state_sector", "kind"=>"uniform_pauli_expectation",
+             "target"=>"half", "pauli_code"=>3, "expected_abs"=>1.0, "tolerance"=>1e-6),
+    ]
     norm_cell = compute_cL_cell(8, h; chi=16, n_steps=0, n_warmup=0,
                                 seed_offset=4, estimator=:pauli_mps_norm,
+                                initial_state=initial_state,
+                                symmetry_checks=symmetry_checks,
                                 pauli_chi=16, pauli_chi_check=32)
     @assert norm_cell.expectation_backend == "pauli_mps_compressed_norm"
     @assert isfinite(norm_cell.cL)
     @assert norm_cell.se >= norm_cell.pauli_chi_error
+    @assert !isempty(norm_cell.symmetry_evidence)
+    @assert all(item -> item["status"] == "pass", norm_cell.symmetry_evidence)
 
     @printf("cached MPS Pauli regression passed at L=%d h=%.2f E=%.8f\n", L, h, E)
 end

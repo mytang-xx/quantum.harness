@@ -15,6 +15,7 @@ using Plots
 using SHA
 
 include(joinpath(@__DIR__, "..", "tools", "cli", "harness_cell_config.jl"))
+include(joinpath(@__DIR__, "..", "tools", "cli", "harness_manifest_evidence.jl"))
 
 const DEFAULT_OUTDIR = joinpath(@__DIR__, "..", "results", "tfim_fig4_paper_grade")
 const PRODUCER_SCRIPT_PATH = normpath(joinpath(@__DIR__, "tfim_fig4_paper_grade.jl"))
@@ -24,10 +25,12 @@ const DEFAULT_H_GRID = [0.80, 0.90, 0.95, 1.00, 1.05, 1.10, 1.20]
 const REQUIRED_MANIFEST_FIELDS = [
     "protocol_hash", "script_hash", "sources", "claims", "deviations", "artifacts",
     "status", "proposal", "proposal_kernel", "estimator", "expectation_backend", "L", "h", "L_min", "chi", "pauli_chi", "pauli_chi_check", "pauli_chi_tol", "n_steps", "pbc", "M2_anchor_at_L_min",
+    "initial_state", "symmetry_checks", "symmetry_evidence",
 ]
 const CONSENSUS_FIELDS = [
     "protocol_hash", "script_hash", "sources", "claims", "deviations",
     "proposal", "proposal_kernel", "estimator", "L_min", "chi", "pauli_chi", "pauli_chi_check", "pauli_chi_tol", "n_steps", "pbc",
+    "initial_state", "symmetry_checks",
 ]
 
 function parse_int_list_env(name::String, default::Vector{Int})
@@ -67,6 +70,10 @@ function require_manifest_provenance(d::AbstractDict, f::String)
             error("Manifest Pauli-MPS compression gate failed: $f")
         d["se"] >= d["pauli_chi_error"] ||
             error("Manifest se does not cover Pauli-MPS compression error: $f")
+        d["symmetry_evidence"] isa Vector && !isempty(d["symmetry_evidence"]) ||
+            error("Manifest missing symmetry evidence for Pauli-MPS norm backend: $f")
+        checks = d["symmetry_checks"]
+        harness_validate_evidence_against_declarations(d["symmetry_evidence"], checks)
     end
 end
 
@@ -257,6 +264,9 @@ function main()
         "pauli_chi_tol" => pauli_chi_tol,
         "n_steps"   => n_steps,
         "pbc"       => pbc,
+        "initial_state" => first(values(cells))["initial_state"],
+        "symmetry_checks" => first(values(cells))["symmetry_checks"],
+        "symmetry_evidence" => [d["symmetry_evidence"] for d in values(cells)],
         "proposal"  => proposal,
         "proposal_kernel" => proposal_kernel,
         "estimator" => estimator,

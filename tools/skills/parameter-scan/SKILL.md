@@ -57,6 +57,8 @@ For cluster or resumable execution, `/parameter-scan` writes `results/<run>/run_
 
 The primitive treats `params` and `settings` as data, not schema. It never knows whether a key is a Hamiltonian parameter, lattice size, sampler knob, algorithm choice, or something else. The model/method entrypoint maps those opaque values into domain code and writes `results/<run>/cells/<cell_id>/manifest.json`. Domain-shaped names such as `L`, `h`, `U/t`, `χ`, or `n_steps` are allowed in a specific run spec when the entrypoint expects them, but they are payload keys, not harness-level types.
 
+Method setup that affects correctness — target sector, initial-state construction, constraints, proposal family, or convergence knobs — also belongs in `settings` as opaque payload. The entrypoint must echo the payload it actually used into each manifest and emit machine-readable evidence for any declared constraint it verifies. `/parameter-scan` only checks presence/freshness and assembles cells; it does not hardcode physics-specific setup types.
+
 ## Feature detection (auto labels)
 
 The skill labels what it found on the data:

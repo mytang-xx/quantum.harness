@@ -37,6 +37,8 @@ using Plots
 using SHA
 
 include(joinpath(@__DIR__, "..", "tools", "cli", "harness_cell_config.jl"))
+include(joinpath(@__DIR__, "..", "tools", "cli", "harness_manifest_evidence.jl"))
+include(joinpath(@__DIR__, "..", "tools", "cli", "harness_mps_stateprep.jl"))
 include(joinpath(@__DIR__, "..", "tools", "cli", "pauli_mps_sampler.jl"))
 
 const SCRIPT_PATH = normpath(@__FILE__)
@@ -126,10 +128,11 @@ function build_tfim(sites, h; pbc::Bool=true)
     return MPO(os, sites)
 end
 
-function dmrg_groundstate(L, h, chi; cutoff=1e-12, nsweeps=30, pbc::Bool=true)
+function dmrg_groundstate(L, h, chi; cutoff=1e-12, nsweeps=30, pbc::Bool=true,
+                          initial_state=nothing)
     sites = siteinds("S=1/2", L; conserve_qns=false)
     H = build_tfim(sites, h; pbc=pbc)
-    psi0 = randomMPS(sites; linkdims=4)
+    psi0 = harness_initial_mps(sites, initial_state; default_linkdims=4)
     sched = vcat(fill(min(10, chi), 4), fill(chi, nsweeps - 4))
     energy, psi = dmrg(H, psi0; nsweeps=nsweeps, maxdim=sched, cutoff=cutoff, outputlevel=0)
     return energy, psi, sites
@@ -200,6 +203,48 @@ function mps_pauli_expectation(psi::MPS, p::Vector{Int}, sites)
         Ppsi[i] = T
     end
     return real(inner(psi, Ppsi))
+end
+
+function harness_check_ids(checks)
+    checks isa AbstractVector || error("symmetry_checks must be a list")
+    return [string(check["id"]) for check in checks]
+end
+
+function mps_constraint_evidence(checks, states::AbstractDict; default_tolerance::Float64)
+    checks isa AbstractVector || error("symmetry_checks must be a list")
+    evidence = Dict{String,Any}[]
+    for check in checks
+        check isa AbstractDict || error("Each symmetry check must be an object")
+        kind = string(check["kind"])
+        kind == "uniform_pauli_expectation" ||
+            error("Unsupported MPS symmetry check kind '$kind'")
+        target = string(check["target"])
+        haskey(states, target) || error("Unknown symmetry-check target '$target'")
+        state = states[target]
+        code = Int(check["pauli_code"])
+        value = mps_pauli_expectation(state.psi, fill(code, length(state.sites)), state.sites)
+        item = Dict{String,Any}(
+            "id" => string(check["id"]),
+            "kind" => kind,
+            "target" => target,
+            "pauli_code" => code,
+            "observable" => Dict("type"=>"uniform_pauli_code", "pauli_code"=>code,
+                                 "length"=>length(state.sites)),
+            "value" => value,
+            "tolerance" => Float64(get(check, "tolerance", default_tolerance)),
+        )
+        if haskey(check, "expected_abs")
+            item["expected_abs"] = Float64(check["expected_abs"])
+        elseif haskey(check, "expected")
+            item["expected"] = Float64(check["expected"])
+        else
+            error("Symmetry check '$(check["id"])' must declare expected or expected_abs")
+        end
+        item["status"] = harness_evidence_computed_status(item)
+        push!(evidence, item)
+    end
+    harness_validate_evidence(evidence; required_ids=harness_check_ids(checks))
+    return evidence
 end
 
 # Cached MPS expectation backend.
@@ -960,6 +1005,8 @@ function compute_cL_cell(L::Int, h::Float64; chi=30, n_steps=10^5, n_warmup=10^4
                           pauli_sector_filter=tfim_fig4_pauli_sector,
                           proposal::Symbol=:paper,
                           estimator::Symbol=:ratio,
+                          initial_state=nothing,
+                          symmetry_checks=Any[],
                           pauli_chi::Int=16,
                           pauli_chi_check::Int=0,
                           pauli_chi_tol::Float64=0.02,
@@ -981,7 +1028,8 @@ function compute_cL_cell(L::Int, h::Float64; chi=30, n_steps=10^5, n_warmup=10^4
         E_L, psi_L = ed_groundstate(L, h; pbc=pbc)
         expect_L = (q) -> ed_pauli_expectation(psi_L, q, L)
     else
-        E_L, psi_L_mps, sites_L = dmrg_groundstate(L, h, chi; pbc=pbc)
+        E_L, psi_L_mps, sites_L = dmrg_groundstate(L, h, chi; pbc=pbc,
+                                                   initial_state=initial_state)
         full_cache = CachedMPSPauliExpectation(psi_L_mps, sites_L)
         expect_L = (q) -> mps_pauli_expectation(psi_L_mps, q, sites_L)
     end
@@ -991,7 +1039,8 @@ function compute_cL_cell(L::Int, h::Float64; chi=30, n_steps=10^5, n_warmup=10^4
         E_Lh, psi_Lh = ed_groundstate(Lh, h; pbc=pbc)
         expect_Lh = (q) -> ed_pauli_expectation(psi_Lh, q, Lh)
     else
-        E_Lh, psi_Lh_mps, sites_Lh = dmrg_groundstate(Lh, h, chi; pbc=pbc)
+        E_Lh, psi_Lh_mps, sites_Lh = dmrg_groundstate(Lh, h, chi; pbc=pbc,
+                                                      initial_state=initial_state)
         half_cache1 = CachedMPSPauliExpectation(psi_Lh_mps, sites_Lh)
         half_cache2 = CachedMPSPauliExpectation(psi_Lh_mps, sites_Lh)
         expect_Lh = (q) -> mps_pauli_expectation(psi_Lh_mps, q, sites_Lh)
@@ -1007,10 +1056,14 @@ function compute_cL_cell(L::Int, h::Float64; chi=30, n_steps=10^5, n_warmup=10^4
                                     factor_filter=pauli_sector_filter,
                                     proposal=proposal)
     elseif estimator == :pauli_mps_norm
-        parity_L = mps_pauli_expectation(psi_L_mps, fill(3, L), sites_L)
-        parity_H = mps_pauli_expectation(psi_Lh_mps, fill(3, Lh), sites_Lh)
-        max(abs(abs(parity_L) - 1), abs(abs(parity_H) - 1)) <= symmetry_tol ||
-            error("Pauli-MPS norm estimator requires parity-sector MPS states; got parity_L=$parity_L parity_H=$parity_H")
+        isempty(symmetry_checks) &&
+            error("Pauli-MPS norm estimator requires declared symmetry_checks for the target MPS states")
+        symmetry_evidence = mps_constraint_evidence(
+            symmetry_checks,
+            Dict("full" => (psi=psi_L_mps, sites=sites_L),
+                 "half" => (psi=psi_Lh_mps, sites=sites_Lh));
+            default_tolerance=symmetry_tol,
+        )
         pauli_chi_check = pauli_chi_check > pauli_chi ? pauli_chi_check : 2 * pauli_chi
         raw_B_L = pauli_mps_tensors(psi_L_mps, sites_L)
         raw_B_H = pauli_mps_tensors(psi_Lh_mps, sites_Lh)
@@ -1032,7 +1085,7 @@ function compute_cL_cell(L::Int, h::Float64; chi=30, n_steps=10^5, n_warmup=10^4
          expectation_backend="pauli_mps_compressed_norm",
          pauli_trunc_L=high.trunc_L, pauli_trunc_H=high.trunc_H,
          pauli_chi_check=pauli_chi_check, pauli_chi_error=compression_error,
-         parity_L=parity_L, parity_H=parity_H)
+         symmetry_evidence=symmetry_evidence)
     elseif estimator == :ratio && full_cache === nothing
         pauli_markov_cL_eq24(expect_L, expect_Lh, L;
                              n_steps=n_steps, n_warmup=n_warmup, seed=seed,
@@ -1057,8 +1110,8 @@ function compute_cL_cell(L::Int, h::Float64; chi=30, n_steps=10^5, n_warmup=10^4
             pauli_trunc_H=get(res, :pauli_trunc_H, nothing),
             pauli_chi_check=get(res, :pauli_chi_check, nothing),
             pauli_chi_error=get(res, :pauli_chi_error, nothing),
-            parity_L=get(res, :parity_L, nothing),
-            parity_H=get(res, :parity_H, nothing))
+            symmetry_evidence=get(res, :symmetry_evidence, Any[]),
+            initial_state=initial_state)
 end
 
 # ---------------- Main: h-scan × L-scan ----------------
@@ -1116,6 +1169,14 @@ function main()
                                       parse(Float64, get(ENV, "FIG4_PAULI_CHI_TOL", "0.02")))
     symmetry_tol = harness_get_float(cell_settings, "symmetry_tol",
                                      parse(Float64, get(ENV, "FIG4_SYMMETRY_TOL", "1e-6")))
+    initial_state = get(cell_settings, "initial_state", nothing)
+    symmetry_checks = get(cell_settings, "symmetry_checks", Any[])
+    if estimator == :pauli_mps_norm && initial_state === nothing
+        error("estimator=pauli_mps_norm requires settings.initial_state to declare the target sector's MPS state preparation")
+    end
+    if estimator == :pauli_mps_norm && isempty(symmetry_checks)
+        error("estimator=pauli_mps_norm requires settings.symmetry_checks to declare target-sector verification")
+    end
     run_deviations = estimator == :pauli_mps_norm ?
         unique([provenance["deviations"]...,
                 "MPS compressed Pauli-MPS normalizer contraction replaces paper TTN/local-Metropolis Eq.-24 sampler"]) :
@@ -1175,6 +1236,8 @@ function main()
         t0 = time()
         res = compute_cL_cell(L, h; chi=chi, n_steps=n_steps, seed_offset=cell_idx,
                               pbc=pbc, proposal=proposal, estimator=estimator,
+                              initial_state=initial_state,
+                              symmetry_checks=symmetry_checks,
                               pauli_chi=pauli_chi, pauli_chi_check=pauli_chi_check,
                               pauli_chi_tol=pauli_chi_tol, symmetry_tol=symmetry_tol)
         dt = time() - t0
@@ -1193,6 +1256,8 @@ function main()
                               "pauli_chi_check"=>pauli_chi_check,
                               "pauli_chi_tol"=>pauli_chi_tol,
                               "symmetry_tol"=>symmetry_tol,
+                              "initial_state"=>initial_state,
+                              "symmetry_checks"=>symmetry_checks,
                               "proposal_kernel"=>string(proposal),
                               "estimator"=>string(estimator)),
             "status"=>"success",
@@ -1203,6 +1268,8 @@ function main()
             "n_steps"=>n_steps, "chi"=>chi, "pauli_chi"=>pauli_chi,
             "pauli_chi_check"=>pauli_chi_check, "pauli_chi_tol"=>pauli_chi_tol,
             "symmetry_tol"=>symmetry_tol, "pbc"=>pbc, "L_min"=>L_min,
+            "initial_state"=>initial_state,
+            "symmetry_checks"=>symmetry_checks,
             "proposal"=>res.proposal, "proposal_kernel"=>string(proposal),
             "estimator"=>string(estimator),
             "block_size"=>res.block_size,
@@ -1210,8 +1277,7 @@ function main()
             "pauli_trunc_L"=>res.pauli_trunc_L,
             "pauli_trunc_H"=>res.pauli_trunc_H,
             "pauli_chi_error"=>res.pauli_chi_error,
-            "parity_L"=>res.parity_L,
-            "parity_H"=>res.parity_H,
+            "symmetry_evidence"=>res.symmetry_evidence,
             "expectation_backend"=>res.expectation_backend,
             "protocol_hash"=>provenance["protocol_hash"],
             "script_hash"=>provenance["script_hash"],
@@ -1277,6 +1343,8 @@ function main()
         "symmetry_tol" => symmetry_tol,
         "n_steps" => n_steps,
         "pbc"     => pbc,
+        "initial_state" => initial_state,
+        "symmetry_checks" => symmetry_checks,
         "proposal_kernel" => string(proposal),
         "expectation_backends" => sort(unique([string(c["expectation_backend"]) for c in cell_log])),
         "protocol_hash" => provenance["protocol_hash"],
