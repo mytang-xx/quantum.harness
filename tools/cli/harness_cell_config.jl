@@ -37,6 +37,91 @@ function harness_select_cell(spec::AbstractDict)
     return cell
 end
 
+function harness_merged_cell_settings(spec::AbstractDict, cell::AbstractDict)
+    settings = Dict{String,Any}()
+    spec_settings = get(spec, "settings", Dict{String,Any}())
+    cell_settings = get(cell, "settings", Dict{String,Any}())
+    spec_settings isa AbstractDict || error("Run spec settings must be an object")
+    cell_settings isa AbstractDict || error("Run-spec cell settings must be an object")
+    merge!(settings, Dict{String,Any}(string(k) => v for (k, v) in spec_settings))
+    merge!(settings, Dict{String,Any}(string(k) => v for (k, v) in cell_settings))
+    return settings
+end
+
+function harness_expected_cell_settings(spec::AbstractDict)
+    cells = get(spec, "cells", Any[])
+    cells isa Vector || error("Run spec field 'cells' must be a list")
+    out = Dict{String,Any}()
+    for cell in cells
+        cell isa AbstractDict || error("Every run-spec cell must be an object")
+        cell_id = string(get(cell, "cell_id", ""))
+        !isempty(cell_id) || error("Every run-spec cell must carry a nonempty cell_id")
+        haskey(out, cell_id) && error("Duplicate run-spec cell_id '$cell_id'")
+        out[cell_id] = harness_merged_cell_settings(spec, cell)
+    end
+    return out
+end
+
+function harness_validate_manifest_settings(manifest::AbstractDict, expected::AbstractDict; path::AbstractString="manifest")
+    settings = get(manifest, "settings", nothing)
+    settings isa AbstractDict || error("Manifest settings must be an object: $path")
+    settings_s = Dict{String,Any}(string(k) => v for (k, v) in settings)
+    for (key, value) in expected
+        haskey(settings_s, key) || error("Manifest settings missing declared key '$key': $path")
+        settings_s[key] == value ||
+            error("Manifest settings.$key=$(repr(settings_s[key])) does not match run-spec value $(repr(value)): $path")
+    end
+    return true
+end
+
+function harness_push_unique!(values::Vector{Any}, value)
+    any(x -> x == value, values) || push!(values, value)
+    return values
+end
+
+function harness_summarize_manifest_settings(manifests)
+    manifests isa AbstractVector || error("Manifests must be a list")
+    keys_seen = Set{String}()
+    normalized = Any[]
+    for manifest in manifests
+        manifest isa AbstractDict || error("Every manifest must be an object")
+        settings = get(manifest, "settings", nothing)
+        settings isa AbstractDict || error("Every manifest must carry a settings object")
+        settings_s = Dict{String,Any}(string(k) => v for (k, v) in settings)
+        push!(normalized, Dict{String,Any}("manifest" => manifest, "settings" => settings_s))
+        for key in keys(settings_s)
+            push!(keys_seen, key)
+        end
+    end
+
+    constants = Dict{String,Any}()
+    varying = Dict{String,Any}()
+    for key in sort(collect(keys_seen))
+        values = Any[]
+        for item in normalized
+            settings = item["settings"]
+            value = haskey(settings, key) ? settings[key] : nothing
+            harness_push_unique!(values, value)
+        end
+        if length(values) == 1
+            constants[key] = only(values)
+        else
+            entries = Any[]
+            for item in sort(normalized; by=item -> string(get(item["manifest"], "cell_id", "")))
+                manifest = item["manifest"]
+                settings = item["settings"]
+                push!(entries, Dict{String,Any}(
+                    "cell_id" => string(get(manifest, "cell_id", "")),
+                    "params" => get(manifest, "params", Dict{String,Any}()),
+                    "value" => haskey(settings, key) ? settings[key] : nothing,
+                ))
+            end
+            varying[key] = entries
+        end
+    end
+    return Dict{String,Any}("constant" => constants, "varying" => varying)
+end
+
 function harness_cell_context(; default_run_dir::AbstractString="")
     loaded = harness_load_run_spec()
     if loaded === nothing
@@ -56,13 +141,7 @@ function harness_cell_context(; default_run_dir::AbstractString="")
     params = get(cell, "params", Dict{String,Any}())
     params isa AbstractDict || error("Run-spec cell params must be an object")
 
-    settings = Dict{String,Any}()
-    spec_settings = get(spec, "settings", Dict{String,Any}())
-    cell_settings = get(cell, "settings", Dict{String,Any}())
-    spec_settings isa AbstractDict || error("Run spec settings must be an object")
-    cell_settings isa AbstractDict || error("Run-spec cell settings must be an object")
-    merge!(settings, spec_settings)
-    merge!(settings, cell_settings)
+    settings = harness_merged_cell_settings(spec, cell)
 
     provenance = get(spec, "provenance", Dict{String,Any}())
     provenance isa AbstractDict || error("Run spec provenance must be an object")

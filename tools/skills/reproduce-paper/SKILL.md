@@ -109,6 +109,8 @@ Steps 1–8 build and validate the complete protocol; steps 9–13 are the pre-c
 
 14. **Paper-grade compute with compute-gate checks.** Dispatch the full requested run via `/parameter-scan` + `/slurm` or the declared primitive. Inherit the paper's settings by default. Invoke `Superpowers:brainstorming` only if the cluster offers a real budget choice. Every produced manifest must include `protocol_hash`, source artifact paths, script hash or git hash when available, declared deviation ids, the method setup payload actually used (for example sector / initial state / constraints when present), and the fields required by the protocol's manifest checks. Each cell/stage runs all `[[checks]]` whose `gate = "compute"` before it is marked complete; a failed compute gate blocks dependent cells, aggregation, plots, and reports until repaired or explicitly scoped/deviated.
 
+    If any cell overrides shared settings, the assembler must validate the manifest against the merged shared+cell settings and surface a constant/varying settings summary in the result artifact. Do not let a first completed cell define global provenance by accident.
+
 15. **Validate produced artifacts.** Run all `[[checks]]` whose `gate = "assembly"` or `gate = "report"`: freshness, manifest fields, manifest consensus, numeric comparisons, and `/verify result` reports. Plots and run reports are blocked until these pass or explicit deviations are recorded.
 
 16. **Assemble the close** (writeup handoff per AGENTS.md, embedded here):

@@ -61,6 +61,8 @@ Method setup that affects correctness — target sector, initial-state construct
 
 If the caller needs stricter assembly gates, `run_spec.json` may carry `assembly.manifest_contract` and `assembly.consensus_fields`. The contract is generic over manifest field paths: required/nonempty fields, equality checks, list membership, numeric fields, optional numeric fields, numeric bounds, and evidence-set bindings. Domain requirements are encoded as payload values in that contract, not as new `/parameter-scan` types.
 
+Assemblers must validate each manifest's `settings` against the merged shared+cell settings from `run_spec.json`, then report settings as constant vs varying across cells. Never treat the first manifest's settings as global provenance unless `assembly.consensus_fields` declares and passes that invariant.
+
 ## Feature detection (auto labels)
 
 The skill labels what it found on the data:

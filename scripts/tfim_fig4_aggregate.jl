@@ -23,17 +23,14 @@ const PRODUCER_SCRIPT_HASH = bytes2hex(sha256(read(PRODUCER_SCRIPT_PATH)))
 const DEFAULT_LS_CHAIN = [16, 32, 64, 128]
 const DEFAULT_H_GRID = [0.80, 0.90, 0.95, 1.00, 1.05, 1.10, 1.20]
 const DEFAULT_MANIFEST_CONSENSUS_FIELDS = [
-    "protocol_hash", "script_hash", "sources", "claims", "deviations",
-    "proposal", "proposal_kernel", "estimator", "L_min", "chi", "pauli_chi", "pauli_chi_check", "pauli_chi_tol", "n_steps", "pbc",
-    "initial_state", "symmetry_checks",
+    "protocol_hash", "script_hash", "sources", "claims", "deviations", "L_min",
 ]
 const DEFAULT_MANIFEST_CONTRACT = Dict{String,Any}(
     "required_fields" => Any[
         "protocol_hash", "script_hash", "sources", "claims", "deviations", "artifacts",
         "status", "cell_id", "params", "settings", "proposal", "proposal_kernel",
         "estimator", "expectation_backend", "L", "h", "L_min", "chi",
-        "pauli_chi", "pauli_chi_check", "pauli_chi_tol", "n_steps", "pbc",
-        "M2_anchor_at_L_min", "initial_state", "symmetry_checks", "symmetry_evidence",
+        "n_steps", "pbc", "M2_anchor_at_L_min",
     ],
     "nonempty_fields" => Any["protocol_hash", "script_hash", "sources", "claims", "artifacts"],
     "equals" => Any[
@@ -96,6 +93,7 @@ function aggregate_run_context()
             spec_path=nothing,
             manifest_contract=DEFAULT_MANIFEST_CONTRACT,
             consensus_fields=DEFAULT_MANIFEST_CONSENSUS_FIELDS,
+            expected_settings=nothing,
         )
     end
 
@@ -130,6 +128,7 @@ function aggregate_run_context()
         spec_path=spec_path,
         manifest_contract=merged_manifest_contract(extra_contract),
         consensus_fields=[string(x) for x in consensus_fields],
+        expected_settings=harness_expected_cell_settings(spec),
     )
 end
 
@@ -194,6 +193,35 @@ function validate_manifest_consensus!(cells, consensus_fields::Vector{String})
     end
 end
 
+function validate_expected_settings!(cells, expected_settings)
+    expected_settings === nothing && return true
+    for d in values(cells)
+        cell_id = string(d["cell_id"])
+        haskey(expected_settings, cell_id) || error("No run-spec settings found for manifest cell_id=$cell_id")
+        harness_validate_manifest_settings(d, expected_settings[cell_id]; path="cell_id=$cell_id")
+    end
+    return true
+end
+
+function sorted_cell_records(cells)
+    return sort(collect(values(cells)); by=d -> (Int(d["L"]), Float64(d["h"]), string(d["cell_id"])))
+end
+
+function summary_constant(summary::AbstractDict, key::AbstractString, default=nothing)
+    constants = summary["constant"]
+    return haskey(constants, key) ? constants[key] : default
+end
+
+function summary_report_value(summary::AbstractDict, key::AbstractString, legacy)
+    haskey(summary["constant"], key) && return summary["constant"][key]
+    haskey(summary["varying"], key) && return "mixed"
+    return legacy
+end
+
+function summary_keys(d::AbstractDict)
+    return sort(collect(string(k) for k in keys(d)))
+end
+
 function increment_recursion_M2(M2_min::Float64, L_min::Int, cs::Vector{Float64})
     out = Dict{Int, Float64}()
     out[L_min] = M2_min
@@ -224,25 +252,25 @@ function main()
         h_grid = sort(unique([h for (_, h) in ctx.expected_keys]))
     end
     validate_manifest_consensus!(cells, ctx.consensus_fields)
+    validate_expected_settings!(cells, ctx.expected_settings)
 
     L_min    = first(values(cells))["L_min"]
-    chi      = first(values(cells))["chi"]
-    pauli_chi = first(values(cells))["pauli_chi"]
-    pauli_chi_check = first(values(cells))["pauli_chi_check"]
-    pauli_chi_tol = first(values(cells))["pauli_chi_tol"]
-    n_steps  = first(values(cells))["n_steps"]
-    pbc      = first(values(cells))["pbc"]
-    proposal = first(values(cells))["proposal"]
-    proposal_kernel = first(values(cells))["proposal_kernel"]
-    estimator = first(values(cells))["estimator"]
+    cell_records = sorted_cell_records(cells)
+    settings_summary = harness_summarize_manifest_settings(cell_records)
+    proposal = summary_report_value(settings_summary, "proposal", first(values(cells))["proposal"])
+    proposal_kernel = summary_report_value(settings_summary, "proposal_kernel", first(values(cells))["proposal_kernel"])
+    estimator = summary_report_value(settings_summary, "estimator", first(values(cells))["estimator"])
     backends = sort(unique([string(d["expectation_backend"]) for d in values(cells)]))
     Ls_full  = [L_min; Ls_chain...]
-    estimator_label = string(get(first(values(cells)), "estimator_label",
-                                 replace(string(estimator), "_" => " ")))
+    estimator_label = string(summary_report_value(settings_summary, "estimator_label",
+                                                  get(first(values(cells)), "estimator_label",
+                                                      replace(string(estimator), "_" => " "))))
 
-    @printf("Aggregator: L_chain=%s   h_grid=%s   L_min=%d   χ=%d   χ_P=%d→%d   N_S=%d   PBC=%s   proposal=%s/%s   estimator=%s   backends=%s\n",
-            string(Ls_chain), string(h_grid), L_min, chi, pauli_chi, pauli_chi_check, n_steps, string(pbc),
-            proposal_kernel, proposal, estimator, string(backends))
+    @printf("Aggregator: L_chain=%s   h_grid=%s   L_min=%d   proposal=%s/%s   estimator=%s   backends=%s\n",
+            string(Ls_chain), string(h_grid), L_min, proposal_kernel, proposal, estimator, string(backends))
+    @printf("Settings   : constant=%s   varying=%s\n",
+            string(summary_keys(settings_summary["constant"])),
+            string(summary_keys(settings_summary["varying"])))
     flush(stdout)
 
     # M_2 anchors at L_min (per-h, taken from any cell at that h).
@@ -295,14 +323,10 @@ function main()
         "Ls_chain"  => Ls_chain,
         "Ls_full"   => Ls_full,
         "h_grid"    => h_grid,
-        "chi"       => chi,
-        "pauli_chi" => pauli_chi,
-        "pauli_chi_check" => pauli_chi_check,
-        "pauli_chi_tol" => pauli_chi_tol,
-        "n_steps"   => n_steps,
-        "pbc"       => pbc,
-        "initial_state" => first(values(cells))["initial_state"],
-        "symmetry_checks" => first(values(cells))["symmetry_checks"],
+        "settings_summary" => settings_summary,
+        "cells" => cell_records,
+        "initial_state" => summary_report_value(settings_summary, "initial_state", nothing),
+        "symmetry_checks" => summary_report_value(settings_summary, "symmetry_checks", nothing),
         "symmetry_evidence" => [d["symmetry_evidence"] for d in values(cells)],
         "proposal"  => proposal,
         "proposal_kernel" => proposal_kernel,
