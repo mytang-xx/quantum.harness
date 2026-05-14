@@ -40,3 +40,152 @@ A `<run-dir>` (e.g. `results/tfim_fig4_paper_grade/`) containing the contract bu
 | optional | `editorial.json` | Polish subagent output from a prior render; reused if hash matches input pack, regenerated otherwise |
 
 If any required input is missing, the pre-flight verifier (Stage 1) blocks and surfaces the gap via `AskUserQuestion` with options to repair, render-with-fallbacks, or stop.
+
+## Workflow
+
+Five stages, in order. The skill never advances past a stage that fails its checks; failures are surfaced via `AskUserQuestion` per the `Superpowers:brainstorming` pattern (recommended option first, each with one-line pros / cons).
+
+### Stage 1 — Pre-flight verifier (mechanical, the skill itself)
+
+Cheap evidence-consistency checks. **No subagent dispatch; no LLM judgment.** Block render and surface gaps if any fail.
+
+Run via `tools/skills/report/scripts/preflight.py <run-dir>`. Exit code 0 = pass; non-zero with structured stderr / stdout JSON = fail with reasons.
+
+Checks performed:
+
+- `<run-dir>/protocol.toml` exists, parses, has `[artifact]` + `[[sources]]` + `[[claims]]` + `[[figures]]`.
+- `<run-dir>/run-report.md` exists; contains required H2/H3 sections (Setup, Settings, Result, Verification status, Evidence map, Protocol status).
+- Every `[[claims]]` id appears at least once in `run-report.md`'s Evidence map.
+- Every `cells/<id>/manifest.json` carries `evidence_class = "current_run"` and `protocol_hash` matching `protocol.toml`'s computed hash.
+- Every `[[figures]].paper_path` resolves to an existing file.
+- Every `[[figures]].ours_path` exists.
+- Every `[[figures]].data_path` (when set) exists, parses as JSON, has the schema `{label, axes, data}` per `/reproduce-paper` Step 16.
+- No `verify/verify_*.md` is older than `protocol.toml` (would be stale per Codex's `a75327f` freshness rule).
+
+When `tools/cli/flow` is configured for the run, also: `flow next results/<run>` should not return the close gate as runnable — i.e., the close gate must be PASS before `/report` proceeds. If close is open, the skill blocks with the option to run `/reproduce-paper` Step 16 first.
+
+On fail: emit a structured diagnostic and present the user with `AskUserQuestion` options:
+
+> Pre-flight failed: `<count>` issues. (1) Repair the gaps — recommended; (2) Render anyway with `--allow-incomplete`, gaps recorded as `editorial.json.gaps`; (3) Stop.
+
+### Stage 2 — Polish subagent (UI/UX-tuned editor)
+
+Dispatch a polish subagent **with the same model id, reasoning/effort level, service tier, sandbox, approval policy, and tool-access settings as the main agent** (CLAUDE.md "Subagents match the main agent" rule — no downgrades, no silent upgrades). Cross-caller quality variance is mitigated structurally: this brief is precise, the supplied evidence pack is curated, `docs/DESIGN.md` is detailed, organize is mechanical, and the close-mode audit (Stage 5) catches drift. **Never via subagent model swap.**
+
+The subagent reads the full evidence pack and writes `<run-dir>/editorial.json`. Cached (hashed against the input pack); regenerated when any input hash changes. To force regeneration: `rm <run-dir>/editorial.json`. When `tools/cli/flow` is in use, register `editorial.json` as a flow artifact (`flow artifact add <run> editorial editorial.json --kind editorial --producer <attempt>`) so flow's auto-invalidation handles staleness.
+
+**Subagent brief (use verbatim when dispatching):**
+
+> You are a UI/UX-tuned editor for a scientific demo report destined for collaborators, grad students, and lab visitors. Audience-first: comfort the reader, hide the jargon, the figure is the hero, words are scaffolding. Above-the-fold word budget ≤ 100.
+>
+> Read the supplied evidence pack: `protocol.toml`, `run-report.md`, every `cells/<id>/manifest.json`, every `verify/verify_<…>.md`, and `figs/<id>.{png,json}`. Produce a structured JSON `editorial.json` populating the fields below. **Every sentence and phrase you write must cite an evidence-pack file:line in a `sourced_by` array.** No invention. No paraphrase that drifts from the source's claim. If a field cannot be sourced, leave it null and add it to a top-level `gaps` list with the reason.
+>
+> Output schema:
+>
+> ```json
+> {
+>   "headline": { "text": "…one sentence: claim + framing…", "sourced_by": ["protocol.toml#L12", "run-report.md#L8"] },
+>   "claims": [
+>     { "id": "fig4.symmetry", "display_label": "symmetry sector", "popover": "…one sentence detail…", "sourced_by": [...] }
+>   ],
+>   "deviations": [
+>     { "id": "backend", "display_label": "MPS backend", "popover": "…one sentence…", "discrepancy_paragraph": "…optional 1-2 sentence prose for the discrepancy panel…", "sourced_by": [...] }
+>   ],
+>   "figures": [
+>     { "label": "fig4a", "caption_paper": "…one sentence…", "caption_ours": "…one sentence…", "sourced_by": [...] }
+>   ],
+>   "glossary": [
+>     { "symbol": "c_L(h)", "name": "Subleading increment c_L(h)", "body": "…one sentence…", "formula": "c_L = 2 M_2(L/2) − M_2(L)", "sourced_by": [...] }
+>   ],
+>   "gaps": []
+> }
+> ```
+>
+> Style guide: terse, scientific-confident, no marketing voice, no first-person, no rhetorical questions, no exclamation marks. Use the cadence of Anthropic Serif (display) and Inter (UI) — declarative sentences, modest length, generous whitespace implied. The downstream renderer composes your fields into a figure-first HTML; the verify-close subagent will audit your sources.
+
+If the polish subagent returns `gaps`: surface them via `AskUserQuestion` (fix-or-render-with-fallbacks). The render falls back to mechanical defaults (Stage 4 below) for unfilled fields.
+
+### Stage 3 — Organize (mechanical, the skill itself)
+
+Apply deterministic selection rules over (raw evidence + `editorial.json`). **No LLM judgment in this stage.** All rules implemented as functions in `tools/skills/report/scripts/render.py`.
+
+- **Featured figure** ← `protocol.featured_figure` if declared; else first `[[figures]]` entry by protocol order.
+- **Highlighted cell in hover-callout default** ← cell at `protocol.central_param` if declared; else cell with smallest `se`; else first by id.
+- **Chip set** ← one chip per claim (status from verify reports — `✓` if all backing verify reports passed, `⚠` if any failed, `muted` if no verify report exists). Then one chip per deviation (always `⚠`). Capped at 6 visible; further chips spill into a "more" expandable.
+- **Discrepancy ordering** ← deviations referenced by failing checks first; then deviations referenced by claims; then unreferenced deviations.
+- **Evidence map** ← rendered from `run-report.md` Evidence map section, parsed structurally (one bullet per claim → source → manifest → verify).
+- **Provenance footer** ← `progress/state.toml` (cluster, run id, dates, gate status) if `flow.toml` exists; else `[artifact]` + git for harness commit.
+
+### Stage 4 — Render (mechanical, the skill itself)
+
+Compose organized payload into the figure-first HTML genre per `docs/DESIGN.md`. Implementation: `tools/skills/report/scripts/render.py` reads the template at `tools/skills/report/templates/report.html.tmpl` and substitutes placeholders.
+
+Output: `<run-dir>/report_<run-id>_<YYYY-MM-DD>.html` (a complete, self-contained HTML file) + `<run-dir>/report_latest.html` symlink (or copy on Windows).
+
+The HTML embeds:
+
+- **Inline base64 paper PNG** (per `[[figures]].paper_path`; downscale via `pdftoppm -r 150` if > 500KB).
+- **Inline JS const** for `figs/<id>.json` data (the interactive plot source).
+- **Google Fonts CDN preconnect with system fallback** (`Source Serif 4`, `Inter`, `JetBrains Mono` → `Georgia`, `system-ui`, `ui-monospace`). Optional base64 inline if `protocol.report.fonts = "embed"`.
+- **Inline editorial fields** from `editorial.json`.
+
+If a field in `editorial.json` is null/missing, the renderer applies the mechanical fallback:
+
+| Field missing | Fallback |
+|---|---|
+| `headline.text` | `protocol.[[claims]][0].statement` verbatim |
+| `claims[i].display_label` | claim `id` (e.g. `fig4.symmetry`) |
+| `claims[i].popover` | claim `statement` |
+| `deviations[i].display_label` | deviation `id` |
+| `deviations[i].discrepancy_paragraph` | bullet list of deviation `statement`s in the discrepancy panel |
+| `figures[i].caption_paper` | "Paper" + `paper_attribution` if available |
+| `figures[i].caption_ours` | "Reproduction · " + `run_id` |
+| `glossary[i]` for any inline symbol | symbol rendered without tooltip (still readable, no help cursor) |
+
+Genre layout (from `docs/DESIGN.md` §10–§12):
+
+```
+TOP BAR  ──  [arXiv pill]  Authors — Paper title.  Venue · arxiv link        Run meta block
+HERO    ──  Claim line (32px serif, ≤ 1 line on desktop)               Tag (cells · wall)
+            ┌─ Paper Fig N ─────────┐  ┌─ Reproduction (interactive) ────┐
+            │   PNG (primary)       │  │   inline SVG plot                │
+            │   caption_paper       │  │   caption_ours                   │
+            └───────────────────────┘  └──────────────────────────────────┘
+STRIP   ──  ✓ chip  ✓ chip  ⚠ chip  ⚠ chip  muted chip      (hint: tap for manifest)
+HINT    ──  ↓ Contract · Discrepancy · Provenance
+BELOW   ──  ┌─ Contract ──────────────┐  ┌─ Discrepancy ──────────────┐
+            │   sources, claims,       │  │   deviation list with       │
+            │   deviations, budget     │  │   discrepancy_paragraph     │
+            └──────────────────────────┘  └──────────────────────────────┘
+            ┌─ Provenance (4 cols: Run · Cluster · Source · Harness) ──┐
+            └───────────────────────────────────────────────────────────┘
+DRAWERS ──  Cell drawer (right desktop / bottom mobile) — full manifest
+            Glossary tooltip — symbol → name + body + formula
+            Hover callout — magnetic dot + per-cell summary
+```
+
+**File-size budget:** 1MB soft cap; warn at soft, refuse at 5MB hard cap. Most reports land at 100-300KB.
+
+**Embedded provenance footer** (mandatory):
+
+```
+Report ID: <run-id> @ <YYYY-MM-DD>
+Verify hash: <hash> (from /verify --mode close)
+Generated: <ISO timestamp>
+```
+
+### Stage 5 — Terminal `/verify --mode close` (subagent, independent)
+
+Dispatch `/verify --mode close` against the rendered HTML. The reviewer subagent matches the main agent's model/effort/settings per CLAUDE.md (same rule as Stage 2). The brief is adversarial — *trust nothing*; trace every editorial sentence; check DESIGN.md compliance; check mobile rendering. The audit's deliverable is a structured per-axis status table; the calling skill (this one) translates findings into ratifiable forks via `AskUserQuestion` per `verify/SKILL.md` Composition.
+
+When `tools/cli/flow` is in use: dispatch as a flow attempt against a `report-review` (or `audience-facing`) gate (`flow attempt start <run> report-review --kind verify --actor agent:report-reviewer`). The attempt finishes with `pass | fail | block` and writes its report to `verify/verify_report_<YYYY-MM-DD>.md`.
+
+Verdict (per `verify/SKILL.md` close mode):
+
+- `✓` ships.
+- `⚠` requires explicit user accept via `AskUserQuestion`.
+- `✗` blocks ship.
+
+The verifier's verdict is embedded in the rendered HTML's `<head>` as a `<meta name="report-review" content="<status>:<hash>">` for downstream auditability.
+
+If `✗`: present `AskUserQuestion` — (1) repair editorial fields; (2) repair source evidence; (3) demote to `assumption` in protocol contract; (4) stop. **One round only**; the agent does not loop.
