@@ -682,3 +682,114 @@ Each curve's legend row, with focus/dim hover behavior across `.curve, .pt, .err
 ```
 
 JS: on `mouseenter` of a `.legend-item`, add `.dim` to all `.curve, .pt, .errbar, .legend-item` whose `data-l` differs, and `.focus` to those whose `data-l` matches. On `mouseleave`, remove all classes.
+
+---
+
+## 11. Interactive Plot — Inline SVG Conventions
+
+The interactive figure in the right-side `panel-card` is an inline `<svg>` element directly embedded in the HTML body, **not** a static image and **not** a third-party charting library (no Plotly, D3, or Chart.js — they violate the standalone-deliverable size budget and the warm-only Claude palette). The SVG renders interactively via DOM events (`mouseenter`, `click`, `mouseleave`) on its child elements; CSS class toggles (`.curve.dim`, `.pt.focus`, etc.) drive the focus / dim / hover-callout effects with native browser transitions.
+
+This section locks the structural and class-name conventions so every report renders consistently. The renderer (`tools/skills/report/scripts/render.py`) generates the SVG markup from `figs/<id>.json`; CSS lives here so the visual stays identical across reports.
+
+**Required SVG structure** (background overlays first, then grid, then data on top):
+
+```html
+<svg class="plot" viewBox="0 0 720 460" preserveAspectRatio="xMidYMid meet"
+     role="img" aria-labelledby="plot-title plot-desc">
+  <title id="plot-title">c_L vs h on the 1D TFIM</title>
+  <desc id="plot-desc">Reproduction of Tarabunga 2023 Fig 4(a). Four curves L=16, 32, 64, 128 of c_L = 2 M_2(L/2) − M_2(L) across h ∈ [0.8, 1.2].</desc>
+
+  <!-- Background overlays (paper-band, hc-column flash) come first so they're behind data -->
+  <rect class="hc-column" id="hc-flash" x="..." y="..." width="..." height="..."/>
+  <rect class="paper-window" id="paper-window" x="..." y="..." width="..." height="..."/>
+  <text class="paper-window-label" id="paper-window-label" x="..." y="..." text-anchor="end">paper y-window</text>
+
+  <!-- Grid + axes + ticks -->
+  <line class="grid" x1="..." x2="..." y1="..." y2="..."/>
+  <text class="tick" x="..." y="..." text-anchor="middle">0.8</text>
+  <line class="zero" x1="..." x2="..." y1="..." y2="..."/>            <!-- y=0 reference -->
+  <line class="hcline" x1="..." x2="..." y1="..." y2="..."/>          <!-- vertical h_c marker -->
+  <text class="hclabel" x="..." y="...">h_c = 1</text>
+  <line class="axis" x1="..." x2="..." y1="..." y2="..."/>            <!-- x and y axes -->
+  <text class="axis-label" x="..." y="..." text-anchor="middle">transverse field h</text>
+
+  <!-- Data: one set per curve. data-l (or data-curve) groups elements that focus/dim together. -->
+  <path class="curve draw" data-l="64" stroke="#c96442" d="M ..."/>
+  <line class="errbar" data-l="64" stroke="#c96442" x1="..." x2="..." y1="..." y2="..."/>
+  <circle class="pt" data-l="64" data-k="3" cx="..." cy="..." r="3.6" fill="#c96442"
+          aria-label="L=64, h=1.00, c_L = -0.171 ± 0.061"/>
+</svg>
+```
+
+**CSS class specs** (full):
+
+```css
+svg.plot { width: 100%; height: 460px; user-select: none; display: block; }
+svg.plot .grid { stroke: var(--border-warm); stroke-dasharray: 1 4; stroke-width: 0.5; }
+svg.plot .axis { stroke: var(--stone); stroke-width: 0.8; }
+svg.plot .axis-label { fill: var(--olive); font-size: 13px; font-family: var(--sans); font-weight: 450; }
+svg.plot .tick { fill: var(--stone); font-size: 11px; font-family: var(--mono); }
+svg.plot .curve { fill: none; stroke-width: 1.7; transition: opacity 220ms ease, stroke-width 220ms ease; }
+svg.plot .curve.dim { opacity: 0.18; }
+svg.plot .curve.focus { stroke-width: 2.6; }
+svg.plot .pt { transition: opacity 200ms ease, r 140ms ease; cursor: pointer; stroke: transparent; stroke-width: 14; paint-order: stroke; }
+svg.plot .pt.dim { opacity: 0.18; }
+svg.plot .errbar { stroke-width: 1.2; opacity: 0.50; transition: opacity 220ms ease; }
+svg.plot .errbar.dim { opacity: 0.10; }
+svg.plot .draw {
+  stroke-dasharray: 2400; stroke-dashoffset: 2400;
+  animation: draw 1100ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+svg.plot .zero { stroke: var(--silver); stroke-width: 0.6; opacity: 0.5; }
+svg.plot .hcline { stroke: var(--terracotta); stroke-width: 0.6; stroke-dasharray: 4 4; opacity: 0.55; }
+svg.plot .hclabel { fill: var(--terracotta); font-family: var(--mono); font-size: 11px; opacity: 0.85; }
+svg.plot .paper-window { fill: rgba(94,93,89,0.10); stroke: none; opacity: 0; transition: opacity 320ms ease; pointer-events: none; }
+svg.plot .paper-window.on { opacity: 1; }
+svg.plot .paper-window-label { fill: var(--olive); font-family: var(--sans); font-size: 11px; font-style: italic; opacity: 0; transition: opacity 320ms ease; }
+svg.plot .paper-window-label.on { opacity: 0.85; }
+svg.plot .hc-column { fill: var(--terracotta); opacity: 0; transition: opacity 240ms ease; pointer-events: none; }
+svg.plot .hc-column.flash { opacity: 0.08; }
+
+@keyframes draw { to { stroke-dashoffset: 0; } }
+```
+
+**Touch-friendly hit area on points (mandatory):** `.pt` carries a transparent 14px stroke around the visible 3.6px circle (via `stroke: transparent; stroke-width: 14; paint-order: stroke`). This makes finger taps register on touch devices without precision targeting; the visible dot stays small.
+
+**Curve color palette** (warm clay → terracotta gradient, ordered by curve dimension):
+
+```javascript
+const colors = ['#b39c80', '#a87a55', '#c96442', '#7a2a1a'];
+```
+
+For 1-4 curves use these in order; for 5+ interpolate between `#b39c80` (lightest clay) and `#7a2a1a` (deepest terracotta). Never reach for cool blues or saturated brights — the palette is restrained.
+
+**Data attribute conventions** (used by the focus/dim JS and by the click-to-drawer handler):
+
+- `data-l="<curve-key>"` (or `data-curve="<curve-key>"`) on every `.curve`, `.errbar`, `.pt`, and `.legend-item`. The value is the value of the `curves.field` from `figs/<id>.json` (e.g. `"64"` for L=64).
+- `data-k="<row-index>"` on every `.pt` — index into the `data` array for callout lookup and drawer population.
+
+**Interaction JS (the renderer emits this once at the end of the body):**
+
+```javascript
+// Focus/dim by data-l value
+function focusL(L) {
+  document.querySelectorAll('.curve, .pt, .errbar, .legend-item').forEach(el => el.classList.remove('focus', 'dim'));
+  if (L === null) return;
+  document.querySelectorAll('[data-l]').forEach(el => {
+    if (+el.dataset.l === L) el.classList.add('focus');
+    else el.classList.add('dim');
+  });
+}
+
+// Hover callout on point + click to open drawer
+document.querySelectorAll('svg.plot .pt').forEach(pt => {
+  pt.addEventListener('mouseenter', e => { focusL(+pt.dataset.l); /* populate + show callout */ });
+  pt.addEventListener('mouseleave', () => { focusL(null); /* hide callout */ });
+  pt.addEventListener('click', () => { /* populate + open cell drawer */ });
+});
+
+// Esc closes drawer
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+```
+
+The renderer composes the full JS from `figs/<id>.json` (data array) + the editorial sidecar (cell-popover labels) + this skeleton.
