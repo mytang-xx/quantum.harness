@@ -189,3 +189,97 @@ Verdict (per `verify/SKILL.md` close mode):
 The verifier's verdict is embedded in the rendered HTML's `<head>` as a `<meta name="report-review" content="<status>:<hash>">` for downstream auditability.
 
 If `✗`: present `AskUserQuestion` — (1) repair editorial fields; (2) repair source evidence; (3) demote to `assumption` in protocol contract; (4) stop. **One round only**; the agent does not loop.
+
+## Mandatory genre elements
+
+The skill refuses to render without these. Failure surfaces as `AskUserQuestion`:
+
+- **Paper figure embed**: every `[[figures]]` entry must resolve to an existing PNG. No "we'll add the paper figure later" — the comparison is the report's reason for being.
+- **Claim line**: from `editorial.json.headline.text`; if missing, fallback `protocol.[[claims]][0].statement` verbatim.
+- **Side-by-side hero**: paper PNG | interactive plot. No standalone "ours" view.
+- **Status chip strip**: minimum 1 chip; every chip backed by a verify report or a protocol deviation.
+- **Contract panel**: rendered from `protocol.toml`, all sections.
+- **Evidence map drilldown**: every claim → source → manifest → verify report path is clickable.
+
+## Output
+
+`<run-dir>/report_<run-id>_<YYYY-MM-DD>.html`
+
+`<run-dir>/report_latest.html` (symlink to the newest; copy on platforms without symlink support).
+
+Embedded in the rendered HTML's provenance footer (mandatory):
+
+```
+Report ID: <run-id> @ <YYYY-MM-DD>
+Verify hash: <hash> (from /verify --mode close)
+Generated: <ISO timestamp>
+```
+
+## Discipline (hard rules)
+
+- **No prose generation in the skill itself.** Only the polish subagent (Stage 2), source-fenced via the brief, may produce editorial text. The skill's organize and render stages are mechanical.
+- **Paper figure mandatory.** Refuse to render without it. The skill does not have a "no-comparison" mode.
+- **Verify-close gate mandatory.** Never ship without Stage 5; never auto-accept `✗`.
+- **Cite-or-flag every editorial sentence.** Every editorial field carries `sourced_by`; the verifier checks the trace.
+- **Agent's prior turns are not a primary source.** Per `docs/milestone-log.md` `O1. Agents over-trust cached content`.
+- **Chip status never invented from prose.** Status comes from verify reports or protocol deviations, not from the polish subagent's interpretation.
+- **Subagents match main agent.** No silent upgrades or downgrades for polish or close-mode reviewer (CLAUDE.md "Subagents match the main agent"; spec §14.9). Cross-caller variance mitigated structurally.
+- **One verify-fix round only.** No infinite loops; surface to user via `AskUserQuestion` after one round.
+- **Hint-class evidence cannot drive a chip.** Per Codex's `a75327f` evidence taxonomy: only `current_run` verify reports back chip statuses. KB cards, prior plans, old figures are hints; the skill ignores them when picking chips.
+
+## Composition
+
+- Called as the terminal step of `/reproduce-paper` (after Step 16 close).
+- Standalone via `/report <run-dir>` for any reproduction with the contract bundle.
+- Calls `/verify --mode close` (and only `close`; not `protocol`, `script`, `result`, `kb-card`, `plan`, or `mismatch`) for the terminal gate.
+- Reads from `download-ref` outputs (paper figures under `knowledge-base/literature/<method>/.figures/`); the arXiv-source-extraction enhancement is tracked as a follow-up (per design spec §11), the skill works with PDF-page extractions today.
+- Composes with `tools/cli/flow` (per `tools/flow/README.md`) when present: pre-flight reads `flow status`; editorial sidecar registers as a flow artifact; close-mode audit registers as a flow attempt against `report-review` gate. Operation degrades gracefully when `flow.toml` is absent.
+- Does **not** call `/parameter-scan`, `/slurm`, `/scaling-fit`, or `/cross-method-check` — those are upstream evidence producers consumed via the run dir.
+
+## Anti-patterns (auto-reject)
+
+- Synthesizing data; quoting numbers from KB cards as if from the paper.
+- Chip status invented from agent prose (must come from verify reports or protocol deviations).
+- Shipping without `/verify --mode close`.
+- Renaming the section sequence (top-bar / hero / strip / scroll-hint / below) — the genre is fixed.
+- Dropping the paper figure to "simplify" the layout.
+- Promoting `hint`-class evidence to drive a chip.
+- Looping the verify-fix round more than once.
+- Downgrading or upgrading subagent models.
+- Treating `execution_summary.md` as evidence (per Codex's `a75327f` change — operational only).
+- Swapping the inline SVG plot for a third-party charting library (Plotly / D3 / Chart.js) — violates the standalone-deliverable size budget per `docs/DESIGN.md` §11.
+
+## Example invocation
+
+```
+$ /report results/tfim_fig4_paper_grade/
+
+[Stage 1] Pre-flight verifier...
+  ✓ protocol.toml parses, all required sections present
+  ✓ run-report.md sections complete
+  ✓ 28/28 cell manifests carry evidence_class=current_run, matching protocol_hash
+  ✓ figs/fig4a.png + figs/fig4a.json exist
+  ✓ paper figure resolves: knowledge-base/literature/magic/.figures/arxiv__2305.18541/2305.18541.pdf-8-0.png
+
+[Stage 2] Polish subagent (matched to main agent's model/effort)...
+  Editorial sidecar written: results/tfim_fig4_paper_grade/editorial.json
+  Fields populated: headline, 2 claims, 2 deviations, 1 figure, 1 glossary entry
+  Gaps: none
+
+[Stage 3] Organize...
+  Featured figure: fig4a
+  Highlighted cell: L=128, h=1.00 (central_param match)
+  Chips: 5 (✓ symmetry, ✓ limit-check L=8, ⚠ MPS backend, ⚠ estimator, muted cross-method pending)
+
+[Stage 4] Render...
+  Output: results/tfim_fig4_paper_grade/report_tfim_fig4_paper_grade_2026-05-14.html
+  Symlink: results/tfim_fig4_paper_grade/report_latest.html
+  Size: 187 KB (under 1 MB soft cap)
+
+[Stage 5] /verify --mode close (matched to main agent's model/effort)...
+  ✓ Source-fidelity audit: 0 editorial-leak findings
+  ✓ DESIGN.md compliance: passed
+  ✓ Mobile rendering at 375×667: no overflow, all interactive elements have tap paths
+
+✓ Report ready: results/tfim_fig4_paper_grade/report_tfim_fig4_paper_grade_2026-05-14.html
+```
