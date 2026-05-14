@@ -760,10 +760,11 @@ __EXTRA_FIGS_SECTION__
             }
           }
           const inView = (yv >= yMin && yv <= yMax);
-          // Per-cell verdict ring (only if row carries `verdict` and it's not "match").
-          const verdict = p.verdict;
-          if (verdict && verdict !== 'match' && inView) {
-            g += `<circle class="pt-ring ${escapeXml(verdict)}" data-l="${escapeXml(dataKey)}" cx="${xs(p[xField])}" cy="${ys(yv)}" r="7.5"/>`;
+          // Per-cell verdict ring — only on `fail`. Proxy cells are within
+          // tolerance ("warn-but-acceptable") and don't deserve an alarm ring;
+          // they stay plain so the eye can follow curve shape, not noise.
+          if (p.verdict === 'fail' && inView) {
+            g += `<circle class="pt-ring fail" data-l="${escapeXml(dataKey)}" cx="${xs(p[xField])}" cy="${ys(yv)}" r="7.5"/>`;
           }
           g += `<circle class="pt" data-l="${escapeXml(dataKey)}" data-k="${k}" cx="${xs(p[xField])}" cy="${ys(yv)}" r="${inView ? 3.6 : 2.2}" fill="${color}" opacity="${inView ? 1 : 0.45}"/>`;
         });
@@ -851,8 +852,14 @@ __EXTRA_FIGS_SECTION__
     }
 
     // Paper-window toggle (only when defined and y-axis is linear).
+    // Default ON: the eye scans paper←→ours expecting matching scales. Hiding
+    // the wild excursions outside the paper's range is the right *first* view;
+    // toggle OFF reveals them.
     if (paperWindow && yScale !== 'log' && toggleEl) {
       toggleEl.style.display = '';
+      toggleEl.classList.add('on');
+      yMin = paperWindow.lo;
+      yMax = paperWindow.hi;
       toggleEl.addEventListener('click', () => {
         const on = toggleEl.classList.toggle('on');
         if (on) { yMin = paperWindow.lo; yMax = paperWindow.hi; }

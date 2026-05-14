@@ -382,7 +382,9 @@ def figure_block_html(fig: dict, ed: dict, paper_id: str, run_id: str, run_dir: 
     paper_context = ed.get("paper_context") or ""
     paper_alt = ed.get("caption_paper") or fig.get("paper_attribution") or f"Paper figure {label}"
     paper_source = f"{paper_id} · {fig_display}" if paper_id else fig_display
-    ours_source = f"{run_id}/figs/{label}.png"
+    # Keep ours source short — full run_id is already in the topbar, no need to
+    # repeat it in the panel header where it just truncates.
+    ours_source = f"figs/{label}.json"
 
     eye = f'<div class="fig-eyebrow">{html.escape(eyebrow)}</div>' if eyebrow else ""
 
