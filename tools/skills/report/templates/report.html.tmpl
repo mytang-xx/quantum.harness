@@ -6,7 +6,7 @@
 <title>__PAGE_TITLE__</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600&family=Inter:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400;1,8..60,500&family=Inter:ital,wght@0,400;0,450;0,500;0,600;1,400;1,500&family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <style>
   :root {
     --parchment: #f5f4ed; --ivory: #faf9f5; --sand: #e8e6dc;
@@ -503,6 +503,36 @@ __EXTRA_FIGS_SECTION__
   function escapeXml(s) {
     return String(s).replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
   }
+  // Greek letters (subset) for inline markup. Mirrors render_inline_markup in render.py.
+  const GREEK_PAIRS = [
+    ['alpha','α'],['beta','β'],['gamma','γ'],['delta','δ'],['epsilon','ε'],
+    ['zeta','ζ'],['eta','η'],['theta','θ'],['iota','ι'],['kappa','κ'],
+    ['lambda','λ'],['mu','μ'],['nu','ν'],['xi','ξ'],['pi','π'],['rho','ρ'],
+    ['sigma','σ'],['tau','τ'],['phi','φ'],['chi','χ'],['psi','ψ'],['omega','ω'],
+    ['Alpha','Α'],['Beta','Β'],['Gamma','Γ'],['Delta','Δ'],['Sigma','Σ'],
+    ['Lambda','Λ'],['Omega','Ω'],['Pi','Π'],
+  ];
+  // Convert ASCII LaTeX-style markup (_X / _{XX} / ^X / ^{XX} / Greek words /
+  // operators) to inline SVG-safe markup with <tspan> for sub/superscripts.
+  // Use inside SVG <text>; for HTML body content, use Python's render_inline_markup.
+  function markupToSvg(text) {
+    if (text == null) return '';
+    let t = String(text);
+    // Operator transforms BEFORE escape (raw `<=` → `≤`, then we escape stray `<`).
+    t = t.replace(/<=/g, '≤').replace(/>=/g, '≥').replace(/!=/g, '≠')
+         .replace(/ \+\/- /g, ' ± ').replace(/\+\/-/g, '±')
+         .replace(/\\approx/g, '≈').replace(/~=/g, '≈');
+    GREEK_PAIRS.forEach(([w, ch]) => { t = t.replace(new RegExp(`\\b${w}\\b`, 'g'), ch); });
+    // Escape any remaining XML-meaningful chars.
+    t = t.replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
+    // Subscripts: _{XX} unambiguous; _X requires X NOT followed by another alnum
+    // so `tfim_fig` stays whole but `c_L(h)` matches.
+    t = t.replace(/_\{([^}]+)\}/g, '<tspan baseline-shift="sub" font-size="0.75em">$1</tspan>');
+    t = t.replace(/_([A-Za-z0-9])(?![A-Za-z0-9])/g, '<tspan baseline-shift="sub" font-size="0.75em">$1</tspan>');
+    t = t.replace(/\^\{([^}]+)\}/g, '<tspan baseline-shift="super" font-size="0.75em">$1</tspan>');
+    t = t.replace(/\^([A-Za-z0-9])(?![A-Za-z0-9])/g, '<tspan baseline-shift="super" font-size="0.75em">$1</tspan>');
+    return t;
+  }
   function prettyKey(k) {
     return k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   }
@@ -689,12 +719,12 @@ __EXTRA_FIGS_SECTION__
       }
       if (xRefline && xRefline.value >= xMin && xRefline.value <= xMax) {
         g += `<line class="hcline" x1="${xs(xRefline.value)}" x2="${xs(xRefline.value)}" y1="${M.t}" y2="${H-M.b}"/>`;
-        g += `<text class="hclabel" x="${xs(xRefline.value)+5}" y="${M.t+12}">${escapeXml(xRefline.label || '')}</text>`;
+        g += `<text class="hclabel" x="${xs(xRefline.value)+5}" y="${M.t+12}">${markupToSvg(xRefline.label || '')}</text>`;
       }
       g += `<line class="axis" x1="${M.l}" x2="${W-M.r}" y1="${H-M.b}" y2="${H-M.b}"/>`;
       g += `<line class="axis" x1="${M.l}" x2="${M.l}" y1="${M.t}" y2="${H-M.b}"/>`;
-      g += `<text class="axis-label" x="${(W+M.l-M.r)/2}" y="${H-8}" text-anchor="middle">${escapeXml(xLabel)}</text>`;
-      g += `<text class="axis-label" transform="rotate(-90 16 ${(H+M.t-M.b)/2})" x="16" y="${(H+M.t-M.b)/2}" text-anchor="middle">${escapeXml(yLabel)}</text>`;
+      g += `<text class="axis-label" x="${(W+M.l-M.r)/2}" y="${H-8}" text-anchor="middle">${markupToSvg(xLabel)}</text>`;
+      g += `<text class="axis-label" transform="rotate(-90 16 ${(H+M.t-M.b)/2})" x="16" y="${(H+M.t-M.b)/2}" text-anchor="middle">${markupToSvg(yLabel)}</text>`;
 
       curveKeys.forEach((key, i) => {
         const color = colors[i % colors.length];
@@ -792,8 +822,15 @@ __EXTRA_FIGS_SECTION__
         const item = document.createElement('div');
         item.className = 'legend-item'; item.dataset.l = String(key);
         const labelText = labelTpl.replace(`{${curveField}}`, key);
+        // Legend label uses the same SVG-style markup so chi/sub/sup render right.
+        // Inserting via innerHTML is safe — markupToSvg escapes XML before tspans.
+        // For HTML context we'd want <sub>/<sup> but <tspan> degrades to plain text in HTML,
+        // so swap the SVG tspans for HTML sub/sup here.
+        const labelHtml = markupToSvg(labelText)
+          .replace(/<tspan baseline-shift="sub" font-size="0.75em">([^<]*)<\/tspan>/g, '<sub>$1</sub>')
+          .replace(/<tspan baseline-shift="super" font-size="0.75em">([^<]*)<\/tspan>/g, '<sup>$1</sup>');
         item.innerHTML = `<span class="legend-swatch" style="background:${colors[i % colors.length]};"></span>
-          ${escapeXml(labelText)} <span class="legend-val">${(v != null) ? v.toFixed(2) : ''}</span>`;
+          ${labelHtml} <span class="legend-val">${(v != null) ? v.toFixed(2) : ''}</span>`;
         item.addEventListener('mouseenter', () => focusKey(String(key)));
         item.addEventListener('mouseleave', () => focusKey(null));
         legendEl.appendChild(item);
