@@ -200,6 +200,17 @@
   }
   .chip:hover .chip-pop { opacity: 1; transform: translateY(0); }
 
+  /* Discrepancy panel header — terracotta to keep deviations visually loud. */
+  .panel .label.warn { color: var(--terracotta); }
+
+  /* Provenance footer grid (4 columns: Run · Cluster · Source · Harness) */
+  .panel.provenance-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 24px; padding: 22px 28px;
+  }
+  .prov-line { margin: 0; }
+  .prov-code { font-family: var(--mono); font-size: 12px; color: var(--olive); }
+
   /* Additional figures (when N > 1). Featured fig lives in .hero. */
   .extra-figs {
     max-width: 1240px; margin: 56px auto 0; padding: 0 40px;
@@ -406,12 +417,12 @@ __EXTRA_FIGS_SECTION__
   </div>
 
   <div class="panel" id="discrepancy-panel">
-    <div class="label" style="color: var(--terracotta)">⚠ Discrepancy</div>
+    <div class="label warn">⚠ Discrepancy</div>
     <h3>__DISCREPANCY_HEADLINE__</h3>
     __DISCREPANCY_HTML__
   </div>
 
-  <div class="panel full" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; padding: 22px 28px;">
+  <div class="panel full provenance-grid">
     __PROVENANCE_HTML__
   </div>
 </div>

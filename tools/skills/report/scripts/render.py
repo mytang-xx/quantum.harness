@@ -291,7 +291,7 @@ def discrepancy_html(deviations: list[dict], editorial: dict) -> str:
     return "\n    ".join(paragraphs)
 
 
-def provenance_html(run_id: str, protocol: dict, flow_state: dict | None, n_cells: int, total_wall_h: float) -> str:
+def provenance_html(run_id: str, protocol: dict, flow_state: dict | None, n_cells: int, total_wall_h: float, today: str) -> str:
     artifact = protocol.get("artifact", {})
     cluster = ""
     finished = ""
@@ -299,25 +299,18 @@ def provenance_html(run_id: str, protocol: dict, flow_state: dict | None, n_cell
         cluster = flow_state.get("cluster") or flow_state.get("default_executor", "")
         finished = flow_state.get("finished_at") or flow_state.get("last_event", "")
 
-    today = datetime.date.today().isoformat()
     return (
-        f'<div>'
-        f'<div class="label">Run</div>'
-        f'<p style="margin: 0;"><code style="font-family: var(--mono); font-size: 12px; color: var(--olive);">results/{html.escape(run_id)}/</code><br>{n_cells} cells · {total_wall_h:.1f} wall-hours</p>'
-        f'</div>'
-        f'<div>'
-        f'<div class="label">Cluster</div>'
-        f'<p style="margin: 0;">{html.escape(str(cluster) or "—")}<br>{html.escape(str(finished))}</p>'
-        f'</div>'
-        f'<div>'
-        f'<div class="label">Source</div>'
-        f'<p style="margin: 0;"><code style="font-family: var(--mono); font-size: 12px; color: var(--olive);">{html.escape(artifact.get("paper", ""))}</code><br>'
-        f'{render_inline_markup(artifact.get("description", "")[:80])}</p>'
-        f'</div>'
-        f'<div>'
-        f'<div class="label">Harness</div>'
-        f'<p style="margin: 0;">Report ID: <code style="font-family: var(--mono); font-size: 12px; color: var(--olive);">{html.escape(run_id)}</code> @ {today}<br>Rendered by <code style="font-family: var(--mono); font-size: 12px; color: var(--olive);">/report</code></p>'
-        f'</div>'
+        f'<div><div class="label">Run</div>'
+        f'<p class="prov-line"><code class="prov-code">results/{html.escape(run_id)}/</code>'
+        f'<br>{n_cells} cells · {total_wall_h:.1f} wall-hours</p></div>'
+        f'<div><div class="label">Cluster</div>'
+        f'<p class="prov-line">{html.escape(str(cluster) or "—")}<br>{html.escape(str(finished))}</p></div>'
+        f'<div><div class="label">Source</div>'
+        f'<p class="prov-line"><code class="prov-code">{html.escape(artifact.get("paper", ""))}</code>'
+        f'<br>{render_inline_markup(artifact.get("description", "")[:80])}</p></div>'
+        f'<div><div class="label">Harness</div>'
+        f'<p class="prov-line">Report ID: <code class="prov-code">{html.escape(run_id)}</code> @ {today}'
+        f'<br>Rendered by <code class="prov-code">/report</code></p></div>'
     )
 
 
@@ -570,7 +563,7 @@ def main() -> int:
         "__CONTRACT_HTML__": contract_html(protocol),
         "__DISCREPANCY_HEADLINE__": render_inline_markup(discrepancy_headline),
         "__DISCREPANCY_HTML__": discrepancy_html(protocol.get("deviations", []), editorial),
-        "__PROVENANCE_HTML__": provenance_html(run_id, protocol, flow_state, n_cells, total_wall_h),
+        "__PROVENANCE_HTML__": provenance_html(run_id, protocol, flow_state, n_cells, total_wall_h, today),
         "__RUN_ID__": run_id,
         "__FIGURES_JSON__": json.dumps(figures_js, separators=(",", ":")),
         "__GLOSS_JSON__": json.dumps(gloss_dict, separators=(",", ":")),
@@ -582,7 +575,6 @@ def main() -> int:
     for placeholder, value in subs.items():
         out_html = out_html.replace(placeholder, value)
 
-    today = datetime.date.today().isoformat()
     out_filename = f"report_{run_id}_{today}.html"
     out_path = run_dir / out_filename
     out_path.write_text(out_html)
