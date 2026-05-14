@@ -38,4 +38,4 @@ command = "mpirun -n 2 julia --project=julia-env -e 'using Carlo, StochasticSeri
 [docs]
 official = "https://lukas.weber.science/StochasticSeriesExpansion.jl/stable/"
 tutorial = "https://lukas.weber.science/StochasticSeriesExpansion.jl/stable/tutorial.html"
-carlo = "https://lukas-weber.github.io/Carlo.jl/stable/"
+carlo = "https://lukas.weber.science/Carlo.jl/dev/"

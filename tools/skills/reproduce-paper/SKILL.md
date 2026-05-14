@@ -20,6 +20,20 @@ Plan and orchestrate a paper reproduction across multiple figures and main resul
 - A *budget* - wall-clock or compute envelope. Defaults from the calling workflow / cluster profile.
 - An optional *protocol TOML* — an authored or prior generated contract. If absent, create `results/<run>/protocol.toml` from primary-source extraction before compute.
 
+## Evidence authority
+
+The workflow separates navigation from evidence. Existing repo content may help the agent find a plausible route, but it cannot close a reproduction claim.
+
+Evidence classes:
+
+- `primary` — paper PDF/rendered text, supplement, official code, or official data. Primary sources control paper claims.
+- `trusted_reference` — analytic limit, exact small-system calculation, official benchmark, or independent method check chosen before production.
+- `current_run` — artifact generated under the current protocol hash and script hash, with matching manifest provenance.
+- `hint` — KB cards, rendered notes, old scripts, old plans, old results, old figures, summaries, and prior run reports.
+- `assumption` / `deviation` — explicit unsupported or altered setup, visible in the protocol and final report. These can bound a partial reproduction, but cannot silently support a paper-equivalent claim.
+
+Hard rule: a hint can influence what to try, but every gate ignores hints when deciding whether a claim is supported unless the hinted fact has been re-confirmed against a primary source or regenerated as current-run evidence.
+
 ## Protocol TOML
 
 The protocol is generic. It records what the paper claims, how each claim is sourced, and what evidence must exist before the harness may call the run a reproduction. `/reproduce-paper` treats claim names, parameter names, method names, and artifact fields as opaque strings. Domain-specific knowledge belongs in the source text, method cards, authored scripts, and command checks. Do not add hardcoded domain oracle types to the protocol; add a generic `command`, `verify`, or manifest check that points at a domain script instead.
@@ -29,7 +43,7 @@ The authoring agent may draft the protocol, scripts, and checks, but cannot be t
 Required sections:
 
 - `[artifact]` — paper id, scope, run id, and coverage target.
-- `[[sources]]` — primary paper, supplement, official code/data, and optional KB hints. KB entries are hints only per AGENTS.md; primary sources control conflicts.
+- `[[sources]]` — primary paper, supplement, official code/data, trusted references, and optional hints. Each row carries `id`, `kind`, `path` or `url`, and `authority = "primary" | "trusted_reference" | "hint"`. KB entries, prior scripts, old plans, and old artifacts are always `hint` until re-confirmed or regenerated.
 - `[[claims]]` — paper-derived obligations. Each claim has `id`, `statement`, `sources`, `scope`, and optional `assumption = true` when primary confirmation is unavailable.
 - `[[checks]]` — executable or auditable evidence requirements. Built-in `kind` values are mechanical only:
   - `source_audit` — audit claims against declared sources, typically via `/verify --mode protocol`.
@@ -63,15 +77,37 @@ Selectors may use `field = "nested.key"` for simple JSON/TOML paths or `pointer 
 
 For manifest assembly, a run spec may include `assembly.manifest_contract` with only generic clauses: `required_fields`, `nonempty_fields`, `equals`, `list_contains`, `numeric_fields`, `optional_numeric_fields`, `numeric_bounds`, and `evidence_sets`. These clauses refer to manifest field paths; they do not introduce domain types. Run-level provenance such as `sources`, `claims`, and `deviations` is declared once in the protocol / run spec and mechanically compared against the manifest payload; do not repeat paper-specific deviation strings as reusable contract logic, and do not add domain-specific oracle types to the reusable contract.
 
+## Run directory contract
+
+Human-authored contracts are TOML; machine-generated cell maps may stay JSON when called primitives already use JSON. Inspired by ColliderAgent's staged run layout, each reproduction keeps a durable progress spine that survives local or remote execution:
+
+```text
+results/<run>/
+  protocol.toml
+  reproduce-plan.toml
+  run_spec.json
+  progress/run_manifest.toml
+  scripts/
+  cells/<cell_id>/manifest.json
+  checks/
+  figs/
+  verify/
+  execution_summary.md
+  run-report.md
+  consolidated.jl|py
+```
+
+`progress/run_manifest.toml` records stage status, current gate, submitted job ids, remote path, and artifact hashes. `execution_summary.md` is the terse operational summary: what ran, where, what passed, what failed, and which artifacts support the next gate. It is not evidence by itself; it points to manifests and check outputs.
+
 ## Workflow
 
 Steps 1–8 build and validate the complete protocol; steps 9–13 are the pre-compute discipline; steps 14–18 run paper-grade compute and close. The workflow only advances past a gate when every declared check for that gate passes or a deviation is explicitly recorded. Any material edit to the protocol, checks, scripts, aggregators, or final report invalidates downstream gates for that artifact; return to the relevant audit before advancing. Where a step puts a real choice in front of the user, invoke `Superpowers:brainstorming` to present 2–3 options with pros / cons and a recommendation. Other steps run silently with sensible defaults.
 
 **Gate failure handling.** Any failed check kind (`source_audit`, `command`, `manifest_fields`, `manifest_consensus`, `numeric_compare`, `freshness`, or `verify`) stops the workflow. Surface the failing evidence, write or link the check output in the run directory, then present 2–3 real options via `Superpowers:brainstorming`: repair the artifact/check, narrow the scope, record a justified deviation/assumption when scientifically honest, or stop. Do not continue to expensive compute, assembly, or final reporting from a failed gate.
 
-1. **Collect sources.** Locate primary sources first: paper PDF/rendered text, supplement, official code/data when available. Read KB cards and prior scripts only as hints. If no primary source is available locally, prompt the user to run `download-ref` or provide the source.
+1. **Collect and classify sources.** Locate primary sources first: paper PDF/rendered text, supplement, official code/data when available. Classify every input by evidence authority before using it. KB cards, prior scripts, old plans, old results, and existing figures start as `hint`. If no primary source is available locally, prompt the user to run `download-ref` or provide the source.
 
-2. **Extract the protocol.** From primary sources, extract the claims needed for the requested scope: target result, setup, method, parameters, approximations, uncertainty, and artifact requirements. Write or update `results/<run>/protocol.toml`. If a KB hint conflicts with a primary source, record the conflict in the run notes and follow the primary source.
+2. **Extract the protocol.** From primary sources, extract the claims needed for the requested scope: target result, setup, method, parameters, approximations, uncertainty, and artifact requirements. Create or update `results/<run>/protocol.toml`. If a hint conflicts with a primary source, record the conflict and follow the primary source. If a claim cannot be primary-sourced, mark it as an assumption instead of letting a hint support it.
 
 3. **Categorize each figure.** Tag every figure with one of:
    - **Substantive** - a result the paper is built around.
@@ -79,19 +115,19 @@ Steps 1–8 build and validate the complete protocol; steps 9–13 are the pre-c
    - **Verification** - a diagnostic the paper itself ran to justify the result. These are *internal* to the paper's verification chain; reproducing them is also reproducing the paper's *trust*.
    - **Cross-check** - a comparison to an independent route for the same claim.
 
-4. **Plan the figure dependency graph.** Identify which figures share generated artifacts, so the underlying calculation can be reused. Output: `results/<run>/reproduce-paper.plan.json` with figure ids, their categorizations, the artifact each requires, and the dependency edges.
+4. **Plan the figure dependency graph.** Identify which figures share generated artifacts, so the underlying calculation can be reused. Output: `results/<run>/reproduce-plan.toml` with figure ids, their categorizations, the artifact each requires, and the dependency edges. Existing plans may be read as hints, but the current plan must derive its claims and gates from the current protocol.
 
 5. **Plan the orchestration.** For each figure:
    - Pick the applicable domain workflow and method card from the paper's reported setup.
    - Pick the primitive (`/parameter-scan`, `/scaling-fit`, `/cross-method-check`) that runs the calculation.
-   - For scans or arrays, write `results/<run>/run_spec.json` using the generic cell contract: each cell has an opaque `cell_id`, a `params` object, optional `settings`, and shared `provenance`. `/reproduce-paper` does not define domain-specific parameter types; the model/method entrypoint interprets `params`.
+   - For scans or arrays, write `results/<run>/run_spec.json` using the generic cell contract from `/parameter-scan`: each cell has an opaque `cell_id`, a `params` object, optional `settings`, and shared `provenance`. `/reproduce-paper` does not define domain-specific parameter types; the model/method entrypoint interprets `params`.
    - Manifest assembly validates that each cell echoed the merged run-spec provenance it was supposed to use. Cell-specific provenance overrides are allowed, but they are still data; the reusable layer only checks equality of declared payload fields.
    - For multi-stage method-card pipelines, the per-cell compute script reads its method-card-declared stage list and writes a per-stage manifest into `results/<run>/cells/<cell_id>/<stage>.manifest.json`. Stage-execution is plain shell, not a separate skill; the method card declares what, and the script does it.
    - For embarrassingly-parallel grids on a cluster, `/parameter-scan` composes with `/slurm` (which submits the sbatch array, monitors, fetches). Cluster profile is `tools/cluster/<active>.md`.
 
 6. **Pick trusted references and record them in the protocol.** *Always a fork.* For each substantive figure, identify one point or reduced setting where the same claim has a known-correct or independently checkable answer: analytic limit, independent implementation, official benchmark, or exhaustive calculation on a smaller instance. The reference need not lie on the paper's grid; what matters is that the script's code path reaches it. Invoke `Superpowers:brainstorming` with 2-3 candidate references, then record the chosen reference as claim/check entries in the protocol.
 
-7. **Audit the complete protocol with an independent verifier.** Dispatch `/verify --mode protocol` against `results/<run>/protocol.toml` and the declared primary sources. The verifier must be a separate agent from the one that drafted or last materially edited the protocol. On ✓ continue. On ✗ or ⚠ stop and surface the audit report; user steers whether to correct the protocol, record an assumption, or narrow the scope. If any later step adds or changes claims/checks/deviations, return here before running the affected gate.
+7. **Audit the complete protocol with an independent verifier.** Dispatch `/verify --mode protocol` against `results/<run>/protocol.toml` and the declared primary sources. The verifier must be a separate agent from the one that drafted or last materially edited the protocol. It must reject hint-backed claims that are not explicitly marked as assumptions. On pass, continue. On fail or warning, stop and surface the audit report; user steers whether to correct the protocol, record an assumption, or narrow the scope. If any later step adds or changes claims/checks/deviations, return here before running the affected gate.
 
 8. **Run declared preflight checks.** Execute all `[[checks]]` whose `gate = "preflight"` or whose gate is omitted and cheap. `/reproduce-paper` only dispatches the mechanical check kind; domain-specific logic lives in the referenced command or `/verify` prompt. Do not run expensive compute until preflight passes.
 
@@ -108,11 +144,11 @@ Steps 1–8 build and validate the complete protocol; steps 9–13 are the pre-c
 
 13. **Convergence at one point.** Vary the method's declared controlling setting at one point. Confirm the answer stabilizes using the protocol's declared check. On drift, stop. This is a defense layer against "stable but wrong"; steps 11-12 are the primary catch.
 
-14. **Paper-grade compute with compute-gate checks.** Dispatch the full requested run via `/parameter-scan` + `/slurm` or the declared primitive. Inherit the paper's settings by default. Invoke `Superpowers:brainstorming` only if the cluster offers a real budget choice. Every produced manifest must include `protocol_hash`, source artifact paths, script hash or git hash when available, declared deviation ids, the setup payload actually used, and the fields required by the protocol's manifest checks. Each cell/stage runs all `[[checks]]` whose `gate = "compute"` before it is marked complete; a failed compute gate blocks dependent cells, aggregation, plots, and reports until repaired or explicitly scoped/deviated.
+14. **Paper-grade compute with compute-gate checks.** Dispatch the full requested run via `/parameter-scan` + `/slurm` or the declared primitive. Inherit the paper's settings by default. Invoke `Superpowers:brainstorming` only if the cluster offers a real budget choice. Remote execution is a cell runner only: `squeue`, ssh exit status, and a completed Slurm job are not evidence until fetched manifests and declared checks pass. Every produced manifest must include `evidence_class = "current_run"`, `protocol_hash`, source artifact paths, script hash or git hash when available, declared claim ids, declared deviation ids, stack/profile identity, the setup payload actually used, and the fields required by the protocol's manifest checks. Each cell/stage runs all `[[checks]]` whose `gate = "compute"` before it is marked complete; a failed compute gate blocks dependent cells, aggregation, plots, and reports until repaired or explicitly scoped/deviated.
 
     If any cell overrides shared settings, the assembler must validate the manifest against the merged shared+cell settings and surface a constant/varying settings summary in the result artifact. Do not let a first completed cell define global provenance by accident.
 
-15. **Validate produced artifacts.** Run all `[[checks]]` whose `gate = "assembly"` or `gate = "report"`: freshness, manifest fields, manifest consensus, numeric comparisons, and `/verify result` reports. Plots and run reports are blocked until these pass or explicit deviations are recorded.
+15. **Validate produced artifacts.** Run all `[[checks]]` whose `gate = "assembly"` or `gate = "report"`: freshness, manifest fields, manifest consensus, numeric comparisons, and `/verify result` reports. Reject stale artifacts, old figures, and old data unless their hashes and provenance match the current protocol/script contract. Plots and run reports are blocked until these pass or explicit deviations are recorded.
 
 16. **Assemble the close** (writeup handoff per AGENTS.md, embedded here):
    - Walk the run directory: collect every cell manifest, every primitive's CSV / PNG, every script.
@@ -122,6 +158,7 @@ Steps 1–8 build and validate the complete protocol; steps 9–13 are the pre-c
      - **Settings** - method, controlling settings, budgets; cite primary sources first and KB cards only as hints or secondary references.
      - **Result per figure** - final quantity value(s) with uncertainty; one-line interpretation.
      - **Verification status** - trusted-reference / constraint / convergence / independent-check status, plus the `/verify` report references.
+     - **Evidence map** - each reported claim maps to protocol claim id, source ids, manifest/check artifact, and verify report.
      - **Protocol status** - path to `protocol.toml`, protocol hash, passed checks, assumptions, deviations, and source/KB conflicts.
      - **Residual uncertainty** - what is *not* settled.
      - **Reproduction** - paths to the consolidated script + run command.
@@ -154,8 +191,11 @@ Per AGENTS.md output norms, reports stay terse — but paper reproduction has a 
 | Cross-check figures | `results/<run>/figs/cross-<id>.png` | When the secondary diagnostic is in the harness. |
 | Methodology figures (schematics) | `results/<run>/figs/method-<id>.png` | When derivable; otherwise paper-citation note. |
 | Protocol contract | `results/<run>/protocol.toml` | Always before compute. |
+| Figure/run plan | `results/<run>/reproduce-plan.toml` | Always after protocol. |
+| Progress spine | `results/<run>/progress/run_manifest.toml` | Always; updated after each gate. |
 | Per-cell / per-figure manifest | `results/<run>/cells/<cell_id>/manifest.json`, `results/<run>/manifests/fig-<id>.json` | Always. |
-| `/verify` reports for protocol / figures / close | `results/<run>/verify_<artifact>_<date>.md` | Always (protocol, script, result, and close modes as applicable). |
+| `/verify` reports for protocol / figures / close | `results/<run>/verify/verify_<artifact>_<date>.md` | Always (protocol, script, result, and close modes as applicable). |
+| Execution summary | `results/<run>/execution_summary.md` | Always; operational summary only, not evidence. |
 | Consolidated runnable script | `results/<run>/consolidated.{jl,py}` | Always (Step 16 close). |
 | Run report mapping main results → figs → verification status | `results/<run>/run-report.md` | Always (Step 16 close, then Step 17 review). |
 
@@ -173,7 +213,7 @@ This skill is *primarily an orchestrator* (with the close embedded in Steps 16�
 - **Multi-stage compute scripts** → method card declares stages; the per-cell compute script walks them and writes per-stage manifests. Plain shell, not a separate skill.
 - **Cluster execution** → `/slurm` (called by `/parameter-scan` for grid sweeps; can be called directly for single big runs). Cluster profile from `tools/cluster/<active>.md`.
 
-The orchestrator's value is in the *plan* (the dependency graph + methodology/verification surfacing) and the *close* (consolidated script + run report), not in the per-cell execution. If the user disagrees with the plan, they edit `reproduce-paper.plan.json` and re-run.
+The orchestrator's value is in the *plan* (the dependency graph + methodology/verification surfacing) and the *close* (consolidated script + run report), not in the per-cell execution. If the user disagrees with the plan, they edit `reproduce-plan.toml` and re-run.
 
 ## Resume semantics
 

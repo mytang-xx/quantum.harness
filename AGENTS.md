@@ -88,7 +88,7 @@ Current cards:
 - `symmetry-cheatsheet.md` — conserved quantities, lattice point groups.
 - `magic-conventions.md` — Pauli / clock-shift conventions, SRE definitions, partition modes, qudit generalizations, Wegner-duality SRE preservation.
 - `magic-benchmarks.md` — reference SRE / long-range-magic values across canonical models, reported as literature ranges.
-- `methods/{ed,dmrg,tebd,vmc-nqs,anderson-impurity-ed,spectral,finite-t,pauli-markov,ttn}.md` — per-algorithm notation, code shape, knobs, pitfalls. `vmc-nqs.md` uses Python/NetKet. `spectral.md` and `finite-t.md` are stubs (pointers only, no tested recipe).
+- `methods/{ed,dmrg,qmc,ctmrg,tebd,vmc-nqs,anderson-impurity-ed,spectral,finite-t,pauli-markov,ttn}.md` — per-algorithm notation, code shape, knobs, pitfalls. `qmc.md` uses Julia SSE/Carlo; `ctmrg.md` uses Julia PEPSKit. `vmc-nqs.md` uses Python/NetKet. `spectral.md` and `finite-t.md` are stubs (pointers only, no tested recipe).
 - `literature/<method>/` — rendered methodology references organized by method, each with its own `INDEX.md`. Raw PDFs, Semantic Scholar metadata, and extracted figures live in local-only `.raw/` / `.figures/` subfolders and must remain gitignored.
 - `2302.04919-variational-benchmarks.md` — V-score paper notes.
 
@@ -96,13 +96,15 @@ Skills cite these cards; they never hardcode the data. New cards land when a rea
 
 **Paper reproduction evidence invariants.** These are harness-wide rules, not `/reproduce-paper` implementation details:
 - Written content is evidence, not authority. `knowledge-base/` cards, rendered notes, scripts, summaries, and prior run artifacts are cached hints.
+- Evidence authority is explicit: `primary` (paper, supplement, official code/data), `trusted_reference` (analytic / exact / independent check), `current_run` (fresh artifact with matching protocol and script provenance), `hint` (KB, notes, old scripts/plans/data/figures), and `assumption` / `deviation`.
+- Hint quarantine is mandatory. Hints may guide planning, but they cannot close a reproduction claim unless re-confirmed against a primary source or regenerated as current-run evidence.
 - Primary sources control paper reproduction: paper PDF, supplement, and official code/data when available. If a primary source conflicts with a KB card, the primary source controls; emit a KB diff and proceed from the primary-source-derived claim.
 - KB-sourced reproduction claims must either be confirmed against a primary source or marked as explicit unverified assumptions in the run report.
 - No silent weakening. Any change in paper-declared setup, implementation route, data-generation route, constraints, budget, or uncertainty method must be recorded as a deviation before it can support a reproduction claim.
 - No first-cell provenance. Per-cell run-spec overrides are allowed, but assembly must validate each manifest against the merged shared+cell settings and provenance, then report settings as constant vs varying. Never summarize a correctness-affecting setting, budget, or uncertainty rule from the first completed manifest unless a manifest-consensus check has proved it is global.
 - Failed checks block claims. A failed protocol, script, command, manifest, freshness, consensus, numeric, or result check stops the workflow until repaired, scoped down, or recorded as a justified assumption/deviation.
 - The agent that writes or materially edits a reproduction protocol, script, check command, aggregator, or result report cannot be the sole verifier of that artifact. Self-checks catch syntax and smoke failures; independent `/verify` or separate-agent review closes the verification loop.
-- Stale artifacts or artifacts missing required provenance cannot support conclusions.
+- Stale artifacts or artifacts missing required provenance cannot support conclusions. Remote job status, `ssh` exit status, and scheduler `COMPLETED` state are operational facts only; fetched manifests and checks are the evidence.
 
 **Provenance discipline.** Every numerical anchor on a KB card must carry one of three tags: *Literal* (a verbatim passage from a rendered literature file under `knowledge-base/literature/<method>/`, with line number), *Analytic* (closed-form derivation from a stated definition or limit), or *Harness anchor* (verified empirical value from a tagged run in this repo, with a cross-check method named). Untagged numerical entries are not benchmarks. The `/verify` primitive (in `kb-card` mode) cross-checks each tag against its declared source — invoke it during `/reproduce-paper` before compute, and as a pre-commit gate after editing a KB card.
 
