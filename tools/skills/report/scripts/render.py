@@ -314,6 +314,54 @@ def provenance_html(run_id: str, protocol: dict, flow_state: dict | None, n_cell
     )
 
 
+_VERDICT_ICONS = {"match": "✓", "partial": "◐", "fail": "✗", "unknown": "?"}
+_VERDICT_LABELS = {
+    "match": "Reproduced",
+    "partial": "Partial reproduction",
+    "fail": "Fails to reproduce",
+    "unknown": "Verdict pending",
+}
+
+
+def build_verdict_html(editorial: dict, protocol: dict) -> str:
+    """Compose the verdict band HTML.
+
+    Editorial supplies (status, label, detail). Mechanical fallback infers
+    status from the protocol shape: deviations present → partial; otherwise
+    unknown (we never claim a green verdict mechanically).
+    """
+    v = editorial.get("verdict") or {}
+    status = v.get("status") or ("partial" if protocol.get("deviations") else "unknown")
+    if status not in _VERDICT_ICONS:
+        status = "unknown"
+    label = v.get("label") or _VERDICT_LABELS[status]
+
+    detail = v.get("detail") or ""
+    if not detail:
+        # Mechanical fallback detail: list deviation labels if any.
+        ed_devs = {d["id"]: d for d in editorial.get("deviations") or []}
+        names = [
+            ed_devs.get(d.get("id", ""), {}).get("display_label") or d.get("id", "")
+            for d in protocol.get("deviations", [])
+        ]
+        if names:
+            detail = f"Declared deviations: {', '.join(names)}."
+        else:
+            detail = "Run editorial.json's `verdict` field is unset; see discrepancy and chips below."
+
+    detail_html = render_inline_markup(detail)
+    return (
+        f'<div class="verdict verdict-{status}">'
+        f'<span class="verdict-icon">{_VERDICT_ICONS[status]}</span>'
+        f'<div class="verdict-text">'
+        f'<span class="verdict-label">{html.escape(label)}</span>'
+        f'<span class="verdict-detail">{detail_html}</span> '
+        f'<a href="#discrepancy-panel">see discrepancy &rarr;</a>'
+        f'</div>'
+        f'</div>'
+    )
+
+
 def figure_block_html(fig: dict, ed: dict, paper_id: str, run_id: str, run_dir: Path,
                       eyebrow: str | None = None) -> str:
     """Compose the HTML for one figure's duo (paper PNG | interactive plot).
@@ -494,27 +542,11 @@ def main() -> int:
     meta_bits = [b for b in (cluster_str, today) if b]
     run_meta = " · ".join(meta_bits)
 
-    # Deviation banner: only when [[deviations]] is non-empty. Surfaces under
-    # the headline so a quick scroll cannot miss it.
-    deviations = protocol.get("deviations", [])
-    if deviations:
-        ed_devs = {d["id"]: d for d in editorial.get("deviations") or []}
-        labels = [
-            (ed_devs.get(d.get("id", ""), {}).get("display_label") or d.get("id", ""))
-            for d in deviations
-        ]
-        n = len(deviations)
-        noun = "deviation" if n == 1 else "deviations"
-        dev_banner_html = (
-            '<div class="dev-banner">'
-            '<span class="dev-icon">⚠</span>'
-            f'<div><b>{n} declared {noun} from the paper</b> &middot; '
-            + ", ".join(render_inline_markup(L) for L in labels)
-            + ' &middot; <a href="#discrepancy-panel">see discrepancy</a></div>'
-            '</div>'
-        )
-    else:
-        dev_banner_html = ""
+    # Verdict band — the single visually-loud band carrying both the overall
+    # outcome ("did it reproduce?") and the key deviation summary.
+    # Source priority: editorial.verdict (sourced from verify reports by the
+    # polish subagent) → mechanical fallback derived from protocol shape.
+    verdict_html = build_verdict_html(editorial, protocol)
 
     # Build per-figure HTML blocks + collect data for the FIGURES JS array.
     figures_js: list[dict] = []
@@ -556,7 +588,7 @@ def main() -> int:
         "__RUN_META__": html.escape(run_meta),
         "__HEADLINE_HTML__": headline_html,
         "__RUN_TAG__": html.escape(f"{n_cells} cells · {total_wall_h:.1f} wall-h"),
-        "__DEV_BANNER_HTML__": dev_banner_html,
+        "__VERDICT_HTML__": verdict_html,
         "__FEATURED_FIG_HTML__": featured_html,
         "__EXTRA_FIGS_SECTION__": extra_section,
         "__STATUS_STRIP_HTML__": status_strip_html(protocol, editorial, run_dir),

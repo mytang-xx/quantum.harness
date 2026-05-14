@@ -42,22 +42,36 @@
   .claim .sym:hover { border-bottom-color: var(--terracotta); border-bottom-style: solid; }
   .claim-tag { font-family: var(--sans); font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--terracotta); white-space: nowrap; flex-shrink: 0; padding-top: 6px; }
 
-  /* Deviation banner: surfaces declared deviations near the headline so they
-     can never be missed by a quick scroll. */
-  .dev-banner {
-    background: rgba(201,100,66,0.06);
-    border: 1px solid rgba(201,100,66,0.40);
-    border-radius: 12px;
-    padding: 12px 16px;
-    margin: 0 0 22px;
-    display: flex; align-items: center; gap: 12px;
-    font-family: var(--sans); font-size: 13.5px; line-height: 1.5;
-    color: var(--charcoal);
+  /* Verdict band — answers "did this reproduce?" in the first second.
+     Subsumes the older "deviation banner" by surfacing both the overall
+     verdict and the key-deviation summary in a single visually-loud strip. */
+  .verdict {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 18px;
+    border-radius: 14px;
+    margin: 0 0 24px;
+    font-family: var(--sans);
+    line-height: 1.5;
   }
-  .dev-banner .dev-icon { color: var(--terracotta); font-size: 16px; flex-shrink: 0; line-height: 1; }
-  .dev-banner b { color: var(--terracotta); font-weight: 600; }
-  .dev-banner a { color: var(--terracotta); text-decoration: none; border-bottom: 1px solid rgba(201,100,66,0.40); }
-  .dev-banner a:hover { border-bottom-color: var(--terracotta); }
+  .verdict-icon { font-size: 24px; line-height: 1; flex-shrink: 0; }
+  .verdict-text { flex: 1; }
+  .verdict-label {
+    font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase;
+    font-size: 11px; margin-right: 10px;
+  }
+  .verdict-detail { font-size: 13.5px; color: var(--charcoal); }
+  .verdict a { text-decoration: none; border-bottom: 1px solid currentColor; padding-bottom: 1px; }
+
+  /* Status palette: match (calm olive), partial (warm coral), fail (alarm
+     terracotta), unknown (mute stone). Background tints + border tints follow. */
+  .verdict-match    { background: rgba(94,93,89,0.04);   border: 1px solid rgba(94,93,89,0.28); }
+  .verdict-match    .verdict-icon, .verdict-match    .verdict-label, .verdict-match    a { color: var(--olive); }
+  .verdict-partial  { background: rgba(217,119,87,0.06); border: 1px solid rgba(217,119,87,0.40); }
+  .verdict-partial  .verdict-icon, .verdict-partial  .verdict-label, .verdict-partial  a { color: var(--coral); }
+  .verdict-fail     { background: rgba(201,100,66,0.07); border: 1px solid rgba(201,100,66,0.45); }
+  .verdict-fail     .verdict-icon, .verdict-fail     .verdict-label, .verdict-fail     a { color: var(--terracotta); }
+  .verdict-unknown  { background: rgba(135,134,127,0.04); border: 1px solid rgba(135,134,127,0.30); }
+  .verdict-unknown  .verdict-icon, .verdict-unknown  .verdict-label, .verdict-unknown  a { color: var(--stone); }
 
   /* ===== SIDE-BY-SIDE ===== */
   .duo {
@@ -375,6 +389,14 @@
 
   /* ===== Touch-friendly point hit area ===== */
   svg.plot .pt { stroke: transparent; stroke-width: 14; paint-order: stroke; }
+
+  /* Per-cell verdict rings: drawn as a separate <circle class="pt-ring"> behind
+     the .pt. Only rendered when the data row carries a `verdict` field.
+     match → no ring; proxy → coral hairline; fail → terracotta solid ring. */
+  svg.plot .pt-ring { fill: none; pointer-events: none; transition: opacity 220ms ease, r 140ms ease; }
+  svg.plot .pt-ring.proxy { stroke: var(--coral); stroke-width: 1.5; opacity: 0.65; }
+  svg.plot .pt-ring.fail  { stroke: var(--terracotta); stroke-width: 2.0; opacity: 0.85; }
+  svg.plot .pt-ring.dim { opacity: 0.10; }
 </style>
 </head>
 <body>
@@ -393,7 +415,7 @@
     <span class="claim-tag">__RUN_TAG__</span>
   </div>
 
-  __DEV_BANNER_HTML__
+  __VERDICT_HTML__
 
   __FEATURED_FIG_HTML__
 
@@ -635,7 +657,7 @@ __EXTRA_FIGS_SECTION__
     }
 
     function focusKey(key) {
-      plotEl.querySelectorAll('.curve, .pt, .errbar').forEach(el => el.classList.remove('focus','dim'));
+      plotEl.querySelectorAll('.curve, .pt, .errbar, .pt-ring').forEach(el => el.classList.remove('focus','dim'));
       legendEl.querySelectorAll('.legend-item').forEach(el => el.classList.remove('focus','dim'));
       if (key === null) return;
       plotEl.querySelectorAll('[data-l]').forEach(el => {
@@ -695,6 +717,11 @@ __EXTRA_FIGS_SECTION__
             }
           }
           const inView = (yv >= yMin && yv <= yMax);
+          // Per-cell verdict ring (only if row carries `verdict` and it's not "match").
+          const verdict = p.verdict;
+          if (verdict && verdict !== 'match' && inView) {
+            g += `<circle class="pt-ring ${escapeXml(verdict)}" data-l="${escapeXml(dataKey)}" cx="${xs(p[xField])}" cy="${ys(yv)}" r="7.5"/>`;
+          }
           g += `<circle class="pt" data-l="${escapeXml(dataKey)}" data-k="${k}" cx="${xs(p[xField])}" cy="${ys(yv)}" r="${inView ? 3.6 : 2.2}" fill="${color}" opacity="${inView ? 1 : 0.45}"/>`;
         });
       });
@@ -716,6 +743,11 @@ __EXTRA_FIGS_SECTION__
           const headLeft = curveField ? `${curveField} · ${xField}` : xField;
           const headRight = curveField ? `${row[curveField]} · ${fmtVal(row[xField])}` : fmtVal(row[xField]);
           let html = `<div class="callout-row"><span>${escapeXml(headLeft)}</span><b>${escapeXml(headRight)}</b></div>`;
+          if (row.verdict) {
+            const vColor = row.verdict === 'match' ? '#a3a39c' : (row.verdict === 'proxy' ? '#d97757' : '#c96442');
+            const vIcon  = row.verdict === 'match' ? '✓' : (row.verdict === 'proxy' ? '◐' : '✗');
+            html += `<div class="callout-row"><span>vs paper</span><b style="color:${vColor}">${vIcon} ${escapeXml(row.verdict)}</b></div>`;
+          }
           html += `<div class="callout-divider"></div>`;
           html += `<div class="callout-row"><span>${escapeXml(yField)}</span><b>${fmtVal(row[yField])}</b></div>`;
           if (errField) html += `<div class="callout-row"><span>± 1σ</span><b>${fmtVal(row[errField])}</b></div>`;
