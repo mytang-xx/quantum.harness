@@ -49,6 +49,7 @@
       "label": "<protocol figure id; one entry per [[figures]] in protocol.toml>",
       "caption_paper": "<ONE SENTENCE describing what the paper figure shows. Spell out symbols on first use OR wrap in [[key|symbol]].>",
       "caption_ours": "<ONE SENTENCE describing what your reproduction shows + how it compares.>",
+      "paper_context": "<(Sec.X / Fig.Y caption.) ONE SENTENCE quoting or paraphrasing the paper's own framing of WHY this figure exists. Renderer prepends the 'From the paper' label automatically — do not repeat it. Open with the paper-section reference in parens, then the substance.>",
       "sourced_by": ["paper-notes.md#L<line>"]
     }
   ],

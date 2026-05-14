@@ -389,7 +389,13 @@ Used to surface verification status at a glance in the report's status strip. Ea
 
 Tap-fallback (touch devices): see §13 Hover-or-tap.
 
-### 10.2 Glossary tooltip (`glossbox`)
+### 10.2 Glossary tooltip (`glossbox`) — explanation-on-demand pattern
+
+**Why.** A scientific report has two competing audiences: the specialist who already knows the symbols and the visitor who doesn't. Inline definitions in prose ("the subleading SRE term `c_L(h)`, defined as `2M_2(L/2) − M_2(L)`, where `M_2` is the Rényi-2 stabilizer entropy…") satisfy the visitor and bore the specialist; pure jargon does the opposite. The glossbox resolves this: jargon stays terse for the specialist, the visitor hovers (or taps on mobile) to reveal a one-sentence plain-language definition + the formula.
+
+This is the **explanation-on-demand pattern**: the report's prose carries authority and density; the explanations sit one interaction away. Same pattern applies elsewhere in the harness skin — chip popovers, callout dot popups, deviation banner. They all exist so the report doesn't have to choose between density and accessibility.
+
+**Contract**: every project-specific symbol used in any user-visible text (headline, captions, chip popovers, discrepancy prose) **must** have a glossary entry with a matching `key`, and **must** be wrapped via the `[[key|display]]` markup in the editorial JSON. The polish-subagent brief enforces this; the close-mode verifier audits it. Without the entry, the report ships jargon — the design contract is broken.
 
 Used to define inline scientific symbols (`c_L(h)`, `M_2`, etc.) on hover or tap, without forcing definitions into the prose.
 

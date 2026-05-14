@@ -93,7 +93,9 @@ The subagent reads the full evidence pack and writes `<run-dir>/editorial.json`.
 >       "discrepancy_paragraph": "…1-2 sentence prose for the discrepancy panel…", "sourced_by": [...] }
 >   ],
 >   "figures": [
->     { "label": "<protocol fig id>", "caption_paper": "…one sentence…", "caption_ours": "…one sentence…", "sourced_by": [...] }
+>     { "label": "<protocol fig id>", "caption_paper": "…one sentence…", "caption_ours": "…one sentence…",
+>       "paper_context": "…one sentence quoted/paraphrased from the paper's own framing of WHY this figure exists…",
+>       "sourced_by": [...] }
 >   ],
 >   "glossary": [
 >     { "key": "cl", "symbol": "c_L(h)", "name": "Subleading increment c_L(h)",
@@ -123,6 +125,7 @@ The subagent reads the full evidence pack and writes `<run-dir>/editorial.json`.
 > - Discrepancy headline: `"Largest disagreements sit in the ordered phase at small L; the L=128 critical-point dip recovers."` (where it goes wrong + where it works, in one sentence.)
 > - Caption (paper side): `"Subleading term [[cl|c_L]] = 2 [[m2|M_2]](L/2) − [[m2|M_2]](L) of the Rényi-2 SRE on the 1D quantum Ising chain across h ∈ [0.8, 1.2] for L ∈ {16, 32, 64, 128}."` (definition + observable + grid + sizes; no editorializing.)
 > - Caption (ours side): `"Same observable on the same h-grid. MPS-PBC at χ=30, bridge-normalizer estimator. L=128 dip at h_c reproduces; smaller L overshoots in the ordered phase."` (what's the same + what's different + result, one sentence.)
+> - Paper context: `"(Sec. III.) The [[cl|c_L]] estimator demonstrates that the Pauli-Markov chain method efficiently extracts SRE density across system sizes — this figure is the *efficiency claim* in operational form."` (paper-faithful answer to *why* the figure exists, in the paper's own framing. Renderer prepends the **From the paper** label automatically, so don't repeat it. Lead with the paper section in parens, then the substance.)
 >
 > **Self-contained for non-specialists.** Assume the reader does NOT know your specific paper, your specific model, or your project-internal shorthand. They have general physics vocabulary (Hamiltonian, ground state, critical point, DMRG, MPS, ED) but no paper-specific context. Every model name spelled out on first use ("transverse-field Ising model (TFIM)" not "TFIM"). Every symbol used in the headline, captions, deviation popovers, or discrepancy paragraphs MUST have a `glossary[]` entry with a matching `key`, so the inline `[[key|display]]` markup wires up a hover/tap tooltip. Method shorthand ("increment trick", "bridge estimator", "Pauli-Markov chain") must either be expanded inline or carry a glossary tooltip on first use.
 >

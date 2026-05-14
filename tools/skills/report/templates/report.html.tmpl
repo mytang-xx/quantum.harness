@@ -120,6 +120,19 @@
   .paper-cap b { color: var(--near-black); font-weight: 500; }
   .paper-cap:empty { display: none; }
 
+  /* Paper-context: paper-faithful explanation of WHY the figure exists, sourced
+     from the paper's own caption / surrounding paragraph (not editorialized). */
+  .paper-context {
+    margin-top: 10px;
+    font-family: var(--sans); font-size: 12px; line-height: 1.55;
+    color: var(--olive); font-style: italic;
+  }
+  .paper-context-label {
+    font-style: normal; font-weight: 500; letter-spacing: 0.06em;
+    text-transform: uppercase; font-size: 9.5px;
+    color: var(--terracotta); margin-right: 6px;
+  }
+
   /* Reproduction plot */
   .plot-area { position: relative; min-height: 360px; flex: 1; }
   svg.plot { width: 100%; height: 360px; user-select: none; display: block; }

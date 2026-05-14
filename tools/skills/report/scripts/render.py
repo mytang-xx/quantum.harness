@@ -379,6 +379,7 @@ def figure_block_html(fig: dict, ed: dict, paper_id: str, run_id: str, run_dir: 
     paper_panel_title = fig.get("paper_attribution", "Paper")
     ours_panel_title = ed.get("caption_ours") or f"Reproduction · {run_id} / {label}"
     paper_caption = ed.get("caption_paper") or ""
+    paper_context = ed.get("paper_context") or ""
     paper_alt = ed.get("caption_paper") or fig.get("paper_attribution") or f"Paper figure {label}"
     paper_source = f"{paper_id} · {fig_display}" if paper_id else fig_display
     ours_source = f"{run_id}/figs/{label}.png"
@@ -399,6 +400,7 @@ def figure_block_html(fig: dict, ed: dict, paper_id: str, run_id: str, run_dir: 
         + f'      <img src="{paper_data_url}" alt="{html.escape(paper_alt)}" />\n'
         + '    </div>\n'
         + f'    <div class="paper-cap">{render_inline_markup(paper_caption)}</div>\n'
+        + (f'    <div class="paper-context"><span class="paper-context-label">From the paper</span> {render_inline_markup(paper_context)}</div>\n' if paper_context else '')
         + '  </div>\n'
         + '  <div class="panel-card">\n'
         + '    <div class="panel-head">\n'
