@@ -125,12 +125,12 @@ results/<run>/
 For any full-paper, remote, or multi-agent reproduction, initialize the generic gate ledger as the first run-directory action, before source/protocol/plan artifacts are recorded:
 
 ```bash
-tools/cli/flow init results/<run> --template results/<run>/flow.toml
+tools/cli/flow init results/<run> --template tools/flow/templates/reproduce-paper.toml
 ```
 
-`flow.toml` declares gates and invalidation edges. `progress/events.jsonl` is the append-only state source; `progress/state.toml` is the rebuilt human summary. Record each verifier, worker, local command, or remote job as an `attempt`; record important files as `artifact`s; use `require` before advancing gates. Re-adding an artifact with the same id and a different SHA-256 invalidates the producing gate and downstream gates. Remote jobs never write the event log directly: the main agent records the attempt only after fetching manifests/check outputs.
+`init` copies the tracked template into `results/<run>/flow.toml`; that run-local file declares the gates and invalidation edges for the run. `progress/events.jsonl` is the append-only state source; `progress/state.toml` is the rebuilt human summary. Record each verifier, worker, local command, or remote job as an `attempt`; record important files as `artifact`s; use `require` before advancing gates. Re-adding an artifact with the same id and a different SHA-256 invalidates the producing gate and downstream gates. Remote jobs never write the event log directly: the main agent records the attempt only after fetching manifests/check outputs.
 
-Default gates are `source`, `protocol`, `plan`, `script`, `trusted_check`, `production`, `assembly`, and `close`. Split a gate only when a separate artifact can fail or be invalidated independently. Use the template in `tools/flow/README.md` as the starting point.
+Default gates are `source`, `protocol`, `plan`, `script`, `trusted_check`, `production`, `assembly`, and `close`. Split a gate only when a separate artifact can fail or be invalidated independently. Use `tools/flow/templates/reproduce-paper.toml` as the starting point.
 
 For long sessions, pair the run with a `/goal` condition whose proof is `tools/cli/flow require results/<run> close`. The goal keeps the agent moving; the flow ledger decides whether the scientific run is actually closed. In Codex or Claude Code, the optional Stop hook documented in `tools/flow/README.md` can deterministically continue the session while `tools/cli/flow next results/<run>` has a runnable gate.
 
@@ -195,7 +195,7 @@ Steps 1–8 build and validate the complete protocol; steps 9–13 are the pre-c
 
 **Gate failure handling.** Any failed check kind (`source_audit`, `command`, `manifest_fields`, `manifest_consensus`, `numeric_compare`, `freshness`, or `verify`) stops the workflow. Surface the failing evidence, write or link the check output in the run directory, run the correction loop above, then present 2–3 real options via `Superpowers:brainstorming`: repair the earliest wrong layer, narrow the scope, record a justified deviation/assumption when scientifically honest, or stop. Do not continue to expensive compute, assembly, or final reporting from a failed gate.
 
-1. **Initialize state, then collect and classify sources.** Create `results/<run>/flow.toml` from the default gate template and run `tools/cli/flow init` before recording source artifacts. Locate primary sources first: paper PDF/rendered text, supplement, official code/data when available. Classify every input by evidence authority before using it. KB cards, prior scripts, old plans, old results, and existing figures start as `hint`. If no primary source is available locally, prompt the user to run `download-ref` or provide the source.
+1. **Initialize state, then collect and classify sources.** Run `tools/cli/flow init results/<run> --template tools/flow/templates/reproduce-paper.toml` before recording source artifacts; `init` writes the run-local `flow.toml`. Locate primary sources first: paper PDF/rendered text, supplement, official code/data when available. Classify every input by evidence authority before using it. KB cards, prior scripts, old plans, old results, and existing figures start as `hint`. If no primary source is available locally, prompt the user to run `download-ref` or provide the source.
 
 2. **Extract the protocol.** From primary sources, extract the claims needed for the requested scope: target result, setup, method, parameters, approximations, uncertainty, and artifact requirements. Create or update `results/<run>/protocol.toml`. If a hint conflicts with a primary source, record the conflict and follow the primary source. If a claim cannot be primary-sourced, mark it as an assumption instead of letting a hint support it.
 

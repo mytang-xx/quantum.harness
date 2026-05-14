@@ -34,7 +34,7 @@ alias flow=tools/cli/flow
 ## Minimal Loop
 
 ```bash
-flow init results/run-a --template results/run-a/flow.toml
+flow init results/run-a --template tools/flow/templates/reproduce-paper.toml
 flow next results/run-a
 
 attempt=$(flow attempt start results/run-a protocol --kind verify --actor agent:source-verifier)
@@ -44,6 +44,10 @@ flow attempt finish results/run-a "$attempt" --status pass --report results/run-
 flow require results/run-a protocol
 flow status results/run-a
 ```
+
+`init` copies the chosen template into `results/run-a/flow.toml` before creating
+`progress/events.jsonl`, so each run keeps the exact gate contract it started
+from.
 
 If a source changes outside the `artifact add` path, invalidate from that artifact or gate explicitly. The producing gate and dependent gates become invalidated.
 
@@ -105,56 +109,18 @@ The script exits immediately when `stop_hook_active` is already true, so it does
 
 Reference docs: Codex hooks https://developers.openai.com/codex/hooks, Claude Code hooks https://code.claude.com/docs/en/hooks.
 
-## Template
+## Reproduction Template
 
-```toml
-[flow]
-id = "paper_a"
-
-[[gates]]
-id = "source"
-
-[[gates]]
-id = "protocol"
-requires = ["source"]
-invalidates = ["plan", "script", "trusted_check", "production", "assembly", "close"]
-
-[[gates]]
-id = "plan"
-requires = ["protocol"]
-invalidates = ["script", "trusted_check", "production", "assembly", "close"]
-
-[[gates]]
-id = "script"
-requires = ["plan"]
-invalidates = ["trusted_check", "production", "assembly", "close"]
-
-[[gates]]
-id = "trusted_check"
-requires = ["script"]
-invalidates = ["production", "assembly", "close"]
-
-[[gates]]
-id = "production"
-requires = ["trusted_check"]
-invalidates = ["assembly", "close"]
-
-[[gates]]
-id = "assembly"
-requires = ["production"]
-invalidates = ["close"]
-
-[[gates]]
-id = "close"
-requires = ["assembly"]
-```
+The paper-reproduction gate contract is tracked at
+`tools/flow/templates/reproduce-paper.toml`. Add more tracked templates only
+when another workflow needs a different reusable gate graph.
 
 ## Campaigns
 
 Use one child flow per independent paper or major reasoning branch. The parent flow should only track aggregate gates.
 
 ```bash
-flow init results/campaign --template results/campaign/flow.toml
+flow init results/campaign --template tools/flow/templates/campaign.toml
 flow attach results/campaign results/campaign/runs/paper-a --as child
 flow status results/campaign --recursive
 ```

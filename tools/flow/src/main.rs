@@ -21,6 +21,7 @@ const GATE_INVALIDATED: &str = "invalidated";
 const ATTEMPT_PASS: &str = "pass";
 const ATTEMPT_FAIL: &str = "fail";
 const ATTEMPT_BLOCKED: &str = "blocked";
+const FLOW_TEMPLATE_FILE: &str = "flow.toml";
 
 #[derive(Clone, Debug, Default)]
 struct Gate {
@@ -138,7 +139,8 @@ fn cmd_init(args: &[String]) -> Result<()> {
     }
     let dir = Path::new(&args[0]);
     let template = Path::new(&args[2]);
-    let (flow_id, gates) = parse_template(template)?;
+    let template_text = fs::read_to_string(template).map_err(|e| e.to_string())?;
+    let (flow_id, gates) = parse_template_text(&template_text)?;
 
     fs::create_dir_all(progress_dir(dir)).map_err(|e| e.to_string())?;
     with_flow_lock(dir, || {
@@ -146,6 +148,7 @@ fn cmd_init(args: &[String]) -> Result<()> {
         if events.exists() {
             return Err(format!("flow already exists: {}", dir.display()));
         }
+        persist_flow_template(dir, &template_text)?;
 
         append_event(
             dir,
@@ -811,9 +814,8 @@ impl Event {
     }
 }
 
-fn parse_template(path: &Path) -> Result<(Option<String>, Vec<GateSpec>)> {
-    let text = fs::read_to_string(path).map_err(|e| e.to_string())?;
-    let template: FlowTemplate = toml::from_str(&text).map_err(|e| e.to_string())?;
+fn parse_template_text(text: &str) -> Result<(Option<String>, Vec<GateSpec>)> {
+    let template: FlowTemplate = toml::from_str(text).map_err(|e| e.to_string())?;
 
     let mut seen = BTreeSet::new();
     for gate in &template.gates {
@@ -825,6 +827,22 @@ fn parse_template(path: &Path) -> Result<(Option<String>, Vec<GateSpec>)> {
         }
     }
     Ok((template.flow.and_then(|flow| flow.id), template.gates))
+}
+
+fn persist_flow_template(dir: &Path, template_text: &str) -> Result<()> {
+    let path = dir.join(FLOW_TEMPLATE_FILE);
+    fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+    match fs::read_to_string(&path) {
+        Ok(existing) if existing == template_text => Ok(()),
+        Ok(_) => Err(format!(
+            "{} already exists with different content",
+            path.display()
+        )),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+            fs::write(path, template_text).map_err(|e| e.to_string())
+        }
+        Err(err) => Err(err.to_string()),
+    }
 }
 
 fn write_state(dir: &Path, state: &State) -> Result<()> {

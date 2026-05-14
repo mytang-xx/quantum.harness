@@ -1,0 +1,39 @@
+[flow]
+id = "reproduce_paper"
+
+[[gates]]
+id = "source"
+
+[[gates]]
+id = "protocol"
+requires = ["source"]
+invalidates = ["plan", "script", "trusted_check", "production", "assembly", "close"]
+
+[[gates]]
+id = "plan"
+requires = ["protocol"]
+invalidates = ["script", "trusted_check", "production", "assembly", "close"]
+
+[[gates]]
+id = "script"
+requires = ["plan"]
+invalidates = ["trusted_check", "production", "assembly", "close"]
+
+[[gates]]
+id = "trusted_check"
+requires = ["script"]
+invalidates = ["production", "assembly", "close"]
+
+[[gates]]
+id = "production"
+requires = ["trusted_check"]
+invalidates = ["assembly", "close"]
+
+[[gates]]
+id = "assembly"
+requires = ["production"]
+invalidates = ["close"]
+
+[[gates]]
+id = "close"
+requires = ["assembly"]

@@ -130,6 +130,38 @@ requires = ["revision"]
 }
 
 #[test]
+fn init_copies_external_template_into_run_dir() {
+    let root = tmp_dir("init-template-copy");
+    let template = root.join("templates").join("custom.toml");
+    let run_dir = root.join("run");
+    let template_text = r#"
+[flow]
+id = "copied_template"
+
+[[gates]]
+id = "source"
+
+[[gates]]
+id = "close"
+requires = ["source"]
+"#;
+    write(&template, template_text);
+
+    assert_ok(&[
+        "init",
+        run_dir.to_str().unwrap(),
+        "--template",
+        template.to_str().unwrap(),
+    ]);
+
+    let copied = fs::read_to_string(run_dir.join("flow.toml")).unwrap();
+    assert_eq!(copied, template_text);
+    let status = assert_ok(&["status", run_dir.to_str().unwrap()]);
+    assert!(status.contains("copied_template"));
+    assert!(status.lines().any(|line| line == "source\tpending"));
+}
+
+#[test]
 fn attempt_finish_pass_records_provenance_and_unblocks_next_gate() {
     let root = tmp_dir("attempt");
     let template = root.join("template.toml");
