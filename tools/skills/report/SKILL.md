@@ -76,34 +76,63 @@ The subagent reads the full evidence pack and writes `<run-dir>/editorial.json`.
 
 **Subagent brief (use verbatim when dispatching):**
 
-> You are a UI/UX-tuned editor for a scientific demo report destined for collaborators, grad students, and lab visitors. Audience-first: comfort the reader, hide the jargon, the figure is the hero, words are scaffolding. Above-the-fold word budget ≤ 100.
+> You are a UI/UX-tuned editor for a scientific demo report destined for collaborators, grad students, and lab visitors. Audience-first: comfort the reader, hide the jargon, the figure is the hero, words are scaffolding. **Above-the-fold word budget ≤ 100. Each prose field stays ≤ 1 sentence unless the brief explicitly allows two.**
 >
-> Read the supplied evidence pack: `protocol.toml`, `run-report.md`, every `cells/<id>/manifest.json`, every `verify/verify_<…>.md`, and `figs/<id>.{png,json}`. Produce a structured JSON `editorial.json` populating the fields below. **Every sentence and phrase you write must cite an evidence-pack file:line in a `sourced_by` array.** No invention. No paraphrase that drifts from the source's claim. If a field cannot be sourced, leave it null and add it to a top-level `gaps` list with the reason.
+> Read the supplied evidence pack: `protocol.toml`, `run-report.md`, every `cells/<id>/manifest.json`, every `verify/verify_<…>.md` (and any top-level `verify_*.md`), and `figs/<id>.{png,json}` for **every** `[[figures]]` entry — not just the featured one. Produce a structured JSON `editorial.json` populating the fields below. **Every sentence and phrase you write must cite an evidence-pack file:line in a `sourced_by` array.** No invention. No paraphrase that drifts from the source's claim. If a field cannot be sourced, leave it null and add it to the top-level `gaps` list with the reason.
 >
 > Output schema:
 >
 > ```json
 > {
->   "headline": { "text": "…one sentence: claim + framing…", "sourced_by": ["protocol.toml#L12", "run-report.md#L8"] },
+>   "headline": { "text": "…one sentence: claim + framing…", "sourced_by": [...] },
 >   "claims": [
->     { "id": "fig4.symmetry", "display_label": "symmetry sector", "popover": "…one sentence detail…", "sourced_by": [...] }
+>     { "id": "fig4.symmetry", "display_label": "symmetry sector", "popover": "…one sentence…", "sourced_by": [...] }
 >   ],
 >   "deviations": [
->     { "id": "backend", "display_label": "MPS backend", "popover": "…one sentence…", "discrepancy_paragraph": "…optional 1-2 sentence prose for the discrepancy panel…", "sourced_by": [...] }
+>     { "id": "backend", "display_label": "MPS backend", "popover": "…one sentence…",
+>       "discrepancy_paragraph": "…1-2 sentence prose for the discrepancy panel…", "sourced_by": [...] }
 >   ],
 >   "figures": [
->     { "label": "fig4a", "caption_paper": "…one sentence…", "caption_ours": "…one sentence…", "sourced_by": [...] }
+>     { "label": "<protocol fig id>", "caption_paper": "…one sentence…", "caption_ours": "…one sentence…", "sourced_by": [...] }
 >   ],
 >   "glossary": [
->     { "symbol": "c_L(h)", "name": "Subleading increment c_L(h)", "body": "…one sentence…", "formula": "c_L = 2 M_2(L/2) − M_2(L)", "sourced_by": [...] }
+>     { "key": "cl", "symbol": "c_L(h)", "name": "Subleading increment c_L(h)",
+>       "body": "…one sentence…", "formula": "c_L = 2 M_2(L/2) − M_2(L)", "sourced_by": [...] }
 >   ],
+>   "discrepancy_headline": "…one sentence; renders as the bottom-panel <h3>…",
 >   "gaps": []
 > }
 > ```
 >
-> Style guide: terse, scientific-confident, no marketing voice, no first-person, no rhetorical questions, no exclamation marks. Use the cadence of Anthropic Serif (display) and Inter (UI) — declarative sentences, modest length, generous whitespace implied. The downstream renderer composes your fields into a figure-first HTML; the verify-close subagent will audit your sources.
+> **Required for multi-figure runs:** emit one `figures[]` entry per `[[figures]]` in protocol.toml — every additional figure renders below the chip strip and needs its own `caption_paper` + `caption_ours`. The `figures[i].label` must equal the `[[figures]].id` (e.g., `"fig4a"`, `"fig4b_inset"`).
+>
+> **Inline markup (in any prose field):**
+> - `[[<glossary-key>|display text]]` — wraps display in a glossary tooltip span. The `<glossary-key>` must match `glossary[i].key`. Example: `[[cl|c_L(h)]]` produces `<span class="sym" data-term="cl">c<sub>L</sub>(h)</span>` and the glossbox shows `glossary[i].name/body/formula` on hover/tap.
+> - `*italic phrase*` — emphasizes via `<em>`.
+> - `_X` and `_{XX}` → subscripts; `^X` and `^{XX}` → superscripts; Greek words (`alpha`, `chi`, `sigma`, …) → Unicode; `<=`/`>=`/`!=`/`+/-`/`\approx`/`~=` → `≤≥≠±≈`. The renderer applies these automatically — write plain ASCII, not HTML.
+>
+> **Style:** terse, scientific-confident, no marketing voice, no first-person, no rhetorical questions, no exclamation marks. Declarative sentences, modest length.
+>
+> **Worked examples (cadence to imitate; substitute your own observables/symbols):**
+>
+> - Headline: `"Subleading magic [[cl|c_L(h)]] across the critical region — *paper vs reproduction.*"` (sets up the contrast in 10 words; one symbol with tooltip; one italicized framing.)
+> - Claim chip popover (✓): `"Conserved Z₂ parity respected. Ground-state sector matches the paper at every cell."` (one-sentence story: what was checked + outcome.)
+> - Claim chip popover (⚠): `"L=128 reproduces the paper's c_L ≈ -0.5 dip at h_c. Smaller L falls short by 5-20×."` (cite a number when verify supports one.)
+> - Deviation popover: `"MPS at χ=30 in place of the paper's TTN. Energy converges to 0.03% at L=16, so the c_L disagreement is too large to be backend-only."` (states the deviation + why the obvious blame doesn't stick.)
+> - Pending chip popover: `"Independent TTN run at L=128 to confirm c_L magnitude — the open obligation in the contract."` (specific, scoped, declared.)
+> - Discrepancy headline: `"Largest disagreements sit in the ordered phase at small L; the L=128 critical-point dip recovers."` (where it goes wrong + where it works, in one sentence.)
+> - Caption (paper side): `"Subleading term [[cl|c_L]] = 2 [[m2|M_2]](L/2) − [[m2|M_2]](L) of the Rényi-2 SRE on the 1D quantum Ising chain across h ∈ [0.8, 1.2] for L ∈ {16, 32, 64, 128}."` (definition + observable + grid + sizes; no editorializing.)
+> - Caption (ours side): `"Same observable on the same h-grid. MPS-PBC at χ=30, bridge-normalizer estimator. L=128 dip at h_c reproduces; smaller L overshoots in the ordered phase."` (what's the same + what's different + result, one sentence.)
+>
+> **Self-contained for non-specialists.** Assume the reader does NOT know your specific paper, your specific model, or your project-internal shorthand. They have general physics vocabulary (Hamiltonian, ground state, critical point, DMRG, MPS, ED) but no paper-specific context. Every model name spelled out on first use ("transverse-field Ising model (TFIM)" not "TFIM"). Every symbol used in the headline, captions, deviation popovers, or discrepancy paragraphs MUST have a `glossary[]` entry with a matching `key`, so the inline `[[key|display]]` markup wires up a hover/tap tooltip. Method shorthand ("increment trick", "bridge estimator", "Pauli-Markov chain") must either be expanded inline or carry a glossary tooltip on first use.
+>
+> **Deviations are not buried.** If `protocol.deviations[]` is non-empty, write a one-sentence `discrepancy_headline` that names the most impactful deviation in plain language (e.g., "We use MPS where the paper uses TTN; smaller system sizes overshoot in the ordered phase."). Each `deviations[i].discrepancy_paragraph` stays ≤ 2 sentences and quantifies the impact ("5-20× overshoot in 13 of 28 cells") when the verify reports support a number. The renderer's discrepancy panel highlights these in warn color; your prose carries the substance.
+>
+> The downstream renderer composes your fields into a figure-first HTML; the verify-close subagent audits your sources.
 
 If the polish subagent returns `gaps`: surface them via `AskUserQuestion` (fix-or-render-with-fallbacks). The render falls back to mechanical defaults (Stage 4 below) for unfilled fields.
+
+**Starter template:** `tools/templates/reproduce-paper/editorial.json.example` provides a populated skeleton with placeholder values and inline comments explaining the inline-markup conventions and `sourced_by` requirement. Fresh agents on a new topic should fork this file rather than improvising the schema from the brief.
 
 ### Stage 3 — Organize (mechanical, the skill itself)
 
@@ -218,7 +247,9 @@ Generated: <ISO timestamp>
 ## Discipline (hard rules)
 
 - **No prose generation in the skill itself.** Only the polish subagent (Stage 2), source-fenced via the brief, may produce editorial text. The skill's organize and render stages are mechanical.
+- **Self-contained for non-specialists.** The reader is a competent scientist who knows general vocabulary (Hamiltonian, ground state, DMRG, critical point, ED, MPS) but **does not know your project-specific terms**. They have not read your prior plans, prior runs, prior chats, or even the paper. Every model name (e.g., "TFIM"), every symbol (`c_L`, `h`, `M_2`, `χ`), every method shorthand (e.g., "increment trick", "bridge estimator") must either be expanded on first use OR carry a glossary tooltip. The polish brief enforces this; the verify-close audit checks it.
 - **Paper figure mandatory.** Refuse to render without it. The skill does not have a "no-comparison" mode.
+- **Deviations must be visually loud.** A run with `[[deviations]]` shows a deviation banner under the headline ("⚠ N declared deviations from the paper · backend, estimator, …") that scrolls into focus. Warn chips use terracotta, not muted parchment. The discrepancy panel header is in the warm-warn color, not the default olive. Readers must not be able to skim the report and miss the deviations.
 - **Verify-close gate mandatory.** Never ship without Stage 5; never auto-accept `✗`.
 - **Cite-or-flag every editorial sentence.** Every editorial field carries `sourced_by`; the verifier checks the trace.
 - **Agent's prior turns are not a primary source.** Per `docs/milestone-log.md` `O1. Agents over-trust cached content`.

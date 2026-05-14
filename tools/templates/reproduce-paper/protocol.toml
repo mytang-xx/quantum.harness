@@ -5,11 +5,14 @@
 # opaque obligations and only knows how to run mechanical checks.
 
 [artifact]
-paper = ""
-scope = "full-paper" # full-paper | main-results | figure-subset | custom
+paper = ""             # arXiv id, DOI, or short paper id (e.g. "arXiv:2305.18541")
+title = ""             # paper title; rendered as italicized topbar text
+authors = ""           # comma-separated author list; rendered bold in topbar
+venue = ""             # journal/year string (e.g. "PRX Quantum 4, 040317 (2023)")
+scope = "full-paper"   # full-paper | main-results | figure-subset | custom
 run_id = ""
 description = ""
-author = ""
+author = ""            # the agent or human running the reproduction
 last_material_edit = ""
 
 [[sources]]
@@ -127,6 +130,15 @@ statement = ""
 reason = ""
 claims = []
 checks = []
+
+# Declare next obligations the run does NOT meet (cross-method check, larger
+# system size, longer runtime). /report renders one muted chip per [[pending]]
+# entry so readers see what's missing without scrolling. Prefer specific obligations
+# over vague aspirations.
+[[pending]]
+id = "pending.example"
+statement = ""        # e.g. "Independent TTN run at L=128 to confirm c_L magnitude"
+reason = ""           # e.g. "TTN backend not yet wired in the harness"
 
 [budgets]
 wall_clock = ""

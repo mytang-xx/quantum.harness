@@ -794,6 +794,83 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(
 
 The renderer composes the full JS from `figs/<id>.json` (data array) + the editorial sidecar (cell-popover labels) + this skeleton.
 
+**Data shape — paper-agnostic.** The plot driver consumes a single `(axes, data)` schema and infers everything (axis labels, ranges, ticks, curve grouping, error bars, drawer payloads) from it. No observable name, lattice symbol, or model is hardcoded in the template. Required and optional fields:
+
+```json
+{
+  "label": "<figure-id>",
+  "axes": {
+    "x":      { "field": "<x-key>", "label": "<x-axis-label>",
+                "scale": "linear" | "log",
+                "refline": { "value": <number>, "label": "<short-label>" } },
+    "y":      { "field": "<y-key>", "label": "<y-axis-label>",
+                "scale": "linear" | "log",
+                "paper_window": { "lo": <number>, "hi": <number> } },
+    "curves": { "field": "<group-by-key>", "label_template": "L = {L}" },
+    "err":    { "field": "<err-key>" }
+  },
+  "data": [
+    { "<x-key>": ..., "<y-key>": ..., "<group-by-key>": ..., "<err-key>": ...,
+      "manifest": "<basename>.json", "wall": <s>, "accept": <0..1>, "when": "<ISO>",
+      "<any-other-payload>": ... }
+  ]
+}
+```
+
+- `axes.x.field` and `axes.y.field` are required.
+- `axes.curves`, `axes.err` are optional. Without `curves`, the data is a single curve. Without `err`, no error bars render.
+- `axes.x.refline` (optional) draws a dashed terracotta vertical line at `value` with `label` (e.g. critical point, transition).
+- `axes.y.paper_window` (optional) reveals the **Match paper y-window** toggle, which clamps the y-axis to the paper's display range. When absent, the toggle is hidden. Disabled when `axes.y.scale = "log"`.
+- `axes.{x,y}.scale = "log"` (optional, default `"linear"`) switches the axis to base-10 log. Ticks are auto-generated as 1/2/5 multiples per decade. Data points with non-positive values on a log axis are silently skipped.
+- The drawer's "Result" section shows `axes.y.field` value + (if present) `axes.err.field` and 95% CI. The "Cell payload" section shows every other key in the row, prettified, in mono.
+- Ranges and tick steps are auto-derived (5%/8% padding on x/y for linear; ÷1.2/×1.2 padding on log; "nice" tick step targeting ~5 ticks per linear axis). To pin them, encode the desired range in the data with sentinel rows.
+
+### 11.1 Multi-figure layout
+
+A report with N > 1 figures renders the **featured** figure inside `.hero` (above-the-fold) and additional figures stacked vertically inside a new `<section class="extra-figs">` between the status strip and the scroll hint. Order: featured first (per `protocol.featured_figure` or first `[[figures]]` entry), then the rest in protocol declaration order.
+
+Each additional figure carries an eyebrow label (`Figure N of M · <display_id>`) above its `.duo` block, and a thin top border separates it from the previous figure. The same `.duo` styling and the same plot driver are reused — additional figures look identical to the featured one, just below the chip strip.
+
+**JS contract:** the renderer emits a single `const FIGURES = [{label, axes, data}, ...]` array. The init function `initFig(fig)` is called once per entry; it scopes its DOM lookups to IDs `plot-<label>`, `callout-<label>`, `legend-<label>`, `toggle-window-<label>`, so per-figure state (zoom range, focused curve) does not bleed across figures. The drawer is page-shared (one cell open at a time across all figures).
+
+**Worked examples (non-TFIM):**
+
+```json
+// Phase diagram — heatmap-like via nested curves (one curve per pinned axis value)
+{
+  "label": "phase_diagram_2D",
+  "axes": {
+    "x": { "field": "U", "label": "U/t" },
+    "y": { "field": "gap", "label": "single-particle gap" },
+    "curves": { "field": "delta", "label_template": "δ = {delta}" }
+  },
+  "data": [ { "U": 1.0, "delta": 0.2, "gap": 0.012 }, ... ]
+}
+
+// Bond-dim convergence — log-log
+{
+  "label": "convergence_chi",
+  "axes": {
+    "x": { "field": "chi", "label": "bond dim χ", "scale": "log" },
+    "y": { "field": "energy_error", "label": "|E − E_exact|", "scale": "log" }
+  },
+  "data": [ { "chi": 16, "energy_error": 1e-3, "manifest": "..." }, ... ]
+}
+
+// Order parameter sweep with critical point reference
+{
+  "label": "magnetization_J",
+  "axes": {
+    "x": { "field": "J", "label": "J/J_c", "refline": { "value": 1.0, "label": "J_c" } },
+    "y": { "field": "m", "label": "magnetization m" },
+    "err": { "field": "se" }
+  },
+  "data": [ { "J": 0.95, "m": 0.42, "se": 0.01 }, ... ]
+}
+```
+
+For 2D phase diagrams as proper heatmaps (color-mapped z-field), the current driver does not render them — pin one axis and emit one curve per pinned value as shown above, or compose multiple `[[figures]]` entries (one per pinned third axis).
+
 ---
 
 ## 12. Responsive Behavior

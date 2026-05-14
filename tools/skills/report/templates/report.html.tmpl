@@ -42,6 +42,23 @@
   .claim .sym:hover { border-bottom-color: var(--terracotta); border-bottom-style: solid; }
   .claim-tag { font-family: var(--sans); font-size: 11px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--terracotta); white-space: nowrap; flex-shrink: 0; padding-top: 6px; }
 
+  /* Deviation banner: surfaces declared deviations near the headline so they
+     can never be missed by a quick scroll. */
+  .dev-banner {
+    background: rgba(201,100,66,0.06);
+    border: 1px solid rgba(201,100,66,0.40);
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin: 0 0 22px;
+    display: flex; align-items: center; gap: 12px;
+    font-family: var(--sans); font-size: 13.5px; line-height: 1.5;
+    color: var(--charcoal);
+  }
+  .dev-banner .dev-icon { color: var(--terracotta); font-size: 16px; flex-shrink: 0; line-height: 1; }
+  .dev-banner b { color: var(--terracotta); font-weight: 600; }
+  .dev-banner a { color: var(--terracotta); text-decoration: none; border-bottom: 1px solid rgba(201,100,66,0.40); }
+  .dev-banner a:hover { border-bottom-color: var(--terracotta); }
+
   /* ===== SIDE-BY-SIDE ===== */
   .duo {
     display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
@@ -87,6 +104,7 @@
     font-family: var(--sans); font-size: 12.5px; line-height: 1.6; color: var(--olive);
   }
   .paper-cap b { color: var(--near-black); font-weight: 500; }
+  .paper-cap:empty { display: none; }
 
   /* Reproduction plot */
   .plot-area { position: relative; min-height: 360px; flex: 1; }
@@ -159,9 +177,13 @@
   }
   .chip:hover { background: var(--sand); }
   .chip.ok::before { content: '✓'; color: var(--olive); font-weight: 500; }
-  .chip.warn { border-color: var(--terracotta); color: var(--terracotta); }
+  .chip.warn {
+    border-color: var(--terracotta); color: var(--terracotta);
+    background: rgba(201,100,66,0.06);
+    font-weight: 500;
+  }
   .chip.warn::before { content: '⚠'; }
-  .chip.warn:hover { background: rgba(201,100,66,0.06); }
+  .chip.warn:hover { background: rgba(201,100,66,0.12); }
   .chip.muted { color: var(--stone); border-color: var(--border-cream); }
   .chip.spacer { flex: 1; background: none; border: none; padding: 0; cursor: default; }
 
@@ -177,6 +199,18 @@
     white-space: normal; z-index: 30;
   }
   .chip:hover .chip-pop { opacity: 1; transform: translateY(0); }
+
+  /* Additional figures (when N > 1). Featured fig lives in .hero. */
+  .extra-figs {
+    max-width: 1240px; margin: 56px auto 0; padding: 0 40px;
+    display: flex; flex-direction: column; gap: 40px;
+  }
+  .extra-figs .fig-block { padding-top: 28px; border-top: 1px solid var(--border-cream); }
+  .fig-eyebrow {
+    font-family: var(--sans); font-size: 10px; font-weight: 500;
+    letter-spacing: 0.16em; text-transform: uppercase; color: var(--olive);
+    margin-bottom: 14px;
+  }
 
   .scroll-hint {
     max-width: 1240px; margin: 32px auto 0; padding: 0 40px;
@@ -335,11 +369,7 @@
 <body>
 
 <div class="topbar">
-  <div class="paper">
-    <span class="id">__PAPER_ID__</span>
-    <b>__AUTHORS__</b> — <em>__PAPER_TITLE__</em>
-    __VENUE__ · <a href="__PAPER_URL__">__PAPER_URL_DISPLAY__</a>
-  </div>
+  <div class="paper">__TOPBAR_PAPER_HTML__</div>
   <div class="meta">
     __RUN_SCOPE__<br>
     __RUN_META__
@@ -352,50 +382,16 @@
     <span class="claim-tag">__RUN_TAG__</span>
   </div>
 
-  <div class="duo">
+  __DEV_BANNER_HTML__
 
-    <!-- ===== PAPER PANEL ===== -->
-    <div class="panel-card">
-      <div class="panel-head">
-        <span class="label ref">Reference · the paper</span>
-        <span class="source">__PAPER_SOURCE__</span>
-      </div>
-      <h2 class="panel-title">__PAPER_PANEL_TITLE__</h2>
-      <div class="paper-img-wrap">
-        <img src="__PAPER_IMG_DATA_URL__" alt="Paper Figure 4(a) — c_L vs h for L=16, 32, 64, 128" />
-      </div>
-      <div class="paper-cap">
-        Curves dip to a <b>negative minimum at h<sub>c</sub> = 1</b>; depth grows mildly with L.
-        Away from h<sub>c</sub>, c<sub>L</sub> sits near zero. The four sizes
-        nearly collapse onto each other — that is the central claim of size-near-invariance.
-      </div>
-    </div>
-
-    <!-- ===== OURS PANEL ===== -->
-    <div class="panel-card">
-      <div class="panel-head">
-        <span class="label">Reproduction · this run</span>
-        <span class="source">__OURS_SOURCE__</span>
-      </div>
-      <h2 class="panel-title">__OURS_PANEL_TITLE__</h2>
-      <div class="ours-controls">
-        <button class="toggle" id="toggle-window">
-          <span class="swatch"></span> Match paper y-window
-        </button>
-      </div>
-      <div class="plot-area">
-        <svg class="plot" id="plot" viewBox="0 0 600 360" preserveAspectRatio="xMidYMid meet"></svg>
-        <div class="callout" id="callout"></div>
-      </div>
-      <div class="legend-row" id="legend"></div>
-    </div>
-
-  </div>
+  __FEATURED_FIG_HTML__
 
   <div class="strip">
     __STATUS_STRIP_HTML__
   </div>
 </section>
+
+__EXTRA_FIGS_SECTION__
 
 <div class="scroll-hint">
   <span class="dn">↓</span><br>
@@ -409,9 +405,9 @@
     <div class="ctr">__CONTRACT_HTML__</div>
   </div>
 
-  <div class="panel">
-    <div class="label">Discrepancy</div>
-    <h3>L=128 is close; smaller L deviates positively.</h3>
+  <div class="panel" id="discrepancy-panel">
+    <div class="label" style="color: var(--terracotta)">⚠ Discrepancy</div>
+    <h3>__DISCREPANCY_HEADLINE__</h3>
     __DISCREPANCY_HTML__
   </div>
 
@@ -435,23 +431,11 @@
   <div class="sub" id="drawer-sub">—</div>
   <div class="drawer-section">
     <div class="stitle">Result</div>
-    <div class="drawer-kv"><span>c<sub>L</sub></span><b id="d-cL">—</b></div>
-    <div class="drawer-kv"><span>± 1σ</span><b id="d-se">—</b></div>
-    <div class="drawer-kv"><span>95% CI</span><b id="d-ci">—</b></div>
+    <div id="drawer-result-rows"></div>
   </div>
   <div class="drawer-section">
-    <div class="stitle">Run</div>
-    <div class="drawer-kv"><span>Wall</span><b id="d-wall">—</b></div>
-    <div class="drawer-kv"><span>N steps</span><b id="d-nsteps">—</b></div>
-    <div class="drawer-kv"><span>Accept rate</span><b id="d-accept">—</b></div>
-    <div class="drawer-kv"><span>Mean R</span><b id="d-meanR">—</b></div>
-    <div class="drawer-kv"><span>Finished</span><b id="d-when">—</b></div>
-  </div>
-  <div class="drawer-section">
-    <div class="stitle">Settings</div>
-    <div class="drawer-kv"><span>Bond dimension χ</span><b id="d-chi">—</b></div>
-    <div class="drawer-kv"><span>PBC</span><b id="d-pbc">—</b></div>
-    <div class="drawer-kv"><span>Estimator</span><b>bridge</b></div>
+    <div class="stitle">Cell payload</div>
+    <div id="drawer-payload-rows"></div>
   </div>
 </div>
 
@@ -473,154 +457,321 @@
     t.addEventListener('mouseleave', () => gb.classList.remove('show'));
   });
 
-  const DATA = __DATA_JSON__;
+  // Generic plot driver — consumes (axes, data) schema from figs/<id>.json.
+  // Multi-figure: each figure runs the driver in its own closure, scoped to
+  //   IDs `plot-<label>`, `callout-<label>`, `legend-<label>`, `toggle-window-<label>`.
+  // Required: axes.x.field, axes.y.field, data:[{...}].
+  // Optional: axes.curves.field, axes.err.field, axes.x.refline:{value,label},
+  //           axes.y.paper_window:{lo,hi}, axes.{x,y}.scale = "linear"|"log".
+  const FIGURES = __FIGURES_JSON__;
   const colors = __COLORS_JSON__;
+  const RUN_ID = "__RUN_ID__";
 
-  const W=600, H=360, M={l:54, r:14, t:18, b:42};
-  let yMin=-0.75, yMax=1.10;
-  const PAPER_Y_LO = -0.55, PAPER_Y_HI = 0.25;
-  const xMin=0.78, xMax=1.22;
-  const xs = h => M.l + (h - xMin) / (xMax - xMin) * (W - M.l - M.r);
-  let ys = c => H - M.b - (c - yMin) / (yMax - yMin) * (H - M.t - M.b);
-
-  function renderPlot() {
-    let g = '';
-    // paper window highlight (only when toggled)
-    g += `<rect class="paper-window" id="paper-window" x="${M.l}" y="${ys(PAPER_Y_HI)}" width="${W-M.l-M.r}" height="${ys(PAPER_Y_LO)-ys(PAPER_Y_HI)}"/>`;
-    g += `<text class="paper-window-label" id="paper-window-label" x="${W-M.r-6}" y="${ys((PAPER_Y_LO+PAPER_Y_HI)/2)+4}" text-anchor="end">paper y-window</text>`;
-    for (let h = 0.8; h <= 1.2 + 1e-9; h += 0.1) {
-      g += `<line class="grid" x1="${xs(h)}" x2="${xs(h)}" y1="${M.t}" y2="${H-M.b}"/>`;
-      g += `<text class="tick" x="${xs(h)}" y="${H-M.b+16}" text-anchor="middle">${h.toFixed(1)}</text>`;
+  function escapeXml(s) {
+    return String(s).replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function prettyKey(k) {
+    return k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  }
+  function fmtVal(v) {
+    if (v == null) return '—';
+    if (typeof v === 'number') {
+      if (Number.isInteger(v)) return v.toLocaleString();
+      return Math.abs(v) < 1e-3 || Math.abs(v) >= 1e6 ? v.toExponential(3) : v.toFixed(4);
     }
-    const ystep = (yMax - yMin) > 1.0 ? 0.4 : 0.2;
-    for (let c = Math.ceil(yMin/ystep)*ystep; c <= yMax + 1e-9; c += ystep) {
-      g += `<line class="grid" x1="${M.l}" x2="${W-M.r}" y1="${ys(c)}" y2="${ys(c)}"/>`;
-      g += `<text class="tick" x="${M.l-8}" y="${ys(c)+4}" text-anchor="end">${c.toFixed(1)}</text>`;
-    }
-    g += `<line class="zero" x1="${M.l}" x2="${W-M.r}" y1="${ys(0)}" y2="${ys(0)}"/>`;
-    g += `<line class="hcline" x1="${xs(1.0)}" x2="${xs(1.0)}" y1="${M.t}" y2="${H-M.b}"/>`;
-    g += `<text class="hclabel" x="${xs(1.0)+5}" y="${M.t+12}">h<tspan dy="2" font-size="9">c</tspan> = 1</text>`;
-    g += `<line class="axis" x1="${M.l}" x2="${W-M.r}" y1="${H-M.b}" y2="${H-M.b}"/>`;
-    g += `<line class="axis" x1="${M.l}" x2="${M.l}" y1="${M.t}" y2="${H-M.b}"/>`;
-    g += `<text class="axis-label" x="${(W+M.l-M.r)/2}" y="${H-8}" text-anchor="middle">transverse field h</text>`;
-    g += `<text class="axis-label" transform="rotate(-90 16 ${(H+M.t-M.b)/2})" x="16" y="${(H+M.t-M.b)/2}" text-anchor="middle">c_L</text>`;
-
-    DATA.Ls.forEach((L, i) => {
-      const pts = DATA.cells[L];
-      const path = pts.map((p,k) => `${k===0?'M':'L'} ${xs(p.h).toFixed(2)} ${ys(p.cL).toFixed(2)}`).join(' ');
-      g += `<path class="curve draw" data-l="${L}" stroke="${colors[i]}" d="${path}" style="animation-delay: ${i*150}ms"/>`;
-      pts.forEach((p,k) => {
-        // Clip pt visibility if outside view
-        const cyTop = ys(p.cL+p.se), cyBot = ys(p.cL-p.se);
-        g += `<line class="errbar" data-l="${L}" stroke="${colors[i]}" x1="${xs(p.h)}" x2="${xs(p.h)}" y1="${cyTop}" y2="${cyBot}"/>`;
-        const inView = (p.cL >= yMin && p.cL <= yMax);
-        g += `<circle class="pt" data-l="${L}" data-k="${k}" cx="${xs(p.h)}" cy="${ys(p.cL)}" r="${inView ? 3.6 : 2.2}" fill="${colors[i]}" opacity="${inView ? 1 : 0.45}"/>`;
+    return String(v);
+  }
+  // "Nice" linear tick step targeting ~5 ticks
+  function niceStep(range, target) {
+    const rough = range / target;
+    const mag = Math.pow(10, Math.floor(Math.log10(rough)));
+    const norm = rough / mag;
+    const s = norm < 1.5 ? 1 : norm < 3.5 ? 2 : norm < 7.5 ? 5 : 10;
+    return s * mag;
+  }
+  function linearTicks(lo, hi, target) {
+    const step = niceStep(hi - lo, target);
+    const start = Math.ceil(lo / step) * step;
+    const out = [];
+    for (let v = start; v <= hi + step * 1e-9; v += step) out.push(v);
+    return { ticks: out, step };
+  }
+  function logTicks(lo, hi) {
+    // Emit 1, 2, 5 multiples per decade in range so short log spans still get ~3-5 ticks.
+    const out = [];
+    const e0 = Math.floor(Math.log10(lo));
+    const e1 = Math.ceil(Math.log10(hi));
+    for (let e = e0; e <= e1; e++) {
+      const base = Math.pow(10, e);
+      [1, 2, 5].forEach(m => {
+        const v = m * base;
+        if (v >= lo * 0.99 && v <= hi * 1.01) out.push(v);
       });
-    });
-    document.getElementById('plot').innerHTML = g;
-    bindPoints();
-    if (document.getElementById('toggle-window').classList.contains('on')) {
-      document.getElementById('paper-window').classList.add('on');
-      document.getElementById('paper-window-label').classList.add('on');
     }
+    return { ticks: out, step: null };
+  }
+  function fmtTick(v, step, scale) {
+    if (scale === 'log') {
+      const e = Math.log10(v);
+      if (Math.abs(e - Math.round(e)) < 1e-9) {
+        const k = Math.round(e);
+        return k === 0 ? '1' : (k === 1 ? '10' : `10^${k}`);
+      }
+      return v < 100 ? String(v) : v.toExponential(0);
+    }
+    const dp = step >= 1 ? 0 : Math.max(0, -Math.floor(Math.log10(step)));
+    return v.toFixed(dp);
   }
 
-  const legend = document.getElementById('legend');
-  DATA.Ls.forEach((L, i) => {
-    const valAtHc = DATA.cells[L].find(p => Math.abs(p.h - 1.0) < 1e-3);
-    const item = document.createElement('div');
-    item.className = 'legend-item'; item.dataset.l = L;
-    item.innerHTML = `<span class="legend-swatch" style="background:${colors[i]};"></span>
-      L = ${L} <span class="legend-val">${valAtHc.cL.toFixed(2)}</span>`;
-    item.addEventListener('mouseenter', () => focusL(L));
-    item.addEventListener('mouseleave', () => focusL(null));
-    legend.appendChild(item);
-  });
-
-  function focusL(L) {
-    document.querySelectorAll('.curve, .pt, .errbar, .legend-item').forEach(el => el.classList.remove('focus','dim'));
-    if (L === null) return;
-    document.querySelectorAll('[data-l]').forEach(el => {
-      if (+el.dataset.l === L) el.classList.add('focus');
-      else el.classList.add('dim');
-    });
-  }
-
-  const cb = document.getElementById('callout');
-  function bindPoints() {
-    document.querySelectorAll('.pt').forEach(pt => {
-      pt.addEventListener('mouseenter', () => {
-        const L = +pt.dataset.l, k = +pt.dataset.k;
-        const cell = DATA.cells[L][k];
-        focusL(L);
-        pt.setAttribute('r', '6');
-        cb.innerHTML = `
-          <div class="callout-row"><span>L · h</span><b>${L} · ${cell.h.toFixed(2)}</b></div>
-          <div class="callout-divider"></div>
-          <div class="callout-row"><span>c<sub>L</sub></span><b>${cell.cL.toFixed(4)}</b></div>
-          <div class="callout-row"><span>± 1σ</span><b>${cell.se.toFixed(4)}</b></div>
-          <div class="callout-divider"></div>
-          <div class="callout-row"><span>accept</span><b>${(cell.accept*100).toFixed(1)}%</b></div>
-          <div class="callout-row"><span>wall</span><b>${(cell.wall/60).toFixed(1)} min</b></div>
-          <div class="callout-meta">${cell.when}</div>
-          <div class="callout-meta">${cell.manifest}</div>`;
-        const r = pt.getBoundingClientRect();
-        const wrap = pt.closest('.plot-area').getBoundingClientRect();
-        const left = Math.min(r.left - wrap.left + 14, wrap.width - 250);
-        cb.style.left = Math.max(0, left) + 'px';
-        cb.style.top = (r.top - wrap.top - 8) + 'px';
-        cb.classList.add('show');
-      });
-      pt.addEventListener('mouseleave', () => {
-        const L = +pt.dataset.l, k = +pt.dataset.k;
-        const cell = DATA.cells[L][k];
-        const inView = (cell.cL >= yMin && cell.cL <= yMax);
-        pt.setAttribute('r', inView ? '3.6' : '2.2');
-        cb.classList.remove('show');
-        focusL(null);
-      });
-      pt.addEventListener('click', () => {
-        openDrawer(DATA.cells[+pt.dataset.l][+pt.dataset.k], +pt.dataset.l);
-      });
-    });
-  }
-
+  // Drawer is page-shared (one cell view at a time).
   const drawer = document.getElementById('drawer');
   const backdrop = document.getElementById('backdrop');
-  function openDrawer(cell, L) {
-    document.getElementById('drawer-title').textContent = `L = ${L}, h = ${cell.h.toFixed(2)}`;
-    document.getElementById('drawer-sub').textContent = `results/__RUN_ID__/cells/${cell.manifest}`;
-    document.getElementById('d-cL').textContent = cell.cL.toFixed(4);
-    document.getElementById('d-se').textContent = cell.se.toFixed(4);
-    document.getElementById('d-ci').textContent = '± ' + (1.96 * cell.se).toFixed(4);
-    document.getElementById('d-wall').textContent = (cell.wall/60).toFixed(1) + ' min';
-    document.getElementById('d-nsteps').textContent = cell.n_steps.toLocaleString();
-    document.getElementById('d-accept').textContent = (cell.accept*100).toFixed(1) + '%';
-    document.getElementById('d-meanR').textContent = cell.mean_R.toFixed(3);
-    document.getElementById('d-when').textContent = cell.when;
-    document.getElementById('d-chi').textContent = cell.chi;
-    document.getElementById('d-pbc').textContent = cell.pbc ? 'true' : 'false';
-    drawer.classList.add('open');
-    backdrop.classList.add('show');
-  }
   function closeDrawer() { drawer.classList.remove('open'); backdrop.classList.remove('show'); }
   window.closeDrawer = closeDrawer;
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
 
-  // Toggle: match paper y-window
-  const tWin = document.getElementById('toggle-window');
-  tWin.addEventListener('click', () => {
-    const on = tWin.classList.toggle('on');
-    if (on) {
-      yMin = PAPER_Y_LO; yMax = PAPER_Y_HI;
-    } else {
-      yMin = -0.75; yMax = 1.10;
-    }
-    ys = c => H - M.b - (c - yMin) / (yMax - yMin) * (H - M.t - M.b);
-    renderPlot();
-  });
+  function openDrawerForRow(fig, row) {
+    const xField = fig.axes.x.field, yField = fig.axes.y.field;
+    const curveField = (fig.axes.curves || {}).field || null;
+    const errField = (fig.axes.err || {}).field || null;
+    const titleParts = [];
+    if (curveField) titleParts.push(`${curveField} = ${row[curveField]}`);
+    titleParts.push(`${xField} = ${fmtVal(row[xField])}`);
+    document.getElementById('drawer-title').textContent = titleParts.join(', ');
+    document.getElementById('drawer-sub').textContent = row.manifest
+      ? `results/${RUN_ID}/cells/${row.manifest}` : `results/${RUN_ID}/ · ${fig.label}`;
 
-  renderPlot();
+    const yv = row[yField], ev = errField ? (row[errField] || 0) : 0;
+    let resultHtml = `<div class="drawer-kv"><span>${escapeXml(yField)}</span><b>${fmtVal(yv)}</b></div>`;
+    if (errField) {
+      resultHtml += `<div class="drawer-kv"><span>± 1σ</span><b>${fmtVal(ev)}</b></div>`;
+      resultHtml += `<div class="drawer-kv"><span>95% CI</span><b>± ${fmtVal(1.96 * ev)}</b></div>`;
+    }
+    document.getElementById('drawer-result-rows').innerHTML = resultHtml;
+
+    const reserved = new Set([xField, yField, curveField, errField, 'manifest']);
+    let payloadHtml = '';
+    Object.keys(row).forEach(k => {
+      if (reserved.has(k)) return;
+      payloadHtml += `<div class="drawer-kv"><span>${escapeXml(prettyKey(k))}</span><b>${escapeXml(fmtVal(row[k]))}</b></div>`;
+    });
+    document.getElementById('drawer-payload-rows').innerHTML = payloadHtml
+      || '<div class="drawer-kv" style="color: var(--stone)">No additional fields recorded.</div>';
+
+    drawer.classList.add('open');
+    backdrop.classList.add('show');
+  }
+
+  function initFig(fig) {
+    const label = fig.label;
+    const plotEl = document.getElementById(`plot-${label}`);
+    const calloutEl = document.getElementById(`callout-${label}`);
+    const legendEl = document.getElementById(`legend-${label}`);
+    const toggleEl = document.getElementById(`toggle-window-${label}`);
+    if (!plotEl) return;
+
+    const xField = fig.axes.x.field;
+    const yField = fig.axes.y.field;
+    const curveField = (fig.axes.curves || {}).field || null;
+    const errField = (fig.axes.err || {}).field || null;
+    const xLabel = fig.axes.x.label || xField;
+    const yLabel = fig.axes.y.label || yField;
+    const xScale = fig.axes.x.scale || 'linear';
+    const yScale = fig.axes.y.scale || 'linear';
+    const xRefline = fig.axes.x.refline || null;
+    const paperWindow = (fig.axes.y || {}).paper_window || null;
+
+    const curveKeys = curveField
+      ? [...new Set(fig.data.map(d => d[curveField]))]
+          .sort((a,b) => (typeof a === 'number') ? a-b : String(a).localeCompare(String(b)))
+      : [null];
+    const rowsOf = key => (key === null ? fig.data : fig.data.filter(d => d[curveField] === key))
+      .slice().sort((a, b) => a[xField] - b[xField]);
+
+    // Auto-derive ranges with padding (strip non-positive values for log).
+    const validX = fig.data.map(d => d[xField]).filter(v => xScale !== 'log' || v > 0);
+    const yPieces = fig.data.flatMap(d => {
+      const y = d[yField], e = errField ? (d[errField] || 0) : 0;
+      const lo = y - e, hi = y + e;
+      return yScale === 'log' ? [lo, hi].filter(v => v > 0) : [lo, hi];
+    });
+    const dataXmin = Math.min(...validX), dataXmax = Math.max(...validX);
+    const dataYmin = Math.min(...yPieces), dataYmax = Math.max(...yPieces);
+    let fullX, fullY;
+    if (xScale === 'log') fullX = [dataXmin / 1.2, dataXmax * 1.2];
+    else { const p = (dataXmax - dataXmin) * 0.05 || 0.1; fullX = [dataXmin - p, dataXmax + p]; }
+    if (yScale === 'log') fullY = [dataYmin / 1.4, dataYmax * 1.4];
+    else { const p = (dataYmax - dataYmin) * 0.08 || 0.1; fullY = [dataYmin - p, dataYmax + p]; }
+
+    const W=600, H=360, M={l:54, r:14, t:18, b:42};
+    let xMin = fullX[0], xMax = fullX[1];
+    let yMin = fullY[0], yMax = fullY[1];
+
+    function xs(v) {
+      if (xScale === 'log') {
+        return M.l + (Math.log10(v) - Math.log10(xMin)) / (Math.log10(xMax) - Math.log10(xMin)) * (W - M.l - M.r);
+      }
+      return M.l + (v - xMin) / (xMax - xMin) * (W - M.l - M.r);
+    }
+    function ys(v) {
+      if (yScale === 'log') {
+        return H - M.b - (Math.log10(v) - Math.log10(yMin)) / (Math.log10(yMax) - Math.log10(yMin)) * (H - M.t - M.b);
+      }
+      return H - M.b - (v - yMin) / (yMax - yMin) * (H - M.t - M.b);
+    }
+    function tickGen(scale, lo, hi) {
+      return scale === 'log' ? logTicks(lo, hi) : linearTicks(lo, hi, 5);
+    }
+
+    function focusKey(key) {
+      plotEl.querySelectorAll('.curve, .pt, .errbar').forEach(el => el.classList.remove('focus','dim'));
+      legendEl.querySelectorAll('.legend-item').forEach(el => el.classList.remove('focus','dim'));
+      if (key === null) return;
+      plotEl.querySelectorAll('[data-l]').forEach(el => {
+        if (el.dataset.l === key) el.classList.add('focus'); else el.classList.add('dim');
+      });
+      legendEl.querySelectorAll('[data-l]').forEach(el => {
+        if (el.dataset.l === key) el.classList.add('focus'); else el.classList.add('dim');
+      });
+    }
+
+    function renderPlot() {
+      let g = '';
+      if (paperWindow && yScale !== 'log') {
+        g += `<rect class="paper-window" data-pw="1" x="${M.l}" y="${ys(paperWindow.hi)}" width="${W-M.l-M.r}" height="${ys(paperWindow.lo)-ys(paperWindow.hi)}"/>`;
+        g += `<text class="paper-window-label" data-pwl="1" x="${W-M.r-6}" y="${ys((paperWindow.lo+paperWindow.hi)/2)+4}" text-anchor="end">paper y-window</text>`;
+      }
+      const xT = tickGen(xScale, xMin, xMax);
+      xT.ticks.forEach(v => {
+        g += `<line class="grid" x1="${xs(v)}" x2="${xs(v)}" y1="${M.t}" y2="${H-M.b}"/>`;
+        g += `<text class="tick" x="${xs(v)}" y="${H-M.b+16}" text-anchor="middle">${fmtTick(v, xT.step, xScale)}</text>`;
+      });
+      const yT = tickGen(yScale, yMin, yMax);
+      yT.ticks.forEach(v => {
+        g += `<line class="grid" x1="${M.l}" x2="${W-M.r}" y1="${ys(v)}" y2="${ys(v)}"/>`;
+        g += `<text class="tick" x="${M.l-8}" y="${ys(v)+4}" text-anchor="end">${fmtTick(v, yT.step, yScale)}</text>`;
+      });
+      if (yScale !== 'log' && yMin <= 0 && yMax >= 0) {
+        g += `<line class="zero" x1="${M.l}" x2="${W-M.r}" y1="${ys(0)}" y2="${ys(0)}"/>`;
+      }
+      if (xRefline && xRefline.value >= xMin && xRefline.value <= xMax) {
+        g += `<line class="hcline" x1="${xs(xRefline.value)}" x2="${xs(xRefline.value)}" y1="${M.t}" y2="${H-M.b}"/>`;
+        g += `<text class="hclabel" x="${xs(xRefline.value)+5}" y="${M.t+12}">${escapeXml(xRefline.label || '')}</text>`;
+      }
+      g += `<line class="axis" x1="${M.l}" x2="${W-M.r}" y1="${H-M.b}" y2="${H-M.b}"/>`;
+      g += `<line class="axis" x1="${M.l}" x2="${M.l}" y1="${M.t}" y2="${H-M.b}"/>`;
+      g += `<text class="axis-label" x="${(W+M.l-M.r)/2}" y="${H-8}" text-anchor="middle">${escapeXml(xLabel)}</text>`;
+      g += `<text class="axis-label" transform="rotate(-90 16 ${(H+M.t-M.b)/2})" x="16" y="${(H+M.t-M.b)/2}" text-anchor="middle">${escapeXml(yLabel)}</text>`;
+
+      curveKeys.forEach((key, i) => {
+        const color = colors[i % colors.length];
+        const pts = rowsOf(key);
+        const dataKey = key === null ? '_' : String(key);
+        const path = pts
+          .filter(p => (xScale !== 'log' || p[xField] > 0) && (yScale !== 'log' || p[yField] > 0))
+          .map((p,k) => `${k===0?'M':'L'} ${xs(p[xField]).toFixed(2)} ${ys(p[yField]).toFixed(2)}`).join(' ');
+        g += `<path class="curve draw" data-l="${escapeXml(dataKey)}" stroke="${color}" d="${path}" style="animation-delay: ${i*150}ms"/>`;
+        pts.forEach((p,k) => {
+          const yv = p[yField];
+          if (xScale === 'log' && p[xField] <= 0) return;
+          if (yScale === 'log' && yv <= 0) return;
+          const ev = errField ? (p[errField] || 0) : 0;
+          if (errField) {
+            const yLo = yScale === 'log' ? Math.max(yv - ev, yMin) : (yv - ev);
+            const yHi = yv + ev;
+            if (yLo > 0 || yScale !== 'log') {
+              g += `<line class="errbar" data-l="${escapeXml(dataKey)}" stroke="${color}" x1="${xs(p[xField])}" x2="${xs(p[xField])}" y1="${ys(yHi)}" y2="${ys(yLo)}"/>`;
+            }
+          }
+          const inView = (yv >= yMin && yv <= yMax);
+          g += `<circle class="pt" data-l="${escapeXml(dataKey)}" data-k="${k}" cx="${xs(p[xField])}" cy="${ys(yv)}" r="${inView ? 3.6 : 2.2}" fill="${color}" opacity="${inView ? 1 : 0.45}"/>`;
+        });
+      });
+      plotEl.innerHTML = g;
+      bindPoints();
+      if (paperWindow && toggleEl && toggleEl.classList.contains('on')) {
+        plotEl.querySelectorAll('[data-pw]').forEach(el => el.classList.add('on'));
+        plotEl.querySelectorAll('[data-pwl]').forEach(el => el.classList.add('on'));
+      }
+    }
+
+    function bindPoints() {
+      plotEl.querySelectorAll('.pt').forEach(pt => {
+        pt.addEventListener('mouseenter', () => {
+          const key = pt.dataset.l, k = +pt.dataset.k;
+          const row = rowsOf(key === '_' ? null : (typeof curveKeys[0] === 'number' ? +key : key))[k];
+          focusKey(key);
+          pt.setAttribute('r', '6');
+          const headLeft = curveField ? `${curveField} · ${xField}` : xField;
+          const headRight = curveField ? `${row[curveField]} · ${fmtVal(row[xField])}` : fmtVal(row[xField]);
+          let html = `<div class="callout-row"><span>${escapeXml(headLeft)}</span><b>${escapeXml(headRight)}</b></div>`;
+          html += `<div class="callout-divider"></div>`;
+          html += `<div class="callout-row"><span>${escapeXml(yField)}</span><b>${fmtVal(row[yField])}</b></div>`;
+          if (errField) html += `<div class="callout-row"><span>± 1σ</span><b>${fmtVal(row[errField])}</b></div>`;
+          if (row.accept != null || row.wall != null) {
+            html += `<div class="callout-divider"></div>`;
+            if (row.accept != null) html += `<div class="callout-row"><span>accept</span><b>${(row.accept*100).toFixed(1)}%</b></div>`;
+            if (row.wall != null) html += `<div class="callout-row"><span>wall</span><b>${(row.wall/60).toFixed(1)} min</b></div>`;
+          }
+          if (row.when) html += `<div class="callout-meta">${escapeXml(row.when)}</div>`;
+          if (row.manifest) html += `<div class="callout-meta">${escapeXml(row.manifest)}</div>`;
+          calloutEl.innerHTML = html;
+          const r = pt.getBoundingClientRect();
+          const wrap = pt.closest('.plot-area').getBoundingClientRect();
+          const left = Math.min(r.left - wrap.left + 14, wrap.width - 250);
+          calloutEl.style.left = Math.max(0, left) + 'px';
+          calloutEl.style.top = (r.top - wrap.top - 8) + 'px';
+          calloutEl.classList.add('show');
+        });
+        pt.addEventListener('mouseleave', () => {
+          const key = pt.dataset.l, k = +pt.dataset.k;
+          const row = rowsOf(key === '_' ? null : (typeof curveKeys[0] === 'number' ? +key : key))[k];
+          const inView = (row[yField] >= yMin && row[yField] <= yMax);
+          pt.setAttribute('r', inView ? '3.6' : '2.2');
+          calloutEl.classList.remove('show');
+          focusKey(null);
+        });
+        pt.addEventListener('click', () => {
+          const key = pt.dataset.l, k = +pt.dataset.k;
+          const row = rowsOf(key === '_' ? null : (typeof curveKeys[0] === 'number' ? +key : key))[k];
+          openDrawerForRow(fig, row);
+        });
+      });
+    }
+
+    // Legend
+    if (curveField) {
+      const labelTpl = (fig.axes.curves || {}).label_template || `${curveField} = {${curveField}}`;
+      curveKeys.forEach((key, i) => {
+        const pts = rowsOf(key);
+        const refV = xRefline ? pts.find(p => Math.abs(p[xField] - xRefline.value) < 1e-6) : null;
+        const v = (refV || pts[pts.length-1] || {})[yField];
+        const item = document.createElement('div');
+        item.className = 'legend-item'; item.dataset.l = String(key);
+        const labelText = labelTpl.replace(`{${curveField}}`, key);
+        item.innerHTML = `<span class="legend-swatch" style="background:${colors[i % colors.length]};"></span>
+          ${escapeXml(labelText)} <span class="legend-val">${(v != null) ? v.toFixed(2) : ''}</span>`;
+        item.addEventListener('mouseenter', () => focusKey(String(key)));
+        item.addEventListener('mouseleave', () => focusKey(null));
+        legendEl.appendChild(item);
+      });
+    }
+
+    // Paper-window toggle (only when defined and y-axis is linear).
+    if (paperWindow && yScale !== 'log' && toggleEl) {
+      toggleEl.style.display = '';
+      toggleEl.addEventListener('click', () => {
+        const on = toggleEl.classList.toggle('on');
+        if (on) { yMin = paperWindow.lo; yMax = paperWindow.hi; }
+        else    { yMin = fullY[0]; yMax = fullY[1]; }
+        renderPlot();
+      });
+    }
+
+    renderPlot();
+  }
+
+  FIGURES.forEach(initFig);
 
   // ===== Tap-fallback for hover affordances (chips + glossary terms) =====
   // Detect touch capability; toggle .tapped class on click; tap-outside to dismiss

@@ -80,24 +80,20 @@ _GREEK = {
 def render_inline_markup(text: str) -> str:
     """Escape HTML, then convert ASCII LaTeX-style markup to HTML/Unicode.
 
-    Safe on user-provided text: escapes first, then applies conversions on the
-    escaped text (so &lt; etc. are matched in the operator step).
-
-    Conversions:
-      _{XX}        -> <sub>XX</sub>
-      _X           -> <sub>X</sub>             (single alphanumeric)
-      ^{XX}        -> <sup>XX</sup>
-      ^X           -> <sup>X</sup>             (single alphanumeric)
-      Greek words  -> Unicode (alpha→α, chi→χ, sigma→σ, ...)
-      <=, >=, !=, +/- -> ≤, ≥, ≠, ±
-      \approx, ~=  -> ≈
+    Conversions (in order):
+      [[key|display]]  -> <span class="sym" data-term="key">{rendered display}</span>
+      *italic*         -> <em>italic</em>
+      _{XX}            -> <sub>XX</sub>
+      _X               -> <sub>X</sub>           (single alnum, not snake_case)
+      ^{XX}            -> <sup>XX</sup>
+      ^X               -> <sup>X</sup>
+      Greek words      -> Unicode (alpha→α, chi→χ, ...)
+      <=, >=, !=, +/-  -> ≤, ≥, ≠, ±
+      \approx, ~=      -> ≈
     """
     if not text:
         return ""
     t = html.escape(text)
-    # Subscripts: only when not part of a snake_case identifier.
-    # `_{XX}` is unambiguous; `_X` requires X NOT followed by another alphanumeric
-    # (so `c_L(h)` matches, but `tfim_fig` does not — `f` is followed by `i`).
     t = re.sub(r"_\{([^}]+)\}", r"<sub>\1</sub>", t)
     t = re.sub(r"_([A-Za-z0-9])(?![A-Za-z0-9])", r"<sub>\1</sub>", t)
     t = re.sub(r"\^\{([^}]+)\}", r"<sup>\1</sup>", t)
@@ -107,6 +103,17 @@ def render_inline_markup(text: str) -> str:
     t = t.replace("&lt;=", "≤").replace("&gt;=", "≥")
     t = t.replace("!=", "≠").replace(" +/- ", " ± ").replace("+/-", "±")
     t = t.replace("\\approx", "≈").replace("~=", "≈")
+    # Italics: *word* -> <em>word</em>. Avoid greedy matches and matching across
+    # newlines or spaces-only.
+    t = re.sub(r"\*([^*\s][^*\n]*?[^*\s]|[^*\s])\*", r"<em>\1</em>", t)
+    # Glossary symbol wrapping (post-pass; the inner display has already had
+    # sub/sup/Greek expansion applied by the regexes above, so [[cl|c_L(h)]]
+    # here is actually [[cl|c<sub>L</sub>(h)]]).
+    t = re.sub(
+        r"\[\[([A-Za-z][A-Za-z0-9_]*)\|([^\]]+)\]\]",
+        r'<span class="sym" data-term="\1">\2</span>',
+        t,
+    )
     return t
 
 
@@ -119,15 +126,19 @@ def chip_for(status: str, label: str, popover: str) -> str:
     )
 
 
-def claim_status_from_verify(claim_id: str, verify_dir: Path) -> str:
-    """ok if claim id appears with ✓ nearby; warn if ✗ or ⚠; muted if no verify mentions it."""
-    if not verify_dir.exists():
-        return "muted"
-    for v in verify_dir.glob("verify_*.md"):
+def claim_status_from_verify(claim_id: str, run_dir: Path) -> str:
+    """ok if claim id appears with ✓ nearby; warn if ✗ or ⚠; muted if no verify mentions it.
+
+    Looks in both `<run>/verify/verify_*.md` (canonical layout) and `<run>/verify_*.md`
+    (legacy/dogfood layout). The skill spec calls for the subdir; older runs may have
+    them at the top level.
+    """
+    candidates = list((run_dir / "verify").glob("verify_*.md")) if (run_dir / "verify").exists() else []
+    candidates += list(run_dir.glob("verify_*.md"))
+    for v in candidates:
         text = v.read_text()
         if claim_id not in text:
             continue
-        # Find nearby status markers (within the same line or next line)
         for line in text.splitlines():
             if claim_id in line:
                 if "✗" in line or "✗" in text.split(claim_id)[-1][:200]:
@@ -139,27 +150,85 @@ def claim_status_from_verify(claim_id: str, verify_dir: Path) -> str:
     return "muted"
 
 
-def status_strip_html(claims: list[dict], deviations: list[dict], editorial: dict, verify_dir: Path) -> str:
-    ed_claims = {c["id"]: c for c in editorial.get("claims") or []}
-    ed_devs = {d["id"]: d for d in editorial.get("deviations") or []}
+def status_strip_html(protocol: dict, editorial: dict, run_dir: Path) -> str:
+    """Build the status-strip chips from claims, checks, deviations, and pending.
 
-    chips = []
-    for c in claims[:4]:
+    Chip taxonomy (in render order, capped at 8 visible total):
+      1. claims     — one per [[claims]], status from verify report
+      2. checks     — one per [[checks]] tagged for the strip (status from verify)
+      3. deviations — one per [[deviations]], always warn
+      4. pending    — one per [[pending]], always muted
+    """
+    claims = protocol.get("claims", [])
+    checks = protocol.get("checks", [])
+    deviations = protocol.get("deviations", [])
+    pending = protocol.get("pending", [])
+
+    ed_claims = {c["id"]: c for c in editorial.get("claims") or []}
+    ed_checks = {c["id"]: c for c in editorial.get("checks") or []}
+    ed_devs = {d["id"]: d for d in editorial.get("deviations") or []}
+    ed_pending = {p["id"]: p for p in editorial.get("pending") or []}
+
+    chips: list[str] = []
+
+    for c in claims[:3]:
         cid = c.get("id", "")
-        status = claim_status_from_verify(cid, verify_dir)
+        status = claim_status_from_verify(cid, run_dir)
         ed = ed_claims.get(cid, {})
-        label = ed.get("display_label") or cid
+        label = ed.get("display_label") or cid.rsplit(".", 1)[-1] or cid
         popover = ed.get("popover") or c.get("statement", "")
         chips.append(chip_for(status, label, popover))
-    for d in deviations[:2]:
+
+    # Only checks marked report=true (or whose kind is one of the audience-facing
+    # kinds) get a chip — internal mechanical checks (manifest_fields, freshness)
+    # are not chip-worthy.
+    AUDIENCE_KINDS = {"command", "trusted_reference", "limit", "symmetry", "cross_method"}
+    for ch in checks:
+        if not (ch.get("report") or ch.get("kind") in AUDIENCE_KINDS):
+            continue
+        chid = ch.get("id", "")
+        status = claim_status_from_verify(chid, run_dir)
+        ed = ed_checks.get(chid, {})
+        label = ed.get("display_label") or chid.replace("_", " ")
+        popover = ed.get("popover") or ch.get("statement") or f"{ch.get('kind', 'check')} ({chid})"
+        chips.append(chip_for(status, label, popover))
+        if len(chips) >= 5:
+            break
+
+    for d in deviations[:3]:
         did = d.get("id", "")
         ed = ed_devs.get(did, {})
         label = ed.get("display_label") or did
         popover = ed.get("popover") or d.get("statement", "")
         chips.append(chip_for("warn", label, popover))
+
+    for p in pending[:2]:
+        pid = p.get("id", "")
+        ed = ed_pending.get(pid, {})
+        label = ed.get("display_label") or pid.replace("pending.", "").replace("_", " ")
+        popover = ed.get("popover") or p.get("statement", "")
+        chips.append(chip_for("muted", label, popover))
+
     chips.append('<span class="chip spacer"></span>')
     chips.append('<span class="chip muted">click any data point for the cell manifest</span>')
     return "\n    ".join(chips)
+
+
+def source_pill_label(s: dict, paper_id: str) -> str:
+    """Best human label for a source pill.
+
+    Primary sources prefer the paper id (e.g. "arXiv:2305.18541") plus the venue
+    parsed from the note. KB-hint and other sources fall back to their `id`.
+    """
+    if s.get("authority") == "primary":
+        # Try to extract a venue-like substring from note: text after the first ". "
+        note = s.get("note", "")
+        if ". " in note:
+            tail = note.split(". ", 1)[1].rstrip(". ")
+            if tail:
+                return tail
+        return paper_id or s.get("id") or ""
+    return s.get("id") or s.get("path") or ""
 
 
 def contract_html(protocol: dict) -> str:
@@ -168,11 +237,19 @@ def contract_html(protocol: dict) -> str:
     claims = protocol.get("claims", [])
     deviations = protocol.get("deviations", [])
     budgets = protocol.get("budgets", {})
+    paper_id = artifact.get("paper", "")
 
     parts: list[str] = []
     parts.append('<div class="k">Source</div><div class="v">')
+    # Primary first; emit paper_id as a separate pill alongside the venue
+    primaries = [s for s in sources if s.get("authority") == "primary"]
+    if primaries and paper_id:
+        parts.append(f'<span class="pill">{html.escape(paper_id)}</span>')
     for s in sources:
-        parts.append(f'<span class="pill">{html.escape(str(s.get("id") or s.get("path") or ""))}</span>')
+        label = source_pill_label(s, paper_id)
+        if not label or label == paper_id:
+            continue
+        parts.append(f'<span class="pill">{html.escape(label)}</span>')
     parts.append("</div>")
 
     parts.append(f'<div class="k">Scope</div><div class="v">{render_inline_markup(artifact.get("description", ""))}</div>')
@@ -244,6 +321,66 @@ def provenance_html(run_id: str, protocol: dict, flow_state: dict | None, n_cell
     )
 
 
+def figure_block_html(fig: dict, ed: dict, paper_id: str, run_id: str, run_dir: Path,
+                      eyebrow: str | None = None) -> str:
+    """Compose the HTML for one figure's duo (paper PNG | interactive plot).
+
+    `fig` is a [[figures]] entry from protocol.toml; `ed` is the matching
+    editorial.figures[i] dict (or {}); `eyebrow` is an optional small label
+    rendered above the duo (used for additional figures, e.g. "Figure 2 of 3").
+    """
+    label = fig["id"]
+    fig_display = fig.get("display_id") or label
+
+    paper_path = resolve(fig["paper_path"], run_dir)
+    paper_data_url = b64_png(paper_path)
+
+    paper_panel_title = fig.get("paper_attribution", "Paper")
+    ours_panel_title = ed.get("caption_ours") or f"Reproduction · {run_id} / {label}"
+    paper_caption = ed.get("caption_paper") or ""
+    paper_alt = ed.get("caption_paper") or fig.get("paper_attribution") or f"Paper figure {label}"
+    paper_source = f"{paper_id} · {fig_display}" if paper_id else fig_display
+    ours_source = f"{run_id}/figs/{label}.png"
+
+    eye = f'<div class="fig-eyebrow">{html.escape(eyebrow)}</div>' if eyebrow else ""
+
+    return (
+        f'<div class="fig-block" data-fig="{html.escape(label)}">\n'
+        + eye + '\n'
+        + '<div class="duo">\n'
+        + '  <div class="panel-card">\n'
+        + '    <div class="panel-head">\n'
+        + '      <span class="label ref">Reference · the paper</span>\n'
+        + f'      <span class="source">{html.escape(paper_source)}</span>\n'
+        + '    </div>\n'
+        + f'    <h2 class="panel-title">{render_inline_markup(paper_panel_title)}</h2>\n'
+        + '    <div class="paper-img-wrap">\n'
+        + f'      <img src="{paper_data_url}" alt="{html.escape(paper_alt)}" />\n'
+        + '    </div>\n'
+        + f'    <div class="paper-cap">{render_inline_markup(paper_caption)}</div>\n'
+        + '  </div>\n'
+        + '  <div class="panel-card">\n'
+        + '    <div class="panel-head">\n'
+        + '      <span class="label">Reproduction · this run</span>\n'
+        + f'      <span class="source">{html.escape(ours_source)}</span>\n'
+        + '    </div>\n'
+        + f'    <h2 class="panel-title">{render_inline_markup(ours_panel_title)}</h2>\n'
+        + '    <div class="ours-controls">\n'
+        + f'      <button class="toggle" id="toggle-window-{html.escape(label)}" style="display:none">\n'
+        + '        <span class="swatch"></span> Match paper y-window\n'
+        + '      </button>\n'
+        + '    </div>\n'
+        + '    <div class="plot-area">\n'
+        + f'      <svg class="plot" id="plot-{html.escape(label)}" viewBox="0 0 600 360" preserveAspectRatio="xMidYMid meet"></svg>\n'
+        + f'      <div class="callout" id="callout-{html.escape(label)}"></div>\n'
+        + '    </div>\n'
+        + f'    <div class="legend-row" id="legend-{html.escape(label)}"></div>\n'
+        + '  </div>\n'
+        + '</div>\n'
+        + '</div>'
+    )
+
+
 def count_cells_and_wall(run_dir: Path) -> tuple[int, float]:
     cells_dir = run_dir / "cells"
     if not cells_dir.exists():
@@ -278,23 +415,23 @@ def main() -> int:
         print("error: protocol.toml has no [[figures]] entries", file=sys.stderr)
         return 1
     featured_id = protocol.get("featured_figure") or figures[0]["id"]
-    fig = next((f for f in figures if f["id"] == featured_id), figures[0])
+    # Reorder: featured first, then the rest in protocol order.
+    figures_ordered = (
+        [next((f for f in figures if f["id"] == featured_id), figures[0])]
+        + [f for f in figures if f["id"] != featured_id]
+    )
 
-    paper_path = resolve(fig["paper_path"], run_dir)
-    data_path = resolve(fig["data_path"], run_dir) if fig.get("data_path") else None
-    paper_data_url = b64_png(paper_path)
-    data_obj = json.loads(data_path.read_text()) if data_path and data_path.exists() else {"data": [], "axes": {}}
+    ed_figs = {f["label"]: f for f in editorial.get("figures") or []}
 
-    # Editorial fields with mechanical fallbacks
+    # Editorial fields with mechanical fallbacks (report-level, not per-figure)
     headline_text = (editorial.get("headline") or {}).get("text") or (
         protocol.get("claims", [{}])[0].get("statement", "")
     )
     headline_html = render_inline_markup(headline_text)
-
-    ed_figs = {f["label"]: f for f in editorial.get("figures") or []}
-    ef = ed_figs.get(featured_id, {})
-    paper_panel_title = ef.get("caption_paper") or fig.get("paper_attribution", "Paper")
-    ours_panel_title = ef.get("caption_ours") or f"Reproduction · {artifact.get('run_id', run_dir.name)}"
+    discrepancy_headline = (
+        editorial.get("discrepancy_headline")
+        or ("Differences from the paper" if protocol.get("deviations") else "No declared deviations.")
+    )
 
     # Derive run_id, IDs, URLs
     run_id = artifact.get("run_id") or run_dir.name
@@ -302,28 +439,45 @@ def main() -> int:
     arxiv_match = re.search(r"(\d{4}\.\d{5})", paper_id)
     arxiv_id = arxiv_match.group(1) if arxiv_match else paper_id
 
-    # Authors: pull from first source's note (best effort) or leave blank
-    authors = ""
-    paper_title = ""
-    venue = ""
+    # Authors / title / venue: prefer explicit [artifact] fields; otherwise
+    # try the first source's note ("Authors. Venue (year).").
+    authors = artifact.get("authors", "")
+    paper_title = artifact.get("title", "")
+    venue = artifact.get("venue", "")
     sources = protocol.get("sources", [])
-    if sources:
+    if not (authors or venue) and sources:
         note = sources[0].get("note", "")
-        # Heuristic: "Authors. Venue (year)." → split on first period
         if "." in note:
             authors_part, _, rest = note.partition(".")
-            authors = authors_part.strip()
-            venue_match = re.match(r"\s*(.*?)\s*$", rest.strip())
-            if venue_match:
-                venue = venue_match.group(1).rstrip(".")
+            if not authors:
+                authors = authors_part.strip()
+            if not venue:
+                venue = rest.strip().rstrip(".").strip()
 
-    # Glossary JSON (key by data-term value)
+    # Topbar paper line: assemble conditionally so empty fields don't leak
+    # bare separators (`<em></em>`, dangling em-dash, etc.).
+    parts = []
+    if authors:
+        parts.append(f"<b>{html.escape(authors)}</b>")
+    if paper_title:
+        parts.append(f"<em>{html.escape(paper_title)}</em>")
+    topbar_byline = " &mdash; ".join(parts)
+    topbar_paper_html = (
+        f'<span class="id">{html.escape(paper_id)}</span>'
+        + (topbar_byline + " " if topbar_byline else "")
+        + (html.escape(venue) + " &middot; " if venue else "")
+        + f'<a href="https://arxiv.org/abs/{arxiv_id}">arxiv.org/abs/{arxiv_id}</a>'
+    )
+
+    # Glossary JSON (key matches the data-term attribute on each .sym span;
+    # editorial entries supply `key` explicitly, else fall back to the symbol).
     gloss_dict: dict[str, dict] = {}
     for g in editorial.get("glossary") or []:
-        sym = g.get("symbol", "")
-        # Use a short key derived from the symbol (first letter sequence before any non-letter)
-        key_match = re.match(r"[a-zA-Z_]+", sym)
-        key = key_match.group(0).lower() if key_match else "term"
+        key = g.get("key")
+        if not key:
+            sym = g.get("symbol", "")
+            m = re.match(r"[a-zA-Z_]+", sym)
+            key = (m.group(0).lower() if m else "term")
         gloss_dict[key] = {
             "name": g.get("name", ""),
             "body": g.get("body", ""),
@@ -341,32 +495,84 @@ def main() -> int:
 
     n_cells, total_wall_h = count_cells_and_wall(run_dir)
 
+    # Topbar meta line: drop bare separators when cluster missing.
+    cluster_str = (flow_state or {}).get("cluster", "") if flow_state else ""
+    today = datetime.date.today().isoformat()
+    meta_bits = [b for b in (cluster_str, today) if b]
+    run_meta = " · ".join(meta_bits)
+
+    # Deviation banner: only when [[deviations]] is non-empty. Surfaces under
+    # the headline so a quick scroll cannot miss it.
+    deviations = protocol.get("deviations", [])
+    if deviations:
+        ed_devs = {d["id"]: d for d in editorial.get("deviations") or []}
+        labels = [
+            (ed_devs.get(d.get("id", ""), {}).get("display_label") or d.get("id", ""))
+            for d in deviations
+        ]
+        n = len(deviations)
+        noun = "deviation" if n == 1 else "deviations"
+        dev_banner_html = (
+            '<div class="dev-banner">'
+            '<span class="dev-icon">⚠</span>'
+            f'<div><b>{n} declared {noun} from the paper</b> &middot; '
+            + ", ".join(render_inline_markup(L) for L in labels)
+            + ' &middot; <a href="#discrepancy-panel">see discrepancy</a></div>'
+            '</div>'
+        )
+    else:
+        dev_banner_html = ""
+
+    # Build per-figure HTML blocks + collect data for the FIGURES JS array.
+    figures_js: list[dict] = []
+    for f in figures_ordered:
+        if f.get("data_path"):
+            dp = resolve(f["data_path"], run_dir)
+            if dp.exists():
+                figures_js.append(json.loads(dp.read_text()))
+            else:
+                print(f"[warn] data_path for figure {f['id']} not found: {dp}", file=sys.stderr)
+                figures_js.append({"label": f["id"], "axes": {}, "data": []})
+        else:
+            figures_js.append({"label": f["id"], "axes": {}, "data": []})
+
+    featured_fig = figures_ordered[0]
+    extras = figures_ordered[1:]
+    featured_html = figure_block_html(
+        featured_fig, ed_figs.get(featured_fig["id"], {}), paper_id, run_id, run_dir,
+        eyebrow=None,
+    )
+    if extras:
+        extra_blocks = []
+        for i, f in enumerate(extras, start=2):
+            eyebrow = f"Figure {i} of {len(figures_ordered)} · {f.get('display_id') or f['id']}"
+            extra_blocks.append(figure_block_html(
+                f, ed_figs.get(f["id"], {}), paper_id, run_id, run_dir, eyebrow=eyebrow,
+            ))
+        extra_section = (
+            '<section class="extra-figs">\n' + "\n\n".join(extra_blocks) + '\n</section>'
+        )
+    else:
+        extra_section = ""
+
     # Compose substitution map
     subs = {
         "__PAGE_TITLE__": html.escape(f"{paper_id} · {run_id} · /report"),
-        "__PAPER_ID__": html.escape(paper_id),
-        "__AUTHORS__": html.escape(authors),
-        "__PAPER_TITLE__": html.escape(paper_title),
-        "__VENUE__": html.escape(venue),
-        "__PAPER_URL__": f"https://arxiv.org/abs/{arxiv_id}",
-        "__PAPER_URL_DISPLAY__": f"arxiv.org/abs/{arxiv_id}",
+        "__TOPBAR_PAPER_HTML__": topbar_paper_html,
         "__RUN_SCOPE__": html.escape(artifact.get("scope", "")),
-        "__RUN_META__": html.escape(f"{flow_state.get('cluster', '') if flow_state else ''} · {datetime.date.today().isoformat()}"),
+        "__RUN_META__": html.escape(run_meta),
         "__HEADLINE_HTML__": headline_html,
         "__RUN_TAG__": html.escape(f"{n_cells} cells · {total_wall_h:.1f} wall-h"),
-        "__PAPER_SOURCE__": html.escape(f"{paper_id} · Fig {fig['id']}"),
-        "__OURS_SOURCE__": html.escape(f"{run_id}/figs/{fig['id']}.png"),
-        "__PAPER_PANEL_TITLE__": render_inline_markup(paper_panel_title),
-        "__OURS_PANEL_TITLE__": render_inline_markup(ours_panel_title),
-        "__PAPER_IMG_DATA_URL__": paper_data_url,
-        "__STATUS_STRIP_HTML__": status_strip_html(
-            protocol.get("claims", []), protocol.get("deviations", []), editorial, run_dir / "verify"
-        ),
+        "__DEV_BANNER_HTML__": dev_banner_html,
+        "__FEATURED_FIG_HTML__": featured_html,
+        "__EXTRA_FIGS_SECTION__": extra_section,
+        "__STATUS_STRIP_HTML__": status_strip_html(protocol, editorial, run_dir),
         "__CONTRACT_HTML__": contract_html(protocol),
+        "__DISCREPANCY_HEADLINE__": render_inline_markup(discrepancy_headline),
         "__DISCREPANCY_HTML__": discrepancy_html(protocol.get("deviations", []), editorial),
         "__PROVENANCE_HTML__": provenance_html(run_id, protocol, flow_state, n_cells, total_wall_h),
         "__RUN_ID__": run_id,
-        "__DATA_JSON__": json.dumps(data_obj, separators=(",", ":")),
+        "__FIGURES_JSON__": json.dumps(figures_js, separators=(",", ":")),
         "__GLOSS_JSON__": json.dumps(gloss_dict, separators=(",", ":")),
         "__COLORS_JSON__": json.dumps(COLORS),
     }

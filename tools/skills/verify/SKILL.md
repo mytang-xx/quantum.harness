@@ -141,7 +141,11 @@ Severity tags: `supported`, `unsupported-claim`, `hint-leak`, `stale-artifact`, 
 
 ## Output
 
-Markdown report at `results/<run>/verify/verify_<artifact-stem>_<date>.md`. The report stops at the per-axis status table — the audit's deliverable is the diff, not the prescription. Suggested layout:
+Markdown report at `results/<run>/verify/verify_<artifact-stem>_<date>.md`. The report stops at the per-axis status table — the audit's deliverable is the diff, not the prescription.
+
+**Claim/check id citation convention (mandatory for `result` and `close` modes when /report will consume the run):** every per-axis row in the status table includes a `claim ids` column listing which protocol `[[claims]].id` and `[[checks]].id` the axis backs. Format the column as a comma-separated list (e.g. `fig4.shape, fig4.minimum`). The `/report` skill grep-scans verify reports for these ids and resolves chip status as ✓/⚠/✗ from the axis's status; without the citation, chips fall back to `muted`. This is the single durable convention that connects verify reports to the audience-facing report.
+
+Suggested layout:
 
 ```markdown
 # /verify report — <artifact> — <date>
@@ -149,9 +153,9 @@ Markdown report at `results/<run>/verify/verify_<artifact-stem>_<date>.md`. The 
 **Mode**: protocol | plan | kb-card | script | result | mismatch | close.
 **Reference**: <path / lines>.
 
-| Axis / Row | Status | Severity | Notes |
-|---|---|---|---|
-| ... | ✓ / ⚠ / ✗ | match / proxy / unrecorded-deviation / regime-gap | ... |
+| Axis / Row | Status | Severity | Claim ids | Notes |
+|---|---|---|---|---|
+| ... | ✓ / ⚠ / ✗ | match / proxy / unrecorded-deviation / regime-gap | `fig4.shape, fig4.minimum` | ... |
 
 ## Detailed findings
 
