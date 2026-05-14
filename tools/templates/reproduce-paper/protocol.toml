@@ -132,3 +132,25 @@ checks = []
 wall_clock = ""
 compute = ""
 notes = ""
+
+# Figure pointers consumed by /report (the report skill).
+# One block per panel/figure to be displayed side-by-side in the rendered HTML.
+# `paper_path` is the reference figure (from download-ref's .figures/);
+# `ours_path` is the reproduction's plot. `data_path` is optional — when present,
+# /report renders an interactive plot from it; when absent, only the static PNG.
+# `claim_ids` cross-references the [[claims]] this figure supports.
+[[figures]]
+id = "<short-id>"             # e.g. "fig4a"
+paper_path = ""               # e.g. knowledge-base/literature/<method>/.figures/arxiv__<id>/<extracted-png>
+paper_authority = "primary"   # primary | trusted_reference | hint
+paper_attribution = ""        # e.g. "Tarabunga et al. 2023, Fig 4(a)"
+ours_path = ""                # e.g. results/<run>/figs/<id>.png
+data_path = ""                # e.g. results/<run>/figs/<id>.json (optional; enables interactive plot)
+claim_ids = []
+
+# Optional run-level overrides for /report. Defaults are sane; only set when overriding.
+# featured_figure = "fig4a"           # which figure is the hero (default: first [[figures]] entry)
+# central_param = { h = 1.0 }         # parameter point for the highlighted-cell callout default
+
+# [report]
+# fonts = "cdn"                       # "cdn" (default) | "embed" (base64 inline; +200KB)
