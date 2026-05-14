@@ -65,11 +65,56 @@ def load_editorial(run_dir: Path) -> dict:
     return {"headline": None, "claims": [], "deviations": [], "figures": [], "glossary": [], "gaps": []}
 
 
+_GREEK = {
+    "alpha": "α", "beta": "β", "gamma": "γ", "delta": "δ",
+    "epsilon": "ε", "zeta": "ζ", "eta": "η", "theta": "θ",
+    "iota": "ι", "kappa": "κ", "lambda": "λ", "mu": "μ",
+    "nu": "ν", "xi": "ξ", "pi": "π", "rho": "ρ",
+    "sigma": "σ", "tau": "τ", "phi": "φ", "chi": "χ",
+    "psi": "ψ", "omega": "ω",
+    "Alpha": "Α", "Beta": "Β", "Gamma": "Γ", "Delta": "Δ",
+    "Sigma": "Σ", "Lambda": "Λ", "Omega": "Ω", "Pi": "Π",
+}
+
+
+def render_inline_markup(text: str) -> str:
+    """Escape HTML, then convert ASCII LaTeX-style markup to HTML/Unicode.
+
+    Safe on user-provided text: escapes first, then applies conversions on the
+    escaped text (so &lt; etc. are matched in the operator step).
+
+    Conversions:
+      _{XX}        -> <sub>XX</sub>
+      _X           -> <sub>X</sub>             (single alphanumeric)
+      ^{XX}        -> <sup>XX</sup>
+      ^X           -> <sup>X</sup>             (single alphanumeric)
+      Greek words  -> Unicode (alpha→α, chi→χ, sigma→σ, ...)
+      <=, >=, !=, +/- -> ≤, ≥, ≠, ±
+      \approx, ~=  -> ≈
+    """
+    if not text:
+        return ""
+    t = html.escape(text)
+    # Subscripts: only when not part of a snake_case identifier.
+    # `_{XX}` is unambiguous; `_X` requires X NOT followed by another alphanumeric
+    # (so `c_L(h)` matches, but `tfim_fig` does not — `f` is followed by `i`).
+    t = re.sub(r"_\{([^}]+)\}", r"<sub>\1</sub>", t)
+    t = re.sub(r"_([A-Za-z0-9])(?![A-Za-z0-9])", r"<sub>\1</sub>", t)
+    t = re.sub(r"\^\{([^}]+)\}", r"<sup>\1</sup>", t)
+    t = re.sub(r"\^([A-Za-z0-9])(?![A-Za-z0-9])", r"<sup>\1</sup>", t)
+    for word, ch in _GREEK.items():
+        t = re.sub(rf"\b{word}\b", ch, t)
+    t = t.replace("&lt;=", "≤").replace("&gt;=", "≥")
+    t = t.replace("!=", "≠").replace(" +/- ", " ± ").replace("+/-", "±")
+    t = t.replace("\\approx", "≈").replace("~=", "≈")
+    return t
+
+
 def chip_for(status: str, label: str, popover: str) -> str:
     return (
         f'<span class="chip {html.escape(status)}" role="button" tabindex="0">'
-        f'{html.escape(label)}'
-        f'<span class="chip-pop" role="tooltip">{html.escape(popover)}</span>'
+        f'{render_inline_markup(label)}'
+        f'<span class="chip-pop" role="tooltip">{render_inline_markup(popover)}</span>'
         f'</span>'
     )
 
@@ -130,13 +175,13 @@ def contract_html(protocol: dict) -> str:
         parts.append(f'<span class="pill">{html.escape(str(s.get("id") or s.get("path") or ""))}</span>')
     parts.append("</div>")
 
-    parts.append(f'<div class="k">Scope</div><div class="v">{html.escape(artifact.get("description", ""))}</div>')
+    parts.append(f'<div class="k">Scope</div><div class="v">{render_inline_markup(artifact.get("description", ""))}</div>')
 
     parts.append('<div class="k">Claims</div><div class="v">')
     for c in claims:
         parts.append(
             f'<div class="claim-line-c"><span class="id">{html.escape(c.get("id", ""))}</span>'
-            f'<span class="stmt">{html.escape(c.get("statement", ""))}</span></div>'
+            f'<span class="stmt">{render_inline_markup(c.get("statement", ""))}</span></div>'
         )
     parts.append("</div>")
 
@@ -144,7 +189,7 @@ def contract_html(protocol: dict) -> str:
     for d in deviations:
         parts.append(
             f'<div class="claim-line-c"><span class="id">{html.escape(d.get("id", ""))}</span>'
-            f'<span class="stmt">{html.escape(d.get("statement", ""))}</span></div>'
+            f'<span class="stmt">{render_inline_markup(d.get("statement", ""))}</span></div>'
         )
     parts.append("</div>")
 
@@ -152,7 +197,7 @@ def contract_html(protocol: dict) -> str:
     for k in ("wall_clock", "compute"):
         v = budgets.get(k)
         if v:
-            parts.append(f'<span class="pill">{html.escape(str(v))}</span>')
+            parts.append(f'<span class="pill">{render_inline_markup(str(v))}</span>')
     parts.append("</div>")
     return "".join(parts)
 
@@ -163,7 +208,7 @@ def discrepancy_html(deviations: list[dict], editorial: dict) -> str:
     for d in deviations:
         ed = ed_devs.get(d.get("id", ""), {})
         paragraph = ed.get("discrepancy_paragraph") or d.get("statement", "")
-        paragraphs.append(f"<p>{html.escape(paragraph)}</p>")
+        paragraphs.append(f"<p>{render_inline_markup(paragraph)}</p>")
     if not paragraphs:
         paragraphs.append("<p>No deviations declared.</p>")
     return "\n    ".join(paragraphs)
@@ -190,7 +235,7 @@ def provenance_html(run_id: str, protocol: dict, flow_state: dict | None, n_cell
         f'<div>'
         f'<div class="label">Source</div>'
         f'<p style="margin: 0;"><code style="font-family: var(--mono); font-size: 12px; color: var(--olive);">{html.escape(artifact.get("paper", ""))}</code><br>'
-        f'{html.escape(artifact.get("description", "")[:80])}</p>'
+        f'{render_inline_markup(artifact.get("description", "")[:80])}</p>'
         f'</div>'
         f'<div>'
         f'<div class="label">Harness</div>'
@@ -244,7 +289,7 @@ def main() -> int:
     headline_text = (editorial.get("headline") or {}).get("text") or (
         protocol.get("claims", [{}])[0].get("statement", "")
     )
-    headline_html = html.escape(headline_text)
+    headline_html = render_inline_markup(headline_text)
 
     ed_figs = {f["label"]: f for f in editorial.get("figures") or []}
     ef = ed_figs.get(featured_id, {})
@@ -311,8 +356,8 @@ def main() -> int:
         "__RUN_TAG__": html.escape(f"{n_cells} cells · {total_wall_h:.1f} wall-h"),
         "__PAPER_SOURCE__": html.escape(f"{paper_id} · Fig {fig['id']}"),
         "__OURS_SOURCE__": html.escape(f"{run_id}/figs/{fig['id']}.png"),
-        "__PAPER_PANEL_TITLE__": html.escape(paper_panel_title),
-        "__OURS_PANEL_TITLE__": html.escape(ours_panel_title),
+        "__PAPER_PANEL_TITLE__": render_inline_markup(paper_panel_title),
+        "__OURS_PANEL_TITLE__": render_inline_markup(ours_panel_title),
         "__PAPER_IMG_DATA_URL__": paper_data_url,
         "__STATUS_STRIP_HTML__": status_strip_html(
             protocol.get("claims", []), protocol.get("deviations", []), editorial, run_dir / "verify"
