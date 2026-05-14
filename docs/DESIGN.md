@@ -957,3 +957,46 @@ WCAG-AA contrast ratios; full keyboard navigation; ARIA semantics on interactive
 ```
 
 **Hard rule:** every interactive element must be reachable and operable via keyboard alone, and every non-text element conveying information must have a text alternative.
+
+---
+
+## 15. Agent Prompt Guide — Harness Components
+
+Quick reference for an agent rendering a compliant report HTML. Use these prompts when composing components by hand or instructing a subagent to do so.
+
+**Status chip** (use for verification trust signals in the strip):
+
+> "Create a `<span class='chip ok'>label<span class='chip-pop'>one-sentence detail</span></span>` with `role='button' tabindex='0' aria-describedby='<id>'`. Use class `ok` for passing checks, `warn` for failures or accepted deviations, `muted` for pending / informational. Hover (desktop) or tap (mobile) reveals the popover; only one chip popover open at a time per §13."
+
+**Glossary tooltip** (use for inline scientific symbols in the hero claim line and prose):
+
+> "Wrap inline symbol in `<span class='sym' data-term='<key>'>c<sub>L</sub>(h)</span>`. The single `<div class='glossbox' id='glossbox'>` element in `<body>` is populated on `mouseenter` / tap from a `GLOSS` JS object keyed by `data-term`. Position fixed below the symbol; opacity transition on `.show` toggle."
+
+**Side-by-side panel-card** (use for paper figure | reproduction):
+
+> "Wrap each side in a `<div class='panel-card'>` with `<div class='panel-head'>` (label + source), `<h2 class='panel-title'>` (one-sentence title), then either `<div class='paper-img-wrap'><img src='data:...' alt='...' /></div>` for the paper or `<svg class='plot'>` for the interactive reproduction. Container is `<div class='duo'>` with `grid-template-columns: 1fr 1fr` (collapses to `1fr` on mobile per §12)."
+
+**Cell drawer** (use for click-to-inspect manifest):
+
+> "Single `<div class='drawer-backdrop' onclick='closeDrawer()'>` + `<div class='drawer'>` per page. Drawer slides in via `transform: translateX(100%) → translateX(0)` on `.open`. Mobile: bottom sheet via `transform: translateY(100%) → translateY(0)`. Always include `<button class='drawer-close' onclick='closeDrawer()' aria-label='Close cell manifest panel'>×</button>`. `Esc` key also closes."
+
+**Hero claim line** (the headline at the top of the report):
+
+> "Use `<h1 class='claim'>` with `font-family: var(--serif); font-weight: 500; font-size: 32px; line-height: 1.18; letter-spacing: -0.012em; text-wrap: balance`. Wrap inline symbols in `.sym` per Glossary. Mobile: `font-size: 22px`. Total above-fold word count ≤ 100 (this is a hard rule, not a guideline)."
+
+**Interactive plot SVG** (the reproduction's data view):
+
+> "Compose an inline `<svg class='plot' viewBox='0 0 720 460' preserveAspectRatio='xMidYMid meet' role='img' aria-labelledby='plot-title plot-desc'>` per §11 conventions. Each curve: `<path class='curve draw' data-l='<L>' stroke='<color>' d='M ...'/>`. Each data point: `<circle class='pt' data-l='<L>' data-k='<index>' cx='...' cy='...' r='3.6' fill='<color>' aria-label='<L=..., x=..., y=... ± ...>'/>`. Use the warm clay → terracotta palette `['#b39c80', '#a87a55', '#c96442', '#7a2a1a']` ordered by curve dimension. Mandatory 14px transparent stroke around each `.pt` for finger-target hit area."
+
+**Hard reject list** (red flags to never produce):
+
+- Cool blue-grays (`#666`, `#aaa`, `#888`, `#eee`) anywhere → use the warm-only palette: `olive #5e5d59`, `stone #87867f`, `silver #b0aea5`, `charcoal #4d4c48`.
+- `box-shadow: 0 2px 4px rgba(0,0,0,0.1)` (traditional drop shadow) → use ring shadow `0 0 0 1px var(--ring-warm)` or whisper `0 4px 24px rgba(20,20,19,0.05)`.
+- `font-weight: bold` (700+) on serif headlines → all serif headlines use weight 500.
+- `font-family: monospace` on body text → `var(--sans)` for body, `var(--mono)` only for code, file paths, and tabular numbers.
+- `padding: 8px` on tap targets → minimum 44×44px effective area per §13.
+- Hover-only affordances without `(hover: none)` fallback → forbidden per §13.
+- Synthesized data, fake error bars, illustrative-only numbers → forbidden; the report renders evidence, never invents it.
+- A third-party charting library (Plotly, D3, Chart.js) → forbidden per §11; the inline SVG pattern fits the standalone-deliverable size budget and maintains visual fidelity.
+- Pure white (`#ffffff`) as a page background → use `parchment #f5f4ed` (light) or `near-black #141413` (dark).
+- Marketing voice, first-person, rhetorical questions, exclamation marks → the report is scientific-confident, declarative, and terse.
