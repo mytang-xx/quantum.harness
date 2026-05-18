@@ -62,8 +62,38 @@ struct Actor {
 struct Gate {
     #[serde(default)]
     requires: Vec<String>,
-    #[serde(default)]
-    invalidates: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct Report {
+    path: String,
+    hash: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct RunResult {
+    ok: bool,
+    output: String,
+    at: String,
+}
+
+// One audit attempt's verdict on one claim. Written by the audit subagent
+// into a verify_*.toml sidecar, parsed at attempt-finish, exposed via
+// `flow status --json`. Typed status rejects sidecar typos at parse time.
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+enum VerdictStatus {
+    Pass,
+    Warn,
+    Fail,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct Verdict {
+    claim: String,
+    status: VerdictStatus,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    note: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -79,7 +109,9 @@ struct Attempt {
     command: Option<String>,
     finished: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    report: Option<String>,
+    report: Option<Report>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    verdicts: Vec<Verdict>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -136,6 +168,7 @@ struct State {
     overrides: Vec<Override>,
     decisions: Vec<Decision>,
     deviations: Vec<Deviation>,
+    run_results: BTreeMap<String, RunResult>,
     children: Vec<String>,
 }
 
@@ -160,8 +193,6 @@ enum Event {
         id: String,
         #[serde(default)]
         requires: Vec<String>,
-        #[serde(default)]
-        invalidates: Vec<String>,
     },
     #[serde(rename = "attempt_started")]
     AttemptStarted {
@@ -179,7 +210,15 @@ enum Event {
     AttemptFinished {
         id: String,
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        report: Option<String>,
+        report: Option<Report>,
+        #[serde(default, skip_serializing_if = "Vec::is_empty")]
+        verdicts: Vec<Verdict>,
+    },
+    #[serde(rename = "run_recorded")]
+    RunRecorded {
+        check: String,
+        #[serde(flatten)]
+        result: RunResult,
     },
     #[serde(rename = "artifact_added")]
     ArtifactAdded {
@@ -233,8 +272,6 @@ struct GateSpec {
     id: String,
     #[serde(default)]
     requires: Vec<String>,
-    #[serde(default)]
-    invalidates: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -292,6 +329,14 @@ struct Tolerance {
 }
 
 #[derive(Deserialize, Clone, Debug, Default)]
+struct ProtocolClaim {
+    #[serde(default)]
+    id: String,
+    #[serde(default)]
+    statement: String,
+}
+
+#[derive(Deserialize, Clone, Debug, Default)]
 struct ProtocolDeviation {
     #[serde(default)]
     id: String,
@@ -301,18 +346,20 @@ struct ProtocolDeviation {
     reason: String,
 }
 
-#[derive(Deserialize, Clone, Debug, Default)]
+#[derive(Deserialize, Serialize, Clone, Debug, Default)]
 struct ProtocolPending {
     #[serde(default)]
     id: String,
     #[serde(default)]
     statement: String,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     reason: String,
 }
 
 #[derive(Deserialize, Default)]
 struct Protocol {
+    #[serde(default, rename = "claims")]
+    claims: Vec<ProtocolClaim>,
     #[serde(default, rename = "checks")]
     checks: Vec<Check>,
     #[serde(default, rename = "deviations")]
@@ -321,7 +368,16 @@ struct Protocol {
     pending: Vec<ProtocolPending>,
 }
 
-#[derive(Clone, Debug)]
+// Audit subagents write a verify_*.toml sidecar next to their markdown report.
+// Flow parses it at attempt-finish and bakes verdicts into the event log so
+// `flow status --json` can derive per-claim chip status without grepping prose.
+#[derive(Deserialize)]
+struct VerifyDoc {
+    #[serde(default)]
+    verdicts: Vec<Verdict>,
+}
+
+#[derive(Clone, Debug, Serialize)]
 struct CheckResult {
     id: String,
     pass: bool,
@@ -400,7 +456,6 @@ fn cmd_init(args: &[String]) -> Result<()> {
                 &Event::GateAdded {
                     id: gate.id,
                     requires: gate.requires,
-                    invalidates: gate.invalidates,
                 },
             )?;
         }
@@ -413,13 +468,18 @@ fn cmd_init(args: &[String]) -> Result<()> {
 
 fn cmd_status(args: &[String]) -> Result<()> {
     if args.is_empty() {
-        return Err("usage: harness-flow status <dir> [--recursive]".to_string());
+        return Err("usage: harness-flow status <dir> [--recursive | --json]".to_string());
     }
     let dir = Path::new(&args[0]);
-    let recursive = args.iter().skip(1).any(|arg| arg == "--recursive");
+    let flags: Vec<&str> = args.iter().skip(1).map(String::as_str).collect();
     let state = with_flow_lock(dir, || rebuild(dir))?;
     let protocol = load_protocol(dir)?;
-    print_status(&Ctx { dir, state: &state, protocol: &protocol }, 0, recursive)
+    let ctx = Ctx { dir, state: &state, protocol: &protocol };
+    if flags.contains(&"--json") {
+        print_status_json(&ctx)
+    } else {
+        print_status(&ctx, 0, flags.contains(&"--recursive"))
+    }
 }
 
 fn print_status(ctx: &Ctx, indent: usize, recursive: bool) -> Result<()> {
@@ -431,20 +491,19 @@ fn print_status(ctx: &Ctx, indent: usize, recursive: bool) -> Result<()> {
         .unwrap_or_else(|| ctx.dir.file_name().and_then(|v| v.to_str()).unwrap_or("."));
     println!("{pad}flow {label}");
 
-    // Memoize so each gate's status is computed exactly once; requirements_passed
-    // and ready_gates would otherwise re-enter evaluate_gate per call.
-    let mut status_cache: BTreeMap<&str, String> = BTreeMap::new();
-    for gate in ctx.state.gates.keys() {
-        let status = status_cache
-            .entry(gate.as_str())
-            .or_insert_with(|| evaluate_gate(ctx, gate).0)
-            .clone();
-        let n_over = ctx.state.overrides.iter().filter(|o| o.gate == *gate).count();
+    let gates = evaluate_all(ctx);
+    let mut next_marked = false;
+    for g in &gates {
+        let mut suffix = String::new();
+        let n_over = ctx.state.overrides.iter().filter(|o| o.gate == g.id).count();
         if n_over > 0 {
-            println!("{pad}{gate}\t{status}\t⊘ {n_over}");
-        } else {
-            println!("{pad}{gate}\t{status}");
+            suffix.push_str(&format!("\t⊘ {n_over}"));
         }
+        if g.runnable && !next_marked {
+            next_marked = true;
+            suffix.push_str("\t▶");
+        }
+        println!("{pad}{}\t{}{suffix}", g.id, g.status);
     }
 
     let declared_deviations: Vec<&ProtocolDeviation> = ctx
@@ -495,16 +554,7 @@ fn print_status(ctx: &Ctx, indent: usize, recursive: bool) -> Result<()> {
         }
     }
 
-    let next: Vec<String> = ctx
-        .state
-        .gates
-        .keys()
-        .filter(|gate| {
-            status_cache.get(gate.as_str()).map(|s| s != GATE_PASSED).unwrap_or(true)
-                && requirements_passed(ctx, gate)
-        })
-        .cloned()
-        .collect();
+    let next: Vec<&str> = gates.iter().filter(|g| g.runnable).map(|g| g.id).collect();
     if !next.is_empty() {
         let dir_arg = ctx.dir.display().to_string();
         println!("{pad}next");
@@ -527,6 +577,136 @@ fn print_status(ctx: &Ctx, indent: usize, recursive: bool) -> Result<()> {
             )?;
         }
     }
+    Ok(())
+}
+
+// JSON read API for consumers (render.py, hooks, dashboards). Gate evaluation
+// is computed once in DAG order so requirements_passed reads from the cache
+// instead of re-entering evaluate_gate per requirement.
+#[derive(Serialize)]
+struct GateEval<'a> {
+    id: &'a str,
+    status: String,
+    requires: &'a [String],
+    runnable: bool,
+    checks: Vec<CheckResult>,
+}
+
+#[derive(Serialize)]
+struct StatusJson<'a> {
+    flow_id: &'a str,
+    gates: &'a [GateEval<'a>],
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    claims: Vec<ClaimJson<'a>>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    deviations: Vec<DeviationJson<'a>>,
+    #[serde(skip_serializing_if = "<[_]>::is_empty")]
+    decisions: &'a [Decision],
+    #[serde(skip_serializing_if = "<[_]>::is_empty")]
+    overrides: &'a [Override],
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pending: Vec<&'a ProtocolPending>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    next: Vec<&'a str>,
+}
+
+#[derive(Serialize)]
+struct ClaimJson<'a> {
+    id: &'a str,
+    statement: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    verdict: Option<VerdictStatus>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    note: Option<&'a str>,
+}
+
+#[derive(Serialize)]
+struct DeviationJson<'a> {
+    id: &'a str,
+    statement: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    reason: Option<&'a str>,
+    source: &'static str,
+}
+
+fn evaluate_all<'a>(ctx: &Ctx<'a>) -> Vec<GateEval<'a>> {
+    let order = dag_order(ctx.state);
+    let mut out: Vec<GateEval> = Vec::with_capacity(order.len());
+    let mut idx: BTreeMap<&str, usize> = BTreeMap::new();
+    for gate in order {
+        let (status, checks) = evaluate_gate(ctx, gate);
+        let spec = &ctx.state.gates[gate];
+        let requires_ok = spec.requires.iter().all(|r| {
+            idx.get(r.as_str())
+                .map(|i| out[*i].status == GATE_PASSED)
+                .unwrap_or(false)
+        });
+        let runnable = status != GATE_PASSED && requires_ok;
+        idx.insert(gate, out.len());
+        out.push(GateEval {
+            id: gate,
+            status,
+            requires: &spec.requires,
+            runnable,
+            checks,
+        });
+    }
+    out
+}
+
+fn print_status_json(ctx: &Ctx) -> Result<()> {
+    let gates = evaluate_all(ctx);
+    let next: Vec<&str> = gates.iter().filter(|g| g.runnable).map(|g| g.id).collect();
+    let claims: Vec<ClaimJson> = ctx
+        .protocol
+        .claims
+        .iter()
+        .filter(|c| !c.id.is_empty())
+        .map(|c| {
+            let v = claim_verdict(ctx.state, &c.id);
+            ClaimJson {
+                id: &c.id,
+                statement: &c.statement,
+                verdict: v.map(|v| v.status),
+                note: v.and_then(|v| v.note.as_deref()),
+            }
+        })
+        .collect();
+    let deviations: Vec<DeviationJson> = ctx
+        .protocol
+        .deviations
+        .iter()
+        .filter(|d| !d.id.is_empty())
+        .map(|d| DeviationJson {
+            id: &d.id,
+            statement: &d.statement,
+            reason: (!d.reason.is_empty()).then_some(d.reason.as_str()),
+            source: "declared",
+        })
+        .chain(ctx.state.deviations.iter().map(|d| DeviationJson {
+            id: &d.id,
+            statement: &d.statement,
+            reason: d.reason.as_deref(),
+            source: "recorded",
+        }))
+        .collect();
+    let pending: Vec<&ProtocolPending> = ctx
+        .protocol
+        .pending
+        .iter()
+        .filter(|p| !p.id.is_empty())
+        .collect();
+    let out = StatusJson {
+        flow_id: ctx.state.flow_id.as_deref().unwrap_or(""),
+        gates: &gates,
+        claims,
+        deviations,
+        decisions: &ctx.state.decisions,
+        overrides: &ctx.state.overrides,
+        pending,
+        next,
+    };
+    println!("{}", serde_json::to_string_pretty(&out).map_err(|e| e.to_string())?);
     Ok(())
 }
 
@@ -670,12 +850,30 @@ fn cmd_attempt_finish(args: &[String]) -> Result<()> {
     }
     let dir = Path::new(&args[1]);
     let id = args[2].clone();
-    let report = option_value(args, "--report");
-    if let Some(report_path) = &report {
-        if !Path::new(report_path).exists() {
-            return Err(format!("report not found: {report_path}"));
+    let (report, verdicts) = match option_value(args, "--report") {
+        Some(raw) => {
+            let path = Path::new(&raw);
+            if !path.exists() {
+                return Err(format!("report not found: {raw}"));
+            }
+            let hash = file_hash(path)?;
+            let sidecar = path.with_extension("toml");
+            let verdicts = if sidecar.exists() && sidecar != path {
+                let text = fs::read_to_string(&sidecar).map_err(|e| e.to_string())?;
+                toml::from_str::<VerifyDoc>(&text)
+                    .map_err(|e| format!("verify sidecar {}: {e}", sidecar.display()))?
+                    .verdicts
+            } else {
+                Vec::new()
+            };
+            let rel = path
+                .strip_prefix(dir)
+                .map(|p| p.display().to_string())
+                .unwrap_or(raw);
+            (Some(Report { path: rel, hash }), verdicts)
         }
-    }
+        None => (None, Vec::new()),
+    };
     with_flow_lock(dir, || {
         let state = rebuild(dir)?;
         let attempt = state
@@ -691,10 +889,25 @@ fn cmd_attempt_finish(args: &[String]) -> Result<()> {
             &Event::AttemptFinished {
                 id: id.clone(),
                 report,
+                verdicts,
             },
         )?;
-        let state = rebuild(dir)?;
+        // Run-kind checks fire here so `flow status` stays pure.
         let protocol = load_protocol(dir)?;
+        for check in &protocol.checks {
+            if check.gate != attempt.gate || check.kind != CHECK_RUN {
+                continue;
+            }
+            let result = run_check_command(dir, check);
+            append_event(
+                dir,
+                &Event::RunRecorded {
+                    check: check.id.clone(),
+                    result,
+                },
+            )?;
+        }
+        let state = rebuild(dir)?;
         let (status, results) = evaluate_gate(
             &Ctx { dir, state: &state, protocol: &protocol },
             &attempt.gate,
@@ -959,18 +1172,8 @@ fn apply_event(state: &mut State, event: Event) -> Result<()> {
         Event::FlowInitialized { flow_id, .. } => {
             state.flow_id = Some(flow_id);
         }
-        Event::GateAdded {
-            id,
-            requires,
-            invalidates,
-        } => {
-            state.gates.insert(
-                id,
-                Gate {
-                    requires,
-                    invalidates,
-                },
-            );
+        Event::GateAdded { id, requires } => {
+            state.gates.insert(id, Gate { requires });
         }
         Event::AttemptStarted {
             id,
@@ -991,16 +1194,21 @@ fn apply_event(state: &mut State, event: Event) -> Result<()> {
                     command,
                     report: None,
                     finished: false,
+                    verdicts: Vec::new(),
                 },
             );
         }
-        Event::AttemptFinished { id, report } => {
+        Event::AttemptFinished { id, report, verdicts } => {
             let attempt = state
                 .attempts
                 .get_mut(&id)
                 .ok_or_else(|| format!("unknown attempt in event log: {id}"))?;
             attempt.finished = true;
             attempt.report = report;
+            attempt.verdicts = verdicts;
+        }
+        Event::RunRecorded { check, result } => {
+            state.run_results.insert(check, result);
         }
         Event::ArtifactAdded {
             id,
@@ -1179,25 +1387,21 @@ fn evaluate_gate(ctx: &Ctx, gate: &str) -> (String, Vec<CheckResult>) {
 
 fn eval_check(ctx: &Ctx, check: &Check) -> CheckResult {
     let r = match check.kind.as_str() {
-        CHECK_AUDIT => eval_audit(ctx.state, check),
-        CHECK_RUN => eval_run(ctx.dir, check),
+        CHECK_AUDIT => eval_audit(ctx.dir, ctx.state, check),
+        CHECK_RUN => eval_run(ctx.state, check),
         CHECK_EXISTS => eval_exists(ctx.dir, check),
         CHECK_AGREE => eval_agree(ctx.dir, check),
         CHECK_NEAR => eval_near(ctx.dir, check),
         CHECK_FRESH => eval_fresh(ctx.dir, ctx.state, check),
         other => (false, format!("unknown check kind: {other}")),
     };
-    CheckResult {
-        id: check.id.clone(),
-        pass: r.0,
-        detail: r.1,
-    }
+    CheckResult { id: check.id.clone(), pass: r.0, detail: r.1 }
 }
 
-// Producer and auditor must have different identities. Identity is always
-// stamped (env FLOW_ACTOR_ID, or ppid:<n> fallback), so equality means
-// the same process produced and audited.
-fn eval_audit(state: &State, check: &Check) -> (bool, String) {
+// Producer and auditor must differ by identity (env FLOW_ACTOR_ID or ppid:<n>);
+// equality means the same process produced and audited. The audit report's
+// content is pinned at attempt-finish — post-finish edits invalidate the audit.
+fn eval_audit(dir: &Path, state: &State, check: &Check) -> (bool, String) {
     let producers: Vec<&Attempt> = state
         .attempts
         .values()
@@ -1215,20 +1419,20 @@ fn eval_audit(state: &State, check: &Check) -> (bool, String) {
         return (false, "no audit attempt finished".to_string());
     }
     for v in &auditors {
-        if v.report.is_none() {
-            return (
-                false,
-                format!("audit attempt {} has no report", v.actor.label),
-            );
+        let report = match v.report.as_ref() {
+            Some(r) => r,
+            None => return (false, format!("audit attempt {} has no report", v.actor.label)),
+        };
+        match file_hash(&dir.join(&report.path)) {
+            Ok(h) if h == report.hash => {}
+            Ok(_) => return (false, format!("audit report mutated since finish: {}", report.path)),
+            Err(e) => return (false, format!("cannot hash audit report {}: {e}", report.path)),
         }
         for p in &producers {
             if p.actor.identity == v.actor.identity {
                 return (
                     false,
-                    format!(
-                        "self-audit: identity {} produced and audited",
-                        v.actor.identity
-                    ),
+                    format!("self-audit: identity {} produced and audited", v.actor.identity),
                 );
             }
         }
@@ -1236,23 +1440,42 @@ fn eval_audit(state: &State, check: &Check) -> (bool, String) {
     (true, format!("audited by {} distinct actor(s)", auditors.len()))
 }
 
-fn eval_run(dir: &Path, check: &Check) -> (bool, String) {
-    let Some(cmd) = check.cmd.as_ref() else {
-        return (false, "run check missing cmd".to_string());
-    };
-    let output = Command::new("sh")
-        .arg("-c")
-        .arg(cmd)
-        .current_dir(dir)
-        .output();
-    match output {
-        Ok(o) if o.status.success() => (true, format!("exit 0: {}", cmd)),
-        Ok(o) => (
+fn eval_run(state: &State, check: &Check) -> (bool, String) {
+    let cmd = check.cmd.as_deref().unwrap_or("<no cmd>");
+    match state.run_results.get(&check.id) {
+        Some(r) if r.ok => (true, format!("exit 0: {cmd}")),
+        Some(r) => (
             false,
-            format!("exit {}: {}", o.status.code().unwrap_or(-1), cmd),
+            format!("nonzero: {cmd} — {}", r.output.lines().last().unwrap_or("").trim()),
         ),
-        Err(e) => (false, format!("spawn failed: {e}")),
+        None => (false, "not yet evaluated; finish an attempt on the gate".to_string()),
     }
+}
+
+fn run_check_command(dir: &Path, check: &Check) -> RunResult {
+    let cmd = match check.cmd.as_deref() {
+        Some(c) => c,
+        None => {
+            return RunResult {
+                ok: false,
+                output: "run check missing cmd".to_string(),
+                at: now_id(),
+            }
+        }
+    };
+    let output = Command::new("sh").arg("-c").arg(cmd).current_dir(dir).output();
+    let (ok, merged) = match output {
+        Ok(o) => {
+            let merged = format!(
+                "{}{}",
+                String::from_utf8_lossy(&o.stdout),
+                String::from_utf8_lossy(&o.stderr)
+            );
+            (o.status.success(), merged)
+        }
+        Err(e) => (false, format!("spawn failed: {e}")),
+    };
+    RunResult { ok, output: merged, at: now_id() }
 }
 
 fn eval_exists(dir: &Path, check: &Check) -> (bool, String) {
@@ -1487,6 +1710,44 @@ fn ready_gates(ctx: &Ctx) -> Vec<String> {
         .collect()
 }
 
+fn dag_order(state: &State) -> Vec<&str> {
+    let mut order: Vec<&str> = Vec::new();
+    let mut visited: BTreeSet<&str> = BTreeSet::new();
+    for id in state.gates.keys() {
+        dag_visit(state, id.as_str(), &mut visited, &mut order);
+    }
+    order
+}
+
+fn dag_visit<'a>(state: &'a State, id: &'a str, visited: &mut BTreeSet<&'a str>, order: &mut Vec<&'a str>) {
+    if !visited.insert(id) {
+        return;
+    }
+    if let Some(g) = state.gates.get(id) {
+        for req in &g.requires {
+            dag_visit(state, req.as_str(), visited, order);
+        }
+    }
+    order.push(id);
+}
+
+// Latest audit attempt that voted on this claim wins. Returns None when no
+// audit subagent has issued a verdict yet — render.py paints "unknown" chips.
+fn claim_verdict<'a>(state: &'a State, claim_id: &str) -> Option<&'a Verdict> {
+    state
+        .attempts
+        .values()
+        .filter(|a| a.finished && a.kind == CHECK_AUDIT)
+        .filter_map(|a| {
+            a.verdicts
+                .iter()
+                .find(|v| v.claim == claim_id)
+                .map(|v| (a.seq, v))
+        })
+        .max_by_key(|(seq, _)| *seq)
+        .map(|(_, v)| v)
+}
+
 // ─── option parsing ──────────────────────────────────────────────────────────
 
 fn option_value(args: &[String], flag: &str) -> Option<String> {
@@ -1534,6 +1795,8 @@ struct StateFile<'a> {
     gates: &'a BTreeMap<String, Gate>,
     attempts: &'a BTreeMap<String, Attempt>,
     artifacts: &'a BTreeMap<String, Artifact>,
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    run_results: &'a BTreeMap<String, RunResult>,
     #[serde(skip_serializing_if = "<[_]>::is_empty")]
     overrides: &'a [Override],
     #[serde(skip_serializing_if = "<[_]>::is_empty")]
@@ -1560,6 +1823,7 @@ impl<'a> From<&'a State> for StateFile<'a> {
             gates: &state.gates,
             attempts: &state.attempts,
             artifacts: &state.artifacts,
+            run_results: &state.run_results,
             overrides: &state.overrides,
             decisions: &state.decisions,
             deviations: &state.deviations,

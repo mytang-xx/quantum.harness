@@ -5,14 +5,19 @@
 The tool is intentionally small:
 
 - `gate` — a checkpoint whose status (`pending` / `passed` / `failed`) is **derived live** from the protocol's `[[checks]]` and the event log. Never stored; never declared.
-- `attempt` — one actor trying to satisfy one gate. Roles are metadata: `--kind audit`, `--actor agent:source-reviewer`. The `--actor` flag is the human-readable label; the unforgeable identity comes from `FLOW_ACTOR_ID` env when set, or the parent process id (`ppid:<n>`) when it isn't. Different subagent processes get different PPIDs naturally; same agent across calls keeps the same PPID. The `audit` check compares identity, not labels.
+- `attempt` — one actor trying to satisfy one gate. Roles are metadata: `--kind audit`, `--actor agent:source-reviewer`. The `--actor` flag is the human-readable label; the unforgeable identity comes from `FLOW_ACTOR_ID` env when set, or the parent process id (`ppid:<n>`) when it isn't. Different subagent processes get different PPIDs naturally; same agent across calls keeps the same PPID. The `audit` check compares identity, not labels. Audit attempts can attach a `verify_*.md` report; flow hashes its content at finish, so post-finish edits invalidate the audit.
 - `artifact` — a file with a stable content hash, an optional producer attempt, and a `deps` snapshot of any source hashes referenced by `fresh` checks at registration time.
+- `verdict` — a per-claim ✓/⚠/✗ verdict written by an audit subagent into a `verify_*.toml` sidecar next to its markdown report. Flow parses verdicts at `attempt finish` and exposes them via `flow status --json`. Renderers read claim chip status from here, never by grepping prose.
 - `decision` — a recorded fork choice: `flow decide <run> --id <id> --question "..." --choice "..."`. Surfaces in `flow status` so branches aren't buried in chat.
 - `deviation` — a recorded departure from the protocol-declared contract: `flow deviate <run> --id <id> --statement "..."`. Renders alongside protocol-declared `[[deviations]]`.
 - `override` — a user-confirmed bypass of a failing check: `flow override <run> <check-id> --reason "..."`. Surfaces as ⊘ in downstream artifacts.
 - `child` — another flow attached to a parent campaign.
 
 State is append-only. `progress/events.jsonl` is the source of truth (typed Rust enum, JSON-encoded); `progress/state.toml` is the derived projection for humans.
+
+`flow status --json` is the read API for tools (render.py, hooks, dashboards). It emits gates in DAG order with derived status, runnable flag, and per-gate checks; deviations (declared + recorded); decisions; overrides; pending; per-claim verdicts; and the next runnable gate(s). Tools consume this — they never parse events.jsonl directly. `flow status` (text mode) marks the next runnable gate with `▶`.
+
+`run`-kind checks are evaluated by `flow attempt finish` (which has side-effect semantics by design) and their results are cached as events. `flow status` is pure: it never executes commands.
 
 Each command takes a local `progress/.lock` while reading, appending, or rebuilding state. This serializes multiple local agents on the same checkout. Subagents and remote jobs should still report back to the main agent instead of writing the event log directly.
 

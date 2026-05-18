@@ -102,7 +102,6 @@ id = "ideas"
 [[gates]]
 id = "critic"
 requires = ["ideas"]
-invalidates = ["revision", "verify"]
 
 [[gates]]
 id = "revision"
@@ -832,4 +831,352 @@ fn fresh_catches_source_change_despite_forward_touch() {
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
     assert!(!output.status.success(), "expected failure; stdout: {stdout}");
     assert!(stdout.contains("source changed"), "stdout: {stdout}");
+}
+
+#[test]
+fn status_is_pure_does_not_execute_run_checks() {
+    // `flow status` must be a pure read API: it never triggers side effects
+    // declared in run-kind checks. The cmd runs at attempt-finish only.
+    let root = tmp_dir("status-pure");
+    let template = root.join("template.toml");
+    let run_dir = root.join("run");
+    write(&template, "[[gates]]\nid = \"source\"\n");
+    fs::create_dir_all(&run_dir).unwrap();
+    let marker = run_dir.join("marker.txt");
+    write(
+        &run_dir.join("protocol.toml"),
+        &format!(
+            "[[checks]]\nid = \"side_effect\"\nkind = \"run\"\ngate = \"source\"\ncmd = \"touch {}\"\n",
+            marker.display()
+        ),
+    );
+    assert_ok(&[
+        "init",
+        run_dir.to_str().unwrap(),
+        "--template",
+        template.to_str().unwrap(),
+    ]);
+    assert_ok(&["status", run_dir.to_str().unwrap()]);
+    assert!(
+        !marker.exists(),
+        "status executed the run cmd; status must be pure"
+    );
+}
+
+#[test]
+fn attempt_finish_executes_run_checks_and_caches_result() {
+    let root = tmp_dir("run-cached");
+    let template = root.join("template.toml");
+    let run_dir = root.join("run");
+    write(&template, "[[gates]]\nid = \"source\"\n");
+    fs::create_dir_all(&run_dir).unwrap();
+    let marker = run_dir.join("ran.txt");
+    write(
+        &run_dir.join("protocol.toml"),
+        &format!(
+            "[[checks]]\nid = \"side_effect\"\nkind = \"run\"\ngate = \"source\"\ncmd = \"touch {}\"\n",
+            marker.display()
+        ),
+    );
+    assert_ok(&[
+        "init",
+        run_dir.to_str().unwrap(),
+        "--template",
+        template.to_str().unwrap(),
+    ]);
+    let attempt = assert_ok(&[
+        "attempt",
+        "start",
+        run_dir.to_str().unwrap(),
+        "source",
+        "--kind",
+        "produce",
+        "--actor",
+        "agent:main",
+    ]);
+    assert_ok(&[
+        "attempt",
+        "finish",
+        run_dir.to_str().unwrap(),
+        attempt.trim(),
+    ]);
+    assert!(marker.exists(), "attempt finish must execute run cmd");
+    let state = fs::read_to_string(run_dir.join("progress").join("state.toml")).unwrap();
+    assert!(state.contains("side_effect"), "run result must be cached");
+}
+
+#[test]
+fn audit_detects_report_tampering_after_finish() {
+    let root = tmp_dir("audit-tamper");
+    let template = root.join("template.toml");
+    let run_dir = root.join("run");
+    write(&template, "[[gates]]\nid = \"source\"\n");
+    fs::create_dir_all(&run_dir).unwrap();
+    write(
+        &run_dir.join("protocol.toml"),
+        "[[checks]]\nid = \"audit_x\"\nkind = \"audit\"\ngate = \"source\"\n",
+    );
+    assert_ok(&[
+        "init",
+        run_dir.to_str().unwrap(),
+        "--template",
+        template.to_str().unwrap(),
+    ]);
+    let prod = String::from_utf8_lossy(
+        &run_with_env(
+            &[
+                "attempt",
+                "start",
+                run_dir.to_str().unwrap(),
+                "source",
+                "--kind",
+                "produce",
+                "--actor",
+                "agent:producer",
+            ],
+            &[("FLOW_ACTOR_ID", "producer-id")],
+        )
+        .stdout,
+    )
+    .to_string();
+    run_with_env(
+        &[
+            "attempt",
+            "finish",
+            run_dir.to_str().unwrap(),
+            prod.trim(),
+        ],
+        &[("FLOW_ACTOR_ID", "producer-id")],
+    );
+    let report = run_dir.join("verify_source.md");
+    write(&report, "audit: ok\n");
+    let aud = String::from_utf8_lossy(
+        &run_with_env(
+            &[
+                "attempt",
+                "start",
+                run_dir.to_str().unwrap(),
+                "source",
+                "--kind",
+                "audit",
+                "--actor",
+                "agent:auditor",
+            ],
+            &[("FLOW_ACTOR_ID", "auditor-id")],
+        )
+        .stdout,
+    )
+    .to_string();
+    run_with_env(
+        &[
+            "attempt",
+            "finish",
+            run_dir.to_str().unwrap(),
+            aud.trim(),
+            "--report",
+            report.to_str().unwrap(),
+        ],
+        &[("FLOW_ACTOR_ID", "auditor-id")],
+    );
+    assert_ok(&["require", run_dir.to_str().unwrap(), "source"]);
+    // Tamper with the audit report after finish.
+    write(&report, "audit: TAMPERED\n");
+    let err = assert_fail(&["require", run_dir.to_str().unwrap(), "source"]);
+    assert!(err.contains("not passed"), "stderr: {err}");
+    let post = run(&["check", run_dir.to_str().unwrap(), "source"]);
+    let stdout = String::from_utf8_lossy(&post.stdout).to_string();
+    assert!(
+        stdout.contains("mutated"),
+        "expected mutated marker; stdout: {stdout}"
+    );
+}
+
+#[test]
+fn status_lists_gates_in_dag_order_with_next_marker() {
+    // Template declares c → b → a (requires). Alphabetical order is a, b, c;
+    // DAG order must be a, b, c (post-order over requires), with ▶ on the
+    // first runnable gate.
+    let root = tmp_dir("dag-order");
+    let template = root.join("template.toml");
+    let run_dir = root.join("run");
+    write(
+        &template,
+        r#"
+[[gates]]
+id = "c"
+requires = ["b"]
+
+[[gates]]
+id = "b"
+requires = ["a"]
+
+[[gates]]
+id = "a"
+"#,
+    );
+    assert_ok(&[
+        "init",
+        run_dir.to_str().unwrap(),
+        "--template",
+        template.to_str().unwrap(),
+    ]);
+    let status = assert_ok(&["status", run_dir.to_str().unwrap()]);
+    let gates: Vec<&str> = status
+        .lines()
+        .filter_map(|l| l.split('\t').next())
+        .filter(|first| ["a", "b", "c"].contains(first))
+        .collect();
+    assert_eq!(gates, vec!["a", "b", "c"], "status: {status}");
+    assert!(
+        status.lines().any(|l| l.starts_with("a\t") && l.contains("▶")),
+        "▶ should mark gate `a` (first runnable); status: {status}"
+    );
+    assert!(
+        !status.lines().any(|l| l.starts_with("b\t") && l.contains("▶")),
+        "only the first runnable gate gets ▶"
+    );
+}
+
+#[test]
+fn verify_sidecar_verdicts_surface_in_status_json() {
+    // Audit subagent writes verify_*.md + sibling verify_*.toml. The sidecar
+    // carries [[verdicts]] claim/status entries; flow parses them at
+    // attempt-finish and exposes them via `flow status --json` so renderers
+    // never grep prose for per-claim chip status.
+    let root = tmp_dir("verdicts");
+    let template = root.join("template.toml");
+    let run_dir = root.join("run");
+    write(&template, "[[gates]]\nid = \"source\"\n");
+    fs::create_dir_all(&run_dir).unwrap();
+    write(
+        &run_dir.join("protocol.toml"),
+        r#"
+[[claims]]
+id = "claim.alpha"
+statement = "Alpha holds."
+
+[[claims]]
+id = "claim.beta"
+statement = "Beta is bounded."
+
+[[checks]]
+id = "audit_x"
+kind = "audit"
+gate = "source"
+"#,
+    );
+    assert_ok(&[
+        "init",
+        run_dir.to_str().unwrap(),
+        "--template",
+        template.to_str().unwrap(),
+    ]);
+
+    let prod = String::from_utf8_lossy(
+        &run_with_env(
+            &[
+                "attempt",
+                "start",
+                run_dir.to_str().unwrap(),
+                "source",
+                "--kind",
+                "produce",
+                "--actor",
+                "agent:p",
+            ],
+            &[("FLOW_ACTOR_ID", "producer")],
+        )
+        .stdout,
+    )
+    .to_string();
+    run_with_env(
+        &[
+            "attempt",
+            "finish",
+            run_dir.to_str().unwrap(),
+            prod.trim(),
+        ],
+        &[("FLOW_ACTOR_ID", "producer")],
+    );
+
+    let report = run_dir.join("verify_source.md");
+    write(&report, "audit findings\n");
+    let sidecar = run_dir.join("verify_source.toml");
+    write(
+        &sidecar,
+        r#"
+[[verdicts]]
+claim = "claim.alpha"
+status = "pass"
+
+[[verdicts]]
+claim = "claim.beta"
+status = "warn"
+note = "within 2σ of reference"
+"#,
+    );
+
+    let aud = String::from_utf8_lossy(
+        &run_with_env(
+            &[
+                "attempt",
+                "start",
+                run_dir.to_str().unwrap(),
+                "source",
+                "--kind",
+                "audit",
+                "--actor",
+                "agent:a",
+            ],
+            &[("FLOW_ACTOR_ID", "auditor")],
+        )
+        .stdout,
+    )
+    .to_string();
+    run_with_env(
+        &[
+            "attempt",
+            "finish",
+            run_dir.to_str().unwrap(),
+            aud.trim(),
+            "--report",
+            report.to_str().unwrap(),
+        ],
+        &[("FLOW_ACTOR_ID", "auditor")],
+    );
+
+    let out = assert_ok(&["status", run_dir.to_str().unwrap(), "--json"]);
+    let v: serde_json::Value = serde_json::from_str(&out).unwrap();
+    let claims = v["claims"].as_array().expect("claims array");
+    assert_eq!(claims.len(), 2);
+    let alpha = claims.iter().find(|c| c["id"] == "claim.alpha").unwrap();
+    assert_eq!(alpha["verdict"], "pass");
+    let beta = claims.iter().find(|c| c["id"] == "claim.beta").unwrap();
+    assert_eq!(beta["verdict"], "warn");
+    assert_eq!(beta["note"], "within 2σ of reference");
+}
+
+#[test]
+fn status_json_emits_parseable_structure() {
+    let root = tmp_dir("status-json");
+    let template = root.join("template.toml");
+    let run_dir = root.join("run");
+    write(
+        &template,
+        "[flow]\nid = \"demo\"\n[[gates]]\nid = \"source\"\n",
+    );
+    assert_ok(&[
+        "init",
+        run_dir.to_str().unwrap(),
+        "--template",
+        template.to_str().unwrap(),
+    ]);
+    let out = assert_ok(&["status", run_dir.to_str().unwrap(), "--json"]);
+    let v: serde_json::Value =
+        serde_json::from_str(&out).expect("status --json must be valid JSON");
+    assert_eq!(v["flow_id"], "demo");
+    assert_eq!(v["gates"][0]["id"], "source");
+    assert_eq!(v["gates"][0]["status"], "pending");
+    assert_eq!(v["gates"][0]["runnable"], true);
+    assert_eq!(v["next"][0], "source");
 }
