@@ -113,9 +113,32 @@ Severity tags: `supported`, `unsupported-claim`, `hint-leak`, `stale-artifact`, 
 
 ## Output
 
-Markdown report at `<run-dir>/verify/verify_<artifact-stem>_<date>.md`.
+Two files, side by side:
 
-**Citation convention** (mandatory for `result` and `close` modes): every per-axis row carries a `claim ids` column listing the protocol `[[claims]].id` and `[[checks]].id` it backs. `/report` grep-scans these ids to resolve chip status.
+1. **`<run-dir>/verify/verify_<artifact-stem>_<date>.md`** — human-readable per-axis findings.
+2. **`<run-dir>/verify/verify_<artifact-stem>_<date>.toml`** — machine-readable verdict sidecar consumed by `flow attempt finish` and surfaced in `flow status --json`. Renderers read claim verdicts from here, never by grepping the markdown.
+
+The sidecar carries one `[[verdicts]]` entry per claim the audit voted on:
+
+```toml
+[[verdicts]]
+claim = "claim.scaling_exponent"
+status = "pass"
+
+[[verdicts]]
+claim = "claim.universal_constant"
+status = "warn"
+note = "agrees within 2σ; paper's error bar tighter than ours"
+
+[[verdicts]]
+claim = "claim.critical_temperature"
+status = "fail"
+note = "disagrees by 4σ — see Axis 3"
+```
+
+`status` ∈ {`pass`, `warn`, `fail`}. `note` is optional.
+
+The markdown carries the verbatim passages, the per-axis table, and the detail. It is what humans read:
 
 ```markdown
 # /verify report — <artifact> — <date>

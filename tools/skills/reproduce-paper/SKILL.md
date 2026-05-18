@@ -70,7 +70,9 @@ Never edit the script, the protocol, or the run report to *make* a check pass wi
 
 ## Closeout
 
-End every turn with `tools/cli/flow status <run>`. That is the canonical projection — gates, ⚠ deviations, ⊘ overrides, recorded decisions, pending obligations, next runnable gate. Do not author a closeout paragraph in chat; the truthful summary always lives in the projection.
+End every turn with `tools/cli/flow status <run>` (or `flow status <run> --json` for tools). That is the canonical projection — gates in DAG order with ▶ on the next runnable, ⚠ deviations, ⊘ overrides, recorded decisions, per-claim verdicts, pending obligations. Do not author a closeout paragraph in chat; the truthful summary always lives in the projection.
+
+Before the agent declares the reproduction complete, the close gate must pass: `tools/cli/flow require <run> close` exits 0. The default protocol template ships `exists` checks for `run-report.md`, `consolidated.{jl,py}`, and per-figure `figs/<id>.{png,json}` — so close cannot pass with the deliverables missing. If close fails, repair the evidence or record a deviation; do not stop with an open close gate.
 
 ## Resume
 

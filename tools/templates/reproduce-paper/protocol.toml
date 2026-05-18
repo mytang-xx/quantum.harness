@@ -111,6 +111,65 @@ gate = "close"
 audience = true
 claims = ["claim.example"]
 
+# Close-stage deliverables. /reproduce-paper's close step authors run-report.md
+# + consolidated.{jl,py}; one figs/<id>.{png,json} pair per [[figures]] entry.
+# Without these `exists` checks, an agent can finish the audit and stop with no
+# deliverables on disk (the failure mode that motivated this template).
+
+[[checks]]
+id = "close_run_report_exists"
+kind = "exists"
+gate = "close"
+audience = true
+claims = ["claim.example"]
+paths = ["run-report.md"]
+
+[[checks]]
+id = "close_consolidated_exists"
+kind = "exists"
+gate = "close"
+claims = ["claim.example"]
+paths = ["consolidated.jl"]   # author replaces with consolidated.py for Python runs
+
+[[checks]]
+id = "close_figures_exist"
+kind = "exists"
+gate = "close"
+audience = true
+claims = ["claim.example"]
+# Author lists every [[figures]] entry's ours_path and data_path here. One
+# figure → two entries (PNG + JSON). Keep the list in sync with [[figures]].
+paths = ["figs/fig-example.png", "figs/fig-example.json"]
+
+[[checks]]
+id = "close_deliverables_fresh"
+kind = "fresh"
+gate = "close"
+claims = ["claim.example"]
+paths = ["run-report.md", "consolidated.jl"]
+against = ["protocol.toml"]
+
+# Report gate: /report's polish subagent writes editorial.json (registered as
+# a flow artifact); the audit subagent traces every editorial sentence to a
+# `sourced_by` pointer in the verify reports. The editorial_fresh check pins
+# editorial.json to the protocol it was produced against — a post-audit edit
+# invalidates the audit chain.
+
+[[checks]]
+id = "report_audit"
+kind = "audit"
+gate = "report"
+audience = true
+claims = ["claim.example"]
+
+[[checks]]
+id = "editorial_fresh"
+kind = "fresh"
+gate = "report"
+claims = ["claim.example"]
+paths = ["editorial.json"]
+against = ["protocol.toml"]
+
 # Optional: domain-specific validation via a shell command (kind = "run").
 # The command should exit 0 on pass, nonzero on fail. Output is captured but
 # not interpreted — keep machine semantics in the exit code.
