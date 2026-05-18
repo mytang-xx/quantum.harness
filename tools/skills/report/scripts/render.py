@@ -25,6 +25,7 @@ import datetime
 import html
 import json
 import re
+import subprocess
 import sys
 import tomllib
 from pathlib import Path
@@ -65,33 +66,19 @@ def load_editorial(run_dir: Path) -> dict:
     return {"headline": None, "claims": [], "deviations": [], "figures": [], "glossary": [], "gaps": []}
 
 
-def load_overrides(run_dir: Path) -> list[dict]:
-    """Read user-confirmed check bypasses from flow's append-only event log.
-
-    Each override is { check, gate, reason, actor, at }. Reports surface ⊘
-    chips and a banner when this list is non-empty. Clean runs return [].
+def load_flow_status(run_dir: Path) -> dict:
+    """Single read API for derived flow state. Tools never parse events.jsonl
+    or verify-report prose directly; the projection is canonical.
     """
-    events = run_dir / "progress" / "events.jsonl"
-    if not events.exists():
-        return []
-    out: list[dict] = []
-    for line in events.read_text().splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            e = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if e.get("event") == "override_recorded":
-            out.append({
-                "check": e.get("check", ""),
-                "gate": e.get("gate", ""),
-                "reason": e.get("reason", ""),
-                "actor": e.get("actor", ""),
-                "at": e.get("at", ""),
-            })
-    return out
+    flow_bin = REPO_ROOT / "tools" / "cli" / "flow"
+    result = subprocess.run(
+        [str(flow_bin), "status", str(run_dir), "--json"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        sys.exit(f"render: flow status failed: {result.stderr.strip() or result.stdout.strip()}")
+    return json.loads(result.stdout)
 
 
 _GREEK = {
@@ -167,39 +154,33 @@ def chip_for(status: str, label: str, popover: str) -> str:
     )
 
 
-def claim_status_from_verify(claim_id: str, run_dir: Path) -> str:
-    """ok if claim id appears with ✓ nearby; warn if ✗ or ⚠; muted if no verify mentions it.
+_VERDICT_TO_CHIP = {"pass": "ok", "warn": "warn", "fail": "warn"}
 
-    Looks in both `<run>/verify/verify_*.md` (canonical layout) and `<run>/verify_*.md`
-    (legacy/dogfood layout). The skill spec calls for the subdir; older runs may have
-    them at the top level.
+
+def claim_chip_status(claim_id: str, verdicts_by_id: dict) -> str:
+    """Map flow's per-claim verdict to a chip status. `pass` → green ok;
+    `warn`/`fail` → yellow/red warn; missing/unknown → muted (no audit yet).
     """
-    candidates = list((run_dir / "verify").glob("verify_*.md")) if (run_dir / "verify").exists() else []
-    candidates += list(run_dir.glob("verify_*.md"))
-    for v in candidates:
-        text = v.read_text()
-        if claim_id not in text:
-            continue
-        for line in text.splitlines():
-            if claim_id in line:
-                if "✗" in line or "✗" in text.split(claim_id)[-1][:200]:
-                    return "warn"
-                if "⚠" in line:
-                    return "warn"
-                if "✓" in line:
-                    return "ok"
-    return "muted"
+    v = verdicts_by_id.get(claim_id)
+    if not v:
+        return "muted"
+    return _VERDICT_TO_CHIP.get(v.get("verdict", ""), "muted")
 
 
-def status_strip_html(protocol: dict, editorial: dict, run_dir: Path, overrides: list[dict]) -> str:
+def status_strip_html(
+    protocol: dict, editorial: dict, verdicts_by_id: dict, overrides: list[dict]
+) -> str:
     """Build the status-strip chips from claims, checks, deviations, overrides, pending.
 
     Chip taxonomy (render order):
-      1. claims     — one per [[claims]], status from verify report
+      1. claims     — one per [[claims]], verdict from flow status
       2. checks     — one per [[checks]] flagged for the strip
       3. deviations — one per [[deviations]], warn (⚠ via class)
       4. overrides  — one per recorded flow override, warn with ⊘ prefix
       5. pending    — one per [[pending]], muted
+
+    All chips render; the strip wraps via CSS flex-wrap. Hardcoded caps hid
+    real obligations on dense runs.
     """
     claims = protocol.get("claims", [])
     checks = protocol.get("checks", [])
@@ -213,9 +194,9 @@ def status_strip_html(protocol: dict, editorial: dict, run_dir: Path, overrides:
 
     chips: list[str] = []
 
-    for c in claims[:3]:
+    for c in claims:
         cid = c.get("id", "")
-        status = claim_status_from_verify(cid, run_dir)
+        status = claim_chip_status(cid, verdicts_by_id)
         ed = ed_claims.get(cid, {})
         label = ed.get("display_label") or cid.rsplit(".", 1)[-1] or cid
         popover = ed.get("popover") or c.get("statement", "")
@@ -225,27 +206,25 @@ def status_strip_html(protocol: dict, editorial: dict, run_dir: Path, overrides:
         if not ch.get("audience"):
             continue
         chid = ch.get("id", "")
-        status = claim_status_from_verify(chid, run_dir)
+        status = claim_chip_status(chid, verdicts_by_id)
         ed = ed_checks.get(chid, {})
         label = ed.get("display_label") or chid.replace("_", " ")
         popover = ed.get("popover") or ch.get("statement") or f"{ch.get('kind', 'check')} ({chid})"
         chips.append(chip_for(status, label, popover))
-        if len(chips) >= 5:
-            break
 
-    for d in deviations[:3]:
+    for d in deviations:
         did = d.get("id", "")
         ed = ed_devs.get(did, {})
         label = ed.get("display_label") or did
         popover = ed.get("popover") or d.get("statement", "")
         chips.append(chip_for("warn", label, popover))
 
-    for o in overrides[:3]:
-        label = f"⊘ {o['check']}"
-        popover = f"{o['reason']} — bypassed by {o['actor']}"
+    for o in overrides:
+        label = f"⊘ {o.get('check', '')}"
+        popover = f"{o.get('reason', '')} — bypassed by {o.get('actor_label', '')}"
         chips.append(chip_for("warn", label, popover))
 
-    for p in pending[:2]:
+    for p in pending:
         pid = p.get("id", "")
         ed = ed_pending.get(pid, {})
         label = ed.get("display_label") or pid.replace("pending.", "").replace("_", " ")
@@ -268,9 +247,9 @@ def bypass_banner_html(overrides: list[dict]) -> str:
     items = []
     for o in overrides:
         items.append(
-            f'<li><code>{html.escape(o["check"])}</code> — '
-            f'{render_inline_markup(o["reason"])} '
-            f'<span class="bypass-meta">(by {html.escape(o["actor"])})</span></li>'
+            f'<li><code>{html.escape(o.get("check", ""))}</code> — '
+            f'{render_inline_markup(o.get("reason", ""))} '
+            f'<span class="bypass-meta">(by {html.escape(o.get("actor_label", ""))})</span></li>'
         )
     return (
         '<aside class="bypass-banner">\n'
@@ -355,20 +334,12 @@ def discrepancy_html(deviations: list[dict], editorial: dict) -> str:
     return "\n    ".join(paragraphs)
 
 
-def provenance_html(run_id: str, protocol: dict, flow_state: dict | None, n_cells: int, total_wall_h: float, today: str) -> str:
+def provenance_html(run_id: str, protocol: dict, n_cells: int, total_wall_h: float, today: str) -> str:
     artifact = protocol.get("artifact", {})
-    cluster = ""
-    finished = ""
-    if flow_state:
-        cluster = flow_state.get("cluster") or flow_state.get("default_executor", "")
-        finished = flow_state.get("finished_at") or flow_state.get("last_event", "")
-
     return (
         f'<div><div class="label">Run</div>'
         f'<p class="prov-line"><code class="prov-code">results/{html.escape(run_id)}/</code>'
         f'<br>{n_cells} cells · {total_wall_h:.1f} wall-hours</p></div>'
-        f'<div><div class="label">Cluster</div>'
-        f'<p class="prov-line">{html.escape(str(cluster) or "—")}<br>{html.escape(str(finished))}</p></div>'
         f'<div><div class="label">Source</div>'
         f'<p class="prov-line"><code class="prov-code">{html.escape(artifact.get("paper", ""))}</code>'
         f'<br>{render_inline_markup(artifact.get("description", "")[:80])}</p></div>'
@@ -517,7 +488,9 @@ def main() -> int:
 
     protocol = load_toml(run_dir / "protocol.toml")
     editorial = load_editorial(run_dir)
-    overrides = load_overrides(run_dir)
+    flow = load_flow_status(run_dir)
+    overrides = flow.get("overrides", [])
+    verdicts_by_id = {c["id"]: c for c in flow.get("claims", [])}
     artifact = protocol.get("artifact", {})
 
     figures = protocol.get("figures", [])
@@ -592,22 +565,9 @@ def main() -> int:
             "formula": g.get("formula", ""),
         }
 
-    # Flow state (optional)
-    flow_state = None
-    flow_state_path = run_dir / "progress" / "state.toml"
-    if flow_state_path.exists():
-        try:
-            flow_state = load_toml(flow_state_path)
-        except Exception:
-            flow_state = None
-
     n_cells, total_wall_h = count_cells_and_wall(run_dir)
-
-    # Topbar meta line: drop bare separators when cluster missing.
-    cluster_str = (flow_state or {}).get("cluster", "") if flow_state else ""
     today = datetime.date.today().isoformat()
-    meta_bits = [b for b in (cluster_str, today) if b]
-    run_meta = " · ".join(meta_bits)
+    run_meta = today
 
     # Verdict band — the single visually-loud band carrying both the overall
     # outcome ("did it reproduce?") and the key deviation summary.
@@ -703,12 +663,12 @@ def main() -> int:
         "__VERDICT_HTML__": verdict_html,
         "__FEATURED_FIG_HTML__": featured_html,
         "__EXTRA_FIGS_SECTION__": extra_section,
-        "__STATUS_STRIP_HTML__": status_strip_html(protocol, editorial, run_dir, overrides),
+        "__STATUS_STRIP_HTML__": status_strip_html(protocol, editorial, verdicts_by_id, overrides),
         "__BYPASS_BANNER_HTML__": bypass_banner_html(overrides),
         "__CONTRACT_HTML__": contract_html(protocol),
         "__DISCREPANCY_HEADLINE__": render_inline_markup(discrepancy_headline),
         "__DISCREPANCY_HTML__": discrepancy_html(protocol.get("deviations", []), editorial),
-        "__PROVENANCE_HTML__": provenance_html(run_id, protocol, flow_state, n_cells, total_wall_h, today),
+        "__PROVENANCE_HTML__": provenance_html(run_id, protocol, n_cells, total_wall_h, today),
         "__RUN_ID__": run_id,
         "__FIGURES_JSON__": json.dumps(figures_js, separators=(",", ":")),
         "__GLOSS_JSON__": json.dumps(gloss_dict, separators=(",", ":")),
