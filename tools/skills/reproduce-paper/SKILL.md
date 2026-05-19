@@ -31,21 +31,25 @@ Each gate's contract lives in `protocol.toml` as `[[checks]]`. `flow` runs the c
 
 1. **Init the ledger.** `tools/cli/flow init results/<run> --template tools/flow/templates/reproduce-paper.toml`. This is the first run-dir action.
 
-2. **Author the contract.** Copy `tools/templates/reproduce-paper/protocol.toml` to `results/<run>/protocol.toml` and fill it from the primary source: `[artifact]`, `[entry]`, `[[sources]]`, `[[claims]]`, `[[checks]]`, `[[figures]]`, optional `[[deviations]]` and `[[pending]]`. Use one-word check kinds: `audit`, `run`, `exists`, `agree`, `near`, `fresh`, `cover`, `support`; keep check ids unique because they are override handles. Use attempt roles `audit`, `trial`, `run`, `report`.
+2. **Acquire sources.** Copy `tools/templates/reproduce-paper/protocol.toml` to `results/<run>/protocol.toml`, fill `[artifact]`, `[[sources]]`, and the `source` gate check paths from primary sources, then start a `run` attempt on `source`. Download or locate the primary source files under the declared paths and finish the attempt. `flow require <run> source` must pass before protocol audit.
 
-3. **Audit the contract.** Start an `audit`-kind attempt on the `protocol` gate with a verifier subagent (different `--actor` from whoever drafted the protocol). The verifier writes a report; finish the attempt with `--report <path>`. `flow` checks actors differ and the report exists.
+3. **Author the contract.** Fill the rest of `protocol.toml` from the primary source: `[entry]`, `[[claims]]`, `[[checks]]`, `[[figures]]`, optional `[[deviations]]` and `[[pending]]`. Use one-word check kinds: `audit`, `run`, `exists`, `agree`, `near`, `fresh`, `cover`, `support`; keep check ids unique because they are override handles. Use attempt roles `audit`, `trial`, `run`, `report`.
 
-4. **Plan the figure graph.** Author `results/<run>/reproduce-plan.toml` (figure ids, categorisations — substantive / methodology / verification / cross-check — and dependency edges). Start and finish the `plan` attempt.
+4. **Audit the contract.** Start an `audit`-kind attempt on the `protocol` gate with a verifier subagent (different `--actor` from whoever drafted the protocol). The verifier writes a report; finish the attempt with `--report <path>`. `flow` checks actors differ and the report exists.
 
-5. **Implement the entry.** One declared `[entry]` runs the reproduction. Start a `run` attempt on `script`; register the entry as an artifact (`flow artifact add`); start a separate `audit` attempt; finish both. The entry's `help` and `dry` commands must exit before evidence IO.
+5. **Plan the figure graph.** Author `results/<run>/reproduce-plan.toml` (figure ids, categorisations — substantive / methodology / verification / cross-check — and dependency edges). Start and finish the `plan` attempt.
 
-6. **Trust.** For each substantive figure, run the script at a point where the answer is known (analytic limit, exact small instance, official benchmark). Declare the check as `kind = "near"`. Failure here blocks `run`.
+6. **Implement the entry.** One declared `[entry]` runs the reproduction. Start a `run` attempt on `script`; register the entry as an artifact (`flow artifact add`); start a separate `audit` attempt; finish both. The entry's `help` and `dry` commands must exit before evidence IO.
 
-7. **Run.** Dispatch via `/parameter-scan` + `/slurm` (or the declared primitive). The cell wrappers register manifests as artifacts with `--producer <run-attempt>`. The `run` gate's `[[checks]]` enforce `cover`, `exists`, `agree`, `fresh`, and `producer = "run"`.
+7. **Trust.** Start a `run` attempt on `trust`. For each substantive figure, run the entry at a point where the answer is known (analytic limit, exact small instance, official benchmark), write trust artifacts under `trust/`, register them, and finish the attempt. Declare the check as `kind = "near"`. Failure here blocks `run`.
 
-8. **Assemble close.** Walk the run dir; generate `run-report.md`; keep the declared `[entry]` commands runnable with all parameters explicit. For each figure produce `figs/<id>.png` plus `figs/<id>.json` (interactive plot source). Independently audit the close. The close gate runs `[entry].help` and `[entry].dry`; any evidence mutation should be caught by `fresh`.
+8. **Run.** Dispatch via `/parameter-scan` + `/slurm` (or the declared primitive). The cell wrappers register manifests as artifacts with `--producer <run-attempt>`. The `run` gate's `[[checks]]` enforce `cover`, `exists`, `agree`, `fresh`, and `producer = "run"`.
 
-9. **Render the deliverable.** `/report` consumes the run dir.
+9. **Assemble.** Start a `run` attempt on `assemble`. Walk the run manifests, validate consensus/support, and produce each figure as `figs/<id>.png` plus `figs/<id>.json` (interactive plot source). Register assembled artifacts such as `figs/*` with the `run` attempt and finish it.
+
+10. **Close.** Start a `report` attempt on `close`; generate `run-report.md`; keep the declared `[entry]` commands runnable with all parameters explicit. Register close-stage artifacts such as `run-report.md` with the `report` attempt; the entry artifact remains producer `run`. Finish the report attempt, then independently audit the close. The close gate runs `[entry].help` and `[entry].dry`; any evidence mutation should be caught by `fresh`.
+
+11. **Render the deliverable.** `/report` consumes the run dir.
 
 ## Composition
 
@@ -73,7 +77,7 @@ Never edit the script, the protocol, or the run report to *make* a check pass wi
 
 End every turn with `tools/cli/flow status <run>` (or `flow status <run> --json` for tools). The default projection is terse: current gate, first blocker, next command. Use `flow status <run> --full` only when a human asks for details. Do not author a separate closeout paragraph that upgrades the gate status; the truthful summary always lives in the projection.
 
-Before the agent declares the reproduction complete, the close gate must pass: `tools/cli/flow require <run> close` exits 0. The default protocol template ships `exists` checks for `run-report.md`, the explicit entry artifact, and per-figure `figs/<id>.{png,json}`, plus `run` checks for `[entry].help` and `[entry].dry` — so close cannot pass with missing deliverables or unsafe inspection entrypoints. If close fails, repair the evidence or record a deviation; do not stop with an open close gate.
+Before the agent declares the reproduction complete, the close gate must pass: `tools/cli/flow require <run> close` exits 0. The default protocol template gates per-figure `figs/<id>.{png,json}` in `assemble`, then gates `run-report.md`, the explicit entry artifact, and `[entry].help` / `[entry].dry` in `close` — so completion cannot pass with missing deliverables or unsafe inspection entrypoints. If close fails, repair the evidence or record a deviation; do not stop with an open close gate.
 
 ## Resume
 
@@ -83,7 +87,7 @@ The plan file and `progress/events.jsonl` are durable. Re-running this skill on 
 
 - Paper-specific words (claim ids, figure ids, deviation labels) live as data values in `protocol.toml`. Never in `flow`'s vocabulary, never in this skill's check-kind names.
 - Methodology absorption is a side-effect of running the verification figures the paper declares — they appear alongside the substantive figures because they are also `[[figures]]` entries with `claim_ids`.
-- The writeup-handoff close (declared entry + run report) happens in Step 8. Route to `scientific-writing` / `latex-paper-en` / `scientific-visualization` / `jupyter-notebook` for downstream artifacts.
+- The writeup-handoff close (declared entry + run report) happens in Step 10. Route to `scientific-writing` / `latex-paper-en` / `scientific-visualization` / `jupyter-notebook` for downstream artifacts.
 
 ## Related
 

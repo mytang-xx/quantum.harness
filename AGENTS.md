@@ -40,7 +40,7 @@ The steering wheel lives in the report and the next-steps, not in pre-approval. 
 Next-steps are always offered as `AskUserQuestion` options. Common next-steps (in rough priority):
 - **Richer visualization** — correlations, structure factor, density profile, or publication figure via `scientific-visualization`.
 - **Parameter scan or finite-size extrapolation** — the natural research follow-up.
-- **Writeup** — consolidated script + run report, then route to writing skills.
+- **Writeup** — declared entry + run report, then route to writing skills.
 - **Stop here** — always a real option, never padded.
 
 Never march through a checklist of questions. If the user's prompt is too vague to infer anything (rare), present 2–3 starting points via `AskUserQuestion`.
@@ -183,8 +183,8 @@ Problem-solving primitives (generic; topic-agnostic, compose with the problem sk
 - **cross-method-check** — verify the same observable with an independent method or diagnostic.
 - **slurm** — agent-does-ssh cluster mechanism: ship code, submit (single or array), monitor, fetch. Reads cluster specifics from `tools/cluster/<active>.md`. Dispatches `/setup-julia` when the cluster's Julia env isn't instantiated. Does NOT know about parameter grids — that's `/parameter-scan`'s job.
 - **setup-julia** — install Julia (juliaup or `module load`), configure package mirror (defaults to Chinese mirror if cluster `region == mainland_china`), instantiate the project env. Generic over target (local laptop or remote ssh alias). Idempotent.
-- **reproduce-paper** — orchestrate end-to-end paper reproduction: plans the figure dependency graph, surfaces methodology / verification / cross-check figs alongside substantive ones, composes the primitives above. Generic over papers. Absorbs the writeup-handoff close (consolidated script + run report).
-- **verify** — dispatch a high-effort independent review subagent to audit an artifact against its declared reference. Modes: `protocol` (TOML claims vs primary sources), `plan` (plan/run-spec vs protocol), `kb-card` (anchors vs literature), `script` (script vs protocol and paper methodology), `result` (produced artifacts vs declared references), `mismatch` (failed gate triage), `close` (final report / consolidated script / manifests vs protocol). Inspection-only; emits a structured diff report. Compose with `/reproduce-paper` (protocol, plan, per figure, mismatch, and final report) and as a pre-commit gate after changing important artifacts.
+- **reproduce-paper** — orchestrate end-to-end paper reproduction: plans the figure dependency graph, surfaces methodology / verification / cross-check figs alongside substantive ones, composes the primitives above. Generic over papers. Absorbs the writeup-handoff close (declared entry + run report).
+- **verify** — dispatch a high-effort independent review subagent to audit an artifact against its declared reference. Modes: `protocol` (TOML claims vs primary sources), `plan` (plan/run-spec vs protocol), `kb-card` (anchors vs literature), `script` (script vs protocol and paper methodology), `result` (produced artifacts vs declared references), `mismatch` (failed gate triage), `close` (final report / declared entry / manifests vs protocol). Inspection-only; emits a structured diff report. Compose with `/reproduce-paper` (protocol, plan, per figure, mismatch, and final report) and as a pre-commit gate after changing important artifacts.
 
 External/support skills:
 - **quimb-tensor-network** — quimb/QuTiP tensor network: MPS, PEPS, DMRG, TEBD

@@ -21,7 +21,7 @@ A `<run-dir>` containing:
 
 | Required | Path | Purpose |
 |---|---|---|
-| ✓ | `protocol.toml` | Contract: `[artifact]`, `[[sources]]`, `[[claims]]`, `[[deviations]]`, `[[checks]]`, `[[figures]]` |
+| ✓ | `protocol.toml` | Contract: `[artifact]`, `[entry]`, `[[sources]]`, `[[claims]]`, `[[deviations]]`, `[[checks]]`, `[[figures]]` |
 | ✓ | `run-report.md` | Bounded narrative from `/reproduce-paper`'s close step |
 | ✓ | `cells/<id>/manifest.json` | Per-cell evidence |
 | ✓ | `verify/verify_<artifact>_<date>.md` | Audit reports backing the chip statuses |
@@ -33,7 +33,7 @@ A `<run-dir>` containing:
 
 1. **Verify close passed.** `flow require <run-dir> close`. If it errors, stop and surface the blocker via the host's option API. The `report` gate is pre-declared in `tools/flow/templates/reproduce-paper.toml` with `requires = ["close"]`.
 
-2. **Dispatch the polish subagent** as a `produce`-kind attempt on the `report` gate. The subagent reads the full evidence pack and writes `<run-dir>/editorial.json`. Brief: terse scientific tone, ≤ 100 words above the fold, every sentence carries a `sourced_by` pointer to a file:line in the evidence pack. Use the same model id and effort as the main agent. The subagent must be a distinct actor from whoever authored the run. After the subagent returns, register the file: `flow artifact add <run-dir> editorial <run-dir>/editorial.json --kind editorial --producer <attempt>`, then `flow attempt finish <run-dir> <attempt>`. The registration pins editorial.json's hash so the protocol's `editorial_fresh` check catches any post-audit mutation.
+2. **Dispatch the polish subagent** as a `report`-kind attempt on the `report` gate. The subagent reads the full evidence pack and writes `<run-dir>/editorial.json`. Brief: terse scientific tone, ≤ 100 words above the fold, every sentence carries a `sourced_by` pointer to a file:line in the evidence pack. Use the same model id and effort as the main agent. The subagent must be a distinct actor from whoever authored the run. After the subagent returns, register the file: `flow artifact add <run-dir> editorial <run-dir>/editorial.json --kind editorial --producer <attempt>`, then `flow attempt finish <run-dir> <attempt>`. The registration pins editorial.json's hash so the protocol's `editorial_fresh` check catches any post-audit mutation.
 
 3. **Render the HTML.** `python tools/skills/report/scripts/render.py <run-dir>`. The renderer is mechanical — reads `flow status --json` for all derived state (gate verdicts, claim verdicts, overrides, deviations, pending), composes the figure-first template, falls back to declared statements when editorial fields are missing, and stamps the provenance footer.
 

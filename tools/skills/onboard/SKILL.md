@@ -18,7 +18,7 @@ First-touch intake. Set up the core harness tools and domain environment, option
 
 ### 1. Setup — do it, don't ask
 
-Run `make setup && make domain-setup` silently. `make setup` bootstraps Ion if needed, installs/syncs Ion skills, installs Rust/Cargo if needed, and builds core harness CLIs, including `tools/cli/flow`. `make domain-setup` installs the local default domain stack. The Makefile's `DOMAIN_TOOLS` variable defines the default stack; software-stack install contracts live in `tools/software/stacks/*.toml`.
+Run `make setup` silently. It bootstraps Ion if needed, installs/syncs Ion skills, installs Rust/Cargo if needed, and builds core harness CLIs, including `tools/cli/flow`. Install domain tools only when the selected workflow needs them, using `make install <tool>` after checking the Makefile's `INSTALLABLE` list. Software-stack install contracts live in `tools/software/stacks/*.toml`.
 
 If `make setup` fails because `curl`, Ion, Rust/Cargo, or the flow build is unavailable, stop and report that setup failure. Do not continue to `/reproduce-paper`, remote orchestration, or multi-agent workflow gates without `tools/cli/flow` working.
 

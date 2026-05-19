@@ -63,6 +63,14 @@ fields = [
 # chip strip; default false keeps internal checks out of the deliverable.
 
 [[checks]]
+id = "source"
+kind = "exists"
+gate = "source"
+audience = true
+claims = ["claim.example"]
+paths = ["sources/paper.pdf"]
+
+[[checks]]
 id = "protocol"
 kind = "audit"
 gate = "protocol"
@@ -112,12 +120,21 @@ against = [
 ]
 
 [[checks]]
-id = "fresh"
+id = "figures"
+kind = "exists"
+gate = "assemble"
+audience = true
+claims = ["claim.example"]
+producer = "run"
+paths = ["figs/fig-example.png", "figs/fig-example.json"]
+
+[[checks]]
+id = "figures_fresh"
 kind = "fresh"
 gate = "assemble"
 claims = ["claim.example"]
 producer = "run"
-paths = ["figs/fig-example.png"]
+paths = ["figs/fig-example.png", "figs/fig-example.json"]
 against = ["protocol.toml", "scripts/reproduce"]
 
 [[checks]]
@@ -137,9 +154,9 @@ claims = ["claim.example"]
 producer = "run"
 
   [[checks.compare]]
-  actual = { path = "cells/cell-0001/manifest.json", field = "observable" }
+  actual = { path = "trust/trust-example.json", field = "observable" }
   reference = { path = "references/reference.json", field = "observable_exact" }
-  uncertainty = { path = "cells/cell-0001/manifest.json", field = "stderr" }
+  uncertainty = { path = "trust/trust-example.json", field = "stderr" }
   tolerance = { abs = 0.0 }
 
 [[checks]]
@@ -149,10 +166,9 @@ gate = "close"
 audience = true
 claims = ["claim.example"]
 
-# Close-stage deliverables. /reproduce-paper's close step authors run-report.md,
-# an explicit runnable entry artifact, and one figs/<id>.{png,json} pair per
-# [[figures]] entry. Without these checks, an agent can finish the audit and
-# stop with no deliverables on disk.
+# Close-stage deliverables. /reproduce-paper's close step authors run-report.md
+# and checks the explicit runnable entry artifact. Figure files are assembled
+# and gated in `assemble`, not re-owned by close.
 
 [[checks]]
 id = "summary"
@@ -168,7 +184,7 @@ id = "runner"
 kind = "exists"
 gate = "close"
 claims = ["claim.example"]
-producer = "report"
+producer = "run"
 paths = ["scripts/reproduce"]
 
 [[checks]]
@@ -184,23 +200,21 @@ gate = "close"
 entry = "dry"
 
 [[checks]]
-id = "figures"
-kind = "exists"
-gate = "close"
-audience = true
-claims = ["claim.example"]
-producer = "report"
-# Author lists every [[figures]] entry's ours_path and data_path here. One
-# figure → two entries (PNG + JSON). Keep the list in sync with [[figures]].
-paths = ["figs/fig-example.png", "figs/fig-example.json"]
-
-[[checks]]
-id = "final"
+id = "summary_fresh"
 kind = "fresh"
 gate = "close"
 claims = ["claim.example"]
 producer = "report"
-paths = ["run-report.md", "scripts/reproduce"]
+paths = ["run-report.md"]
+against = ["protocol.toml"]
+
+[[checks]]
+id = "runner_fresh"
+kind = "fresh"
+gate = "close"
+claims = ["claim.example"]
+producer = "run"
+paths = ["scripts/reproduce"]
 against = ["protocol.toml"]
 
 # Report gate: /report's polish subagent writes editorial.json (registered as

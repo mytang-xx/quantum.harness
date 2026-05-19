@@ -62,7 +62,7 @@ Common next-steps (pick the 2–3 most relevant):
 | Deeper analysis (gap, entanglement, order parameter) | When the ground state is done but the physics question isn't answered. |
 | Cross-method check (DMRG ↔ ED, DMRG ↔ VMC) | When verification is thin or the problem is hard. |
 | Literature context (arxiv-search) | When approaching a frontier regime. |
-| Writeup (consolidated script + run report → writing skills) | When the user seems done with computation. |
+| Writeup (declared entry + run report → writing skills) | When the user seems done with computation. |
 | Different problem | When the user pivots. |
 | Done | Always. |
 

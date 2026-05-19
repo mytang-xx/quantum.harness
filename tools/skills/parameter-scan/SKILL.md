@@ -107,11 +107,11 @@ Labels are descriptive, not interpretive. The calling workflow decides what the 
 - This skill does *not* know the meaning of any axis. It is generic over parameter names and values.
 - Retry and convergence logic delegate to the calling workflow and declared check commands.
 - For literature-dependent interpretation, the calling workflow should invoke its source-search or source-audit mechanism before interpreting; this primitive only produces data.
-- Per-cell manifest schema lives at `results/<run>/cells/<cell_id>/manifest.json` and is consumed by `/run-report` at session close. Each cell's compute script writes its own manifest; this skill does not invent a parallel format.
+- Per-cell manifest schema lives at `results/<run>/cells/<cell_id>/manifest.json` and is consumed by `/reproduce-paper` close at session close. Each cell's compute script writes its own manifest; this skill does not invent a parallel format.
 
 ## Anti-patterns (auto-reject)
 
 - Hardcoding domain-specific axis ranges or default values.
 - Bundling sbatch / ssh / rsync logic into this skill - that's `/slurm`'s job.
-- Inventing a new manifest format - the per-cell manifest convention is shared with `/run-report` and `/reproduce-paper`.
+- Inventing a new manifest format - the per-cell manifest convention is shared with `/reproduce-paper`.
 - Silent skip of failed cells - every failed cell must be classified and surfaced.
