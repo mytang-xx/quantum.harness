@@ -12,6 +12,7 @@ Thin orchestrator. The discipline lives in `protocol.toml`: `[[cells]]` declares
 - Start from primary sources. KB cards, old scripts, previous figures, notes, and summaries are hints until confirmed or regenerated.
 - Fill `[[cells]]` before coding. Every executable cell MUST name `method`, `stack`, `route`, `source`, `check`, `state`, and `scope`.
 - Method-agnostic is not method-optional. `flow` is a ledger; DO NOT use `flow` gates, attempt roles, or check kinds as the software-stack choice.
+- DO NOT probe fallback tooling just because the paper/canonical stack fails locally. Record the canonical route as `failed` or `pending`; only then declare `fallback` or `deviation` before touching the alternate stack.
 - DO NOT silently weaken the target. Any change to paper setup, route, data, budget, scope, or uncertainty is a `[[deviations]]` row before compute.
 - DO NOT trust the first manifest as global. Assemble from all manifests; report settings as constant only after consensus.
 - Failed gates are not status text. Classify the mismatch, repair the earliest wrong layer, invalidate downstream artifacts, rerun, then re-verify.
@@ -100,6 +101,8 @@ Meanings:
 `flow` remains method-blind. It records the protocol, artifacts, and check outcomes; `/verify` decides whether the declared route is supported by the cited source and whether the script/manifests match it. Do not invent method-specific gates or use `flow` commands to force a stack choice.
 
 `state` is the route-check result. Do not set it to `passed` until the check has actually run or the primary/official route has been inspected enough to support the claim. A `failed`, `skipped`, or empty state blocks compute unless the cell is explicitly scoped as `deviation` or `pending`.
+
+If the route check fails because of a local environment problem, stop at the failed state. Do not inspect Python, QuSpin, SciPy, quimb, or any alternate stack unless the protocol already declares that stack as `fallback` or `deviation`.
 
 ## Failed checks
 
