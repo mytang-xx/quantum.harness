@@ -190,7 +190,7 @@ requires = ["ideas"]
         run_dir.to_str().unwrap(),
         "ideas",
         "--kind",
-        "produce",
+        "run",
         "--actor",
         "agent:main",
     ]);
@@ -297,7 +297,7 @@ gate = "protocol"
                 run_dir.to_str().unwrap(),
                 "protocol",
                 "--kind",
-                "produce",
+                "run",
                 "--actor",
                 "agent:label-a",
             ],
@@ -390,7 +390,7 @@ against = ["protocol.toml"]
         run_dir.to_str().unwrap(),
         "protocol",
         "--kind",
-        "produce",
+        "run",
         "--actor",
         "agent:author",
     ]);
@@ -506,7 +506,7 @@ fn check_pending_with_no_checks_until_attempt_finishes() {
         run_dir.to_str().unwrap(),
         "source",
         "--kind",
-        "produce",
+        "run",
         "--actor",
         "agent:main",
     ]);
@@ -628,7 +628,7 @@ gate = "protocol"
         run_dir.to_str().unwrap(),
         "protocol",
         "--kind",
-        "produce",
+        "run",
         "--actor",
         "agent:author",
     ]);
@@ -698,7 +698,7 @@ gate = "protocol"
                 run_dir.to_str().unwrap(),
                 "protocol",
                 "--kind",
-                "produce",
+                "run",
                 "--actor",
                 "agent:author",
             ],
@@ -898,7 +898,7 @@ fn attempt_finish_executes_run_checks_and_caches_result() {
         run_dir.to_str().unwrap(),
         "source",
         "--kind",
-        "produce",
+        "run",
         "--actor",
         "agent:main",
     ]);
@@ -938,7 +938,7 @@ fn audit_detects_report_tampering_after_finish() {
                 run_dir.to_str().unwrap(),
                 "source",
                 "--kind",
-                "produce",
+                "run",
                 "--actor",
                 "agent:producer",
             ],
@@ -1163,6 +1163,64 @@ paths = ["artifact.txt"]
 }
 
 #[test]
+fn protocol_rejects_producer_on_artifactless_check() {
+    let root = tmp_dir("producer-artifactless");
+    let template = root.join("template.toml");
+    let run_dir = root.join("run");
+    write(&template, "[[gates]]\nid = \"close\"\n");
+    fs::create_dir_all(&run_dir).unwrap();
+    write(
+        &run_dir.join("protocol.toml"),
+        r#"
+[[checks]]
+id = "entry"
+kind = "run"
+gate = "close"
+cmd = "true"
+producer = "run"
+"#,
+    );
+    assert_ok(&[
+        "init",
+        run_dir.to_str().unwrap(),
+        "--template",
+        template.to_str().unwrap(),
+    ]);
+
+    let err = assert_fail(&["check", run_dir.to_str().unwrap(), "close"]);
+    assert!(
+        err.contains("check entry cannot use producer with run"),
+        "stderr: {err}"
+    );
+}
+
+#[test]
+fn attempt_start_rejects_unknown_kind() {
+    let root = tmp_dir("attempt-kind");
+    let template = root.join("template.toml");
+    let run_dir = root.join("run");
+    write(&template, "[[gates]]\nid = \"run\"\n");
+    assert_ok(&[
+        "init",
+        run_dir.to_str().unwrap(),
+        "--template",
+        template.to_str().unwrap(),
+    ]);
+
+    let err = assert_fail(&[
+        "attempt",
+        "start",
+        run_dir.to_str().unwrap(),
+        "run",
+        "--kind",
+        "probe",
+        "--actor",
+        "agent:x",
+    ]);
+    assert!(err.contains("unknown attempt kind: probe"), "stderr: {err}");
+}
+
+#[test]
 fn cover_check_requires_exact_observed_path_set() {
     let root = tmp_dir("cover");
     let template = root.join("template.toml");
@@ -1210,14 +1268,14 @@ paths = [
     assert!(pass.contains("2 path(s) covered"), "stdout: {pass}");
 
     write(
-        &run_dir.join("cells/smoke/manifest.json"),
+        &run_dir.join("cells/trial/manifest.json"),
         "{\"ok\": true}\n",
     );
     let extra = run(&["check", run_dir.to_str().unwrap(), "assemble"]);
     let extra_out = String::from_utf8_lossy(&extra.stdout).to_string();
     assert!(!extra.status.success(), "stdout: {extra_out}");
     assert!(
-        extra_out.contains("extra: cells/smoke/manifest.json"),
+        extra_out.contains("extra: cells/trial/manifest.json"),
         "stdout: {extra_out}"
     );
 }
@@ -1259,6 +1317,235 @@ paths = ["cells/cell-a/manifest.json"]
 
     let pass = assert_ok(&["check", run_dir.to_str().unwrap(), "assemble"]);
     assert!(pass.contains("1 path(s) covered"), "stdout: {pass}");
+}
+
+#[test]
+fn producer_check_rejects_trial_artifact() {
+    let root = tmp_dir("producer");
+    let template = root.join("template.toml");
+    let run_dir = root.join("run");
+    write(&template, "[[gates]]\nid = \"run\"\n");
+    fs::create_dir_all(&run_dir).unwrap();
+    write(
+        &run_dir.join("protocol.toml"),
+        r#"
+[[checks]]
+id = "cells"
+kind = "cover"
+gate = "run"
+producer = "run"
+pattern = "cells/*/manifest.json"
+paths = ["cells/cell-a/manifest.json"]
+"#,
+    );
+    write(
+        &run_dir.join("cells/cell-a/manifest.json"),
+        "{\"energy\": -1.0}\n",
+    );
+    assert_ok(&[
+        "init",
+        run_dir.to_str().unwrap(),
+        "--template",
+        template.to_str().unwrap(),
+    ]);
+
+    let trial = assert_ok(&[
+        "attempt",
+        "start",
+        run_dir.to_str().unwrap(),
+        "run",
+        "--kind",
+        "trial",
+        "--actor",
+        "agent:trial",
+    ]);
+    assert_ok(&[
+        "artifact",
+        "add",
+        run_dir.to_str().unwrap(),
+        "cell",
+        run_dir.join("cells/cell-a/manifest.json").to_str().unwrap(),
+        "--kind",
+        "manifest",
+        "--producer",
+        trial.trim(),
+    ]);
+    let rejected = run(&["check", run_dir.to_str().unwrap(), "run"]);
+    let rejected_out = String::from_utf8_lossy(&rejected.stdout).to_string();
+    assert!(!rejected.status.success(), "stdout: {rejected_out}");
+    assert!(
+        rejected_out.contains("produced by trial; check requires run"),
+        "stdout: {rejected_out}"
+    );
+
+    let prod = assert_ok(&[
+        "attempt",
+        "start",
+        run_dir.to_str().unwrap(),
+        "run",
+        "--kind",
+        "run",
+        "--actor",
+        "agent:run",
+    ]);
+    assert_ok(&[
+        "artifact",
+        "add",
+        run_dir.to_str().unwrap(),
+        "cell",
+        run_dir.join("cells/cell-a/manifest.json").to_str().unwrap(),
+        "--kind",
+        "manifest",
+        "--producer",
+        prod.trim(),
+    ]);
+    let pass = assert_ok(&["check", run_dir.to_str().unwrap(), "run"]);
+    assert!(pass.contains("1 path(s) covered"), "stdout: {pass}");
+}
+
+#[test]
+fn support_check_requires_claim_fields() {
+    let root = tmp_dir("support");
+    let template = root.join("template.toml");
+    let run_dir = root.join("run");
+    write(&template, "[[gates]]\nid = \"assemble\"\n");
+    fs::create_dir_all(&run_dir).unwrap();
+    write(
+        &run_dir.join("protocol.toml"),
+        r#"
+[[claims]]
+id = "energy"
+statement = "Energy is supported."
+fields = [
+  "cells/*/manifest.json:energy",
+  "cells/*/manifest.json:stderr",
+]
+
+[[checks]]
+id = "energy"
+kind = "support"
+gate = "assemble"
+claims = ["energy"]
+"#,
+    );
+    write(
+        &run_dir.join("cells/cell-a/manifest.json"),
+        "{\"energy\": -1.0}\n",
+    );
+    assert_ok(&[
+        "init",
+        run_dir.to_str().unwrap(),
+        "--template",
+        template.to_str().unwrap(),
+    ]);
+
+    let missing = run(&["check", run_dir.to_str().unwrap(), "assemble"]);
+    let missing_out = String::from_utf8_lossy(&missing.stdout).to_string();
+    assert!(!missing.status.success(), "stdout: {missing_out}");
+    assert!(
+        missing_out.contains("cells/cell-a/manifest.json missing stderr"),
+        "stdout: {missing_out}"
+    );
+
+    write(
+        &run_dir.join("cells/cell-a/manifest.json"),
+        "{\"energy\": -1.0, \"stderr\": 0.01}\n",
+    );
+    let pass = assert_ok(&["check", run_dir.to_str().unwrap(), "assemble"]);
+    assert!(pass.contains("2 field(s) supported"), "stdout: {pass}");
+}
+
+#[test]
+fn run_check_can_use_declared_entry_command() {
+    let root = tmp_dir("entry");
+    let template = root.join("template.toml");
+    let run_dir = root.join("run");
+    write(&template, "[[gates]]\nid = \"close\"\n");
+    fs::create_dir_all(&run_dir).unwrap();
+    write(
+        &run_dir.join("protocol.toml"),
+        r#"
+[entry]
+run = "printf run"
+help = "printf help"
+dry = "printf dry"
+
+[[checks]]
+id = "entry"
+kind = "run"
+gate = "close"
+entry = "help"
+"#,
+    );
+    assert_ok(&[
+        "init",
+        run_dir.to_str().unwrap(),
+        "--template",
+        template.to_str().unwrap(),
+    ]);
+    let attempt = assert_ok(&[
+        "attempt",
+        "start",
+        run_dir.to_str().unwrap(),
+        "close",
+        "--kind",
+        "report",
+        "--actor",
+        "agent:report",
+    ]);
+    let out = assert_ok(&[
+        "attempt",
+        "finish",
+        run_dir.to_str().unwrap(),
+        attempt.trim(),
+    ]);
+    assert!(
+        out.contains("ok\tentry\texit 0: printf help"),
+        "stdout: {out}"
+    );
+}
+
+#[test]
+fn status_json_reports_scope_verdict() {
+    let root = tmp_dir("verdict");
+    let template = root.join("template.toml");
+    let run_dir = root.join("run");
+    write(&template, "[[gates]]\nid = \"close\"\n");
+    fs::create_dir_all(&run_dir).unwrap();
+    write(
+        &run_dir.join("protocol.toml"),
+        r#"
+[artifact]
+scope = "snapshot"
+"#,
+    );
+    assert_ok(&[
+        "init",
+        run_dir.to_str().unwrap(),
+        "--template",
+        template.to_str().unwrap(),
+    ]);
+    let attempt = assert_ok(&[
+        "attempt",
+        "start",
+        run_dir.to_str().unwrap(),
+        "close",
+        "--kind",
+        "run",
+        "--actor",
+        "agent:run",
+    ]);
+    assert_ok(&[
+        "attempt",
+        "finish",
+        run_dir.to_str().unwrap(),
+        attempt.trim(),
+    ]);
+
+    let out = assert_ok(&["status", run_dir.to_str().unwrap(), "--json"]);
+    let v: serde_json::Value = serde_json::from_str(&out).unwrap();
+    assert_eq!(v["scope"], "snapshot");
+    assert_eq!(v["verdict"], "muted");
 }
 
 #[test]
@@ -1304,7 +1591,7 @@ gate = "source"
                 run_dir.to_str().unwrap(),
                 "source",
                 "--kind",
-                "produce",
+                "run",
                 "--actor",
                 "agent:p",
             ],

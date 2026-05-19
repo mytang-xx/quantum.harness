@@ -11,7 +11,7 @@ The verifier must be a **different actor** from the artifact's author. Flow's `a
 
 ## When to activate
 
-- After writing or editing a `protocol.toml`, KB card, reproduction script, run report, or consolidated script.
+- After writing or editing a `protocol.toml`, KB card, reproduction entry, or run report.
 - After producing a result, figure, or artifact bundle.
 - Before claiming a reproduction complete; before merging a KB-card edit.
 - When a flow gate fails (`flow check` shows failures) — use `mismatch` mode.
@@ -54,7 +54,7 @@ Compare the protocol against declared primary sources.
 1. **Source authority** — only `primary` rows support paper-derived claims; `hint` rows require an explicit assumption flag.
 2. **Claim support** — each claim cites a primary passage or is marked `assumption=true`.
 3. **Check coverage** — each non-assumption claim is covered by ≥1 `[[checks]]` entry or by a justified deviation.
-4. **Generic check shape** — checks use one of the seven kinds: `audit`, `run`, `exists`, `agree`, `near`, `fresh`, `cover`; ids are unique override handles. No paper-specific or domain-specific kind names.
+4. **Generic check shape** — checks use one of the eight kinds: `audit`, `run`, `exists`, `agree`, `near`, `fresh`, `cover`, `support`; ids are unique override handles. No paper-specific or domain-specific kind names.
 5. **Deviation clarity** — declared differences from the paper are scoped, claim-tagged, and have their own checks.
 6. **Gate completeness** — every gate the flow template declares has checks sufficient to prevent stale or unsupported artifacts from passing.
 
@@ -78,8 +78,8 @@ Compare the script against the protocol and the cited methodology section.
 
 1. **Claim coverage** — script produces evidence for every assigned claim.
 2. **Deviation honesty** — every difference from the paper is recorded as a deviation.
-3. **Manifest provenance** — script writes the fields required by `exists`/`agree`/`fresh` checks (`evidence_class = "current_run"`, hashes, claim ids, etc.).
-4. **Regime adequacy** — budgets and knobs are sufficient for the declared checks, not just plausible-looking numbers.
+3. **Manifest provenance** — script writes the fields required by `exists`/`agree`/`fresh`/`support` checks and registers evidence artifacts with the producer role required by the protocol.
+4. **Regime support** — budgets and knobs are sufficient for the declared checks, not just plausible-looking numbers.
 
 Severity tags: `match`, `proxy`, `unrecorded-deviation`, `provenance-gap`, `regime-gap`.
 
@@ -100,13 +100,13 @@ Severity tags: `classified`, `under-evidenced`, `source-layer`, `plan-layer`, `s
 
 ### `close`
 
-Audit the final run report, consolidated script, protocol, verification reports, and manifest set.
+Audit the final run report, declared entry, protocol, verification reports, and manifest set.
 
 1. **Claim boundedness** — every report claim maps to a protocol claim, a result artifact, and a verify report.
 2. **Artifact provenance** — manifests carry required hashes, claim ids, deviation ids.
 3. **Gate closure** — every flow gate is `passed` (or the run is marked partial / has recorded overrides).
 4. **Deviation visibility** — declared differences from the paper appear in the report, linked to protocol deviations.
-5. **Reproducibility** — consolidated script + run command sufficient for fresh checkout.
+5. **Reproducibility** — declared entry + run command sufficient for fresh checkout.
 6. **Audience-facing artifact** — when a `report_*.html` is in scope: every editorial sentence in `editorial.json` traces to its `sourced_by` (re-grep the cited file:line); rendered HTML conforms to `docs/DESIGN.md`; mobile rendering at 375×667 has no overflow and ≥ 44×44px tap targets.
 
 Severity tags: `supported`, `unsupported-claim`, `hint-leak`, `stale-artifact`, `provenance-gap`, `open-gate`, `hidden-deviation`, `repro-gap`, `editorial-leak`, `design-drift`.

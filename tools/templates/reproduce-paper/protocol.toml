@@ -10,9 +10,14 @@ title = ""             # paper title; rendered as italicized topbar text
 authors = ""           # comma-separated author list; rendered bold in topbar
 venue = ""             # journal/year string (e.g. "PRX Quantum 4, 040317 (2023)")
 url = ""               # canonical URL for the source (arXiv, DOI, journal page); rendered as topbar link
-scope = "full-paper"   # full-paper | main-results | figure-subset | custom
+scope = "full"         # full | main | subset | snapshot | custom
 run_id = ""
 description = ""
+
+[entry]
+run = "scripts/reproduce run"
+help = "scripts/reproduce help"
+dry = "scripts/reproduce dry"
 
 [[sources]]
 id = "paper"
@@ -31,9 +36,13 @@ statement = "Replace with a primary-source-derived obligation."
 scope = "run"          # run | figure | panel | cell | artifact
 sources = ["paper"]
 assumption = false
+fields = [
+  "cells/cell-0001/manifest.json:observable",
+  "cells/cell-0001/manifest.json:stderr",
+]
 
 # ─── checks ──────────────────────────────────────────────────────────────────
-# Seven generic kinds. Each names what the check does, never what artifact it
+# Eight generic kinds. Each names what the check does, never what artifact it
 # touches:
 #   audit   — an audit-kind attempt with an actor distinct from the producer
 #   run     — execute a shell command; exit 0 = pass
@@ -42,11 +51,14 @@ assumption = false
 #   near    — numeric value within tolerance of a reference
 #   fresh   — artifact and declared sources unchanged since `flow artifact add`
 #   cover   — observed files matching `pattern` exactly equal declared `paths`
+#   support — claim-declared fields are present in matching artifacts
 # Paper-specific or skill-specific names belong in the data values (paths,
 # claims, ids) — never in the `kind` field.
 # Check ids are global override handles: keep each id unique in this file.
-# `claims = [...]` on each check is informational metadata for /report's chip
-# resolution; flow itself does not enforce claim coverage.
+# `claims = [...]` binds checks to claim ids. `support` dereferences each
+# claim's `fields = [...]`; other checks expose the binding to /report.
+# `producer = "run"` requires each declared artifact to be registered from a
+# run-kind attempt; trial artifacts cannot close evidence checks.
 # `audience = true` opts a check into the rendered HTML's audience-facing
 # chip strip; default false keeps internal checks out of the deliverable.
 
@@ -69,6 +81,7 @@ id = "cells"
 kind = "cover"
 gate = "run"
 claims = ["claim.example"]
+producer = "run"
 pattern = "cells/*/manifest.json"
 paths = [
   "cells/cell-0001/manifest.json",
@@ -80,6 +93,7 @@ id = "fields"
 kind = "exists"
 gate = "run"
 claims = ["claim.example"]
+producer = "run"
 fields = [
   "cells/cell-0001/manifest.json:protocol_hash",
   "cells/cell-0001/manifest.json:script_hash",
@@ -91,6 +105,7 @@ id = "hashes"
 kind = "agree"
 gate = "assemble"
 claims = ["claim.example"]
+producer = "run"
 against = [
   "cells/cell-0001/manifest.json:protocol_hash",
   "cells/cell-0002/manifest.json:protocol_hash",
@@ -101,8 +116,17 @@ id = "fresh"
 kind = "fresh"
 gate = "assemble"
 claims = ["claim.example"]
+producer = "run"
 paths = ["figs/fig-example.png"]
-against = ["protocol.toml", "scripts/reproduce.jl"]
+against = ["protocol.toml", "scripts/reproduce"]
+
+[[checks]]
+id = "support"
+kind = "support"
+gate = "assemble"
+audience = true
+claims = ["claim.example"]
+producer = "run"
 
 [[checks]]
 id = "trust"
@@ -110,6 +134,7 @@ kind = "near"
 gate = "trust"
 audience = true
 claims = ["claim.example"]
+producer = "run"
 
   [[checks.compare]]
   actual = { path = "cells/cell-0001/manifest.json", field = "observable" }
@@ -124,10 +149,10 @@ gate = "close"
 audience = true
 claims = ["claim.example"]
 
-# Close-stage deliverables. /reproduce-paper's close step authors run-report.md
-# + consolidated.{jl,py}; one figs/<id>.{png,json} pair per [[figures]] entry.
-# Without these `exists` checks, an agent can finish the audit and stop with no
-# deliverables on disk (the failure mode that motivated this template).
+# Close-stage deliverables. /reproduce-paper's close step authors run-report.md,
+# an explicit runnable entry artifact, and one figs/<id>.{png,json} pair per
+# [[figures]] entry. Without these checks, an agent can finish the audit and
+# stop with no deliverables on disk.
 
 [[checks]]
 id = "summary"
@@ -135,6 +160,7 @@ kind = "exists"
 gate = "close"
 audience = true
 claims = ["claim.example"]
+producer = "report"
 paths = ["run-report.md"]
 
 [[checks]]
@@ -142,7 +168,20 @@ id = "runner"
 kind = "exists"
 gate = "close"
 claims = ["claim.example"]
-paths = ["consolidated.jl"]   # author replaces with consolidated.py for Python runs
+producer = "report"
+paths = ["scripts/reproduce"]
+
+[[checks]]
+id = "help"
+kind = "run"
+gate = "close"
+entry = "help"
+
+[[checks]]
+id = "dry"
+kind = "run"
+gate = "close"
+entry = "dry"
 
 [[checks]]
 id = "figures"
@@ -150,6 +189,7 @@ kind = "exists"
 gate = "close"
 audience = true
 claims = ["claim.example"]
+producer = "report"
 # Author lists every [[figures]] entry's ours_path and data_path here. One
 # figure → two entries (PNG + JSON). Keep the list in sync with [[figures]].
 paths = ["figs/fig-example.png", "figs/fig-example.json"]
@@ -159,7 +199,8 @@ id = "final"
 kind = "fresh"
 gate = "close"
 claims = ["claim.example"]
-paths = ["run-report.md", "consolidated.jl"]
+producer = "report"
+paths = ["run-report.md", "scripts/reproduce"]
 against = ["protocol.toml"]
 
 # Report gate: /report's polish subagent writes editorial.json (registered as
@@ -180,6 +221,7 @@ id = "editorial"
 kind = "fresh"
 gate = "report"
 claims = ["claim.example"]
+producer = "report"
 paths = ["editorial.json"]
 against = ["protocol.toml"]
 
@@ -191,7 +233,7 @@ against = ["protocol.toml"]
 # kind = "run"
 # gate = "script"
 # claims = ["claim.example"]
-# cmd = "julia --project=julia-env scripts/check_domain.jl"
+# cmd = "scripts/check_domain"
 
 # ─── deviations ──────────────────────────────────────────────────────────────
 # Record deliberate differences from the paper instead of silently treating

@@ -61,7 +61,7 @@ Setup that affects correctness or uncertainty also belongs in `settings` as opaq
 
 If the caller needs stricter assemble gates, `run_spec.json` may carry `assemble.manifest_contract`, `assemble.consensus_fields`, and `assemble.provenance_fields`. The contract is generic over manifest field paths: required/nonempty fields, equality checks, list membership, numeric fields, optional numeric fields, numeric bounds, and evidence-set bindings. Domain requirements are encoded as payload values in the protocol/run spec and echoed by manifests, not as new `/parameter-scan` types.
 
-Assemblers must validate each manifest's `settings` and declared provenance against the merged shared+cell payload from `run_spec.json`, then report settings as constant vs varying across cells. Never treat the first manifest's settings or provenance as global unless `assemble.consensus_fields` declares and passes that invariant. The protocol should pair this with a `cover` check so the observed cell manifests exactly match the declared run-spec cells; smoke or exploratory artifacts belong outside that covered path unless explicitly declared.
+Assemblers must validate each manifest's `settings` and declared provenance against the merged shared+cell payload from `run_spec.json`, then report settings as constant vs varying across cells. Never treat the first manifest's settings or provenance as global unless `assemble.consensus_fields` declares and passes that invariant. The protocol should pair this with `cover` plus `producer = "run"` so the observed cell manifests exactly match the declared run-spec cells; `trial` artifacts belong outside that covered path unless explicitly declared.
 
 ## Shape detection (auto labels)
 

@@ -7,6 +7,7 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process;
 use std::process::Command;
+use std::str::FromStr;
 use std::thread;
 use std::time::Duration;
 use std::time::Instant;
@@ -38,8 +39,6 @@ fn stamped(args: &[String], default_label: &str) -> Actor {
         identity: current_identity(),
     }
 }
-
-const ATTEMPT_AUDIT: &str = "audit";
 
 // ─── Domain types (also the on-disk shape of state.toml) ────────────────────
 
@@ -81,6 +80,40 @@ enum VerdictStatus {
     Fail,
 }
 
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+enum AttemptKind {
+    Audit,
+    Trial,
+    Run,
+    Report,
+}
+
+impl AttemptKind {
+    fn as_str(self) -> &'static str {
+        match self {
+            AttemptKind::Audit => "audit",
+            AttemptKind::Trial => "trial",
+            AttemptKind::Run => "run",
+            AttemptKind::Report => "report",
+        }
+    }
+}
+
+impl FromStr for AttemptKind {
+    type Err = String;
+
+    fn from_str(raw: &str) -> Result<Self> {
+        match raw {
+            "audit" => Ok(AttemptKind::Audit),
+            "trial" => Ok(AttemptKind::Trial),
+            "run" => Ok(AttemptKind::Run),
+            "report" => Ok(AttemptKind::Report),
+            _ => Err(format!("unknown attempt kind: {raw}")),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct Verdict {
     claim: String,
@@ -93,7 +126,7 @@ struct Verdict {
 struct Attempt {
     seq: u64,
     gate: String,
-    kind: String,
+    kind: AttemptKind,
     #[serde(flatten)]
     actor: Actor,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -188,7 +221,7 @@ enum Event {
     AttemptStarted {
         id: String,
         gate: String,
-        kind: String,
+        kind: AttemptKind,
         #[serde(flatten)]
         actor: Actor,
         #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -282,6 +315,14 @@ struct Check {
     kind: CheckKind,
     gate: String,
     #[serde(default)]
+    audience: bool,
+    #[serde(default)]
+    claims: Vec<String>,
+    #[serde(default)]
+    producer: Option<AttemptKind>,
+    #[serde(default)]
+    entry: Option<EntryCmd>,
+    #[serde(default)]
     cmd: Option<String>,
     #[serde(default)]
     pattern: Option<String>,
@@ -300,13 +341,47 @@ struct Check {
 #[derive(Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 enum CheckKind {
-    Audit,  // verifier ran with a distinct actor
-    Run,    // external command exits zero
-    Exists, // declared fields/paths are present
-    Agree,  // declared values match across sources
-    Near,   // numeric within tolerance of reference
-    Fresh,  // artifact and declared sources unchanged since registration
-    Cover,  // observed path set exactly matches declared paths
+    Audit,   // verifier ran with a distinct actor
+    Run,     // external command exits zero
+    Exists,  // declared fields/paths are present
+    Agree,   // declared values match across sources
+    Near,    // numeric within tolerance of reference
+    Fresh,   // artifact and declared sources unchanged since registration
+    Cover,   // observed path set exactly matches declared paths
+    Support, // claim-required fields are present
+}
+
+impl CheckKind {
+    fn as_str(self) -> &'static str {
+        match self {
+            CheckKind::Audit => "audit",
+            CheckKind::Run => "run",
+            CheckKind::Exists => "exists",
+            CheckKind::Agree => "agree",
+            CheckKind::Near => "near",
+            CheckKind::Fresh => "fresh",
+            CheckKind::Cover => "cover",
+            CheckKind::Support => "support",
+        }
+    }
+}
+
+#[derive(Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+enum EntryCmd {
+    Run,
+    Help,
+    Dry,
+}
+
+impl EntryCmd {
+    fn as_str(self) -> &'static str {
+        match self {
+            EntryCmd::Run => "run",
+            EntryCmd::Help => "help",
+            EntryCmd::Dry => "dry",
+        }
+    }
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -340,6 +415,8 @@ struct ProtocolClaim {
     id: String,
     #[serde(default)]
     statement: String,
+    #[serde(default)]
+    fields: Vec<String>,
 }
 
 #[derive(Deserialize, Clone, Debug, Default)]
@@ -364,6 +441,10 @@ struct ProtocolPending {
 
 #[derive(Deserialize, Default)]
 struct Protocol {
+    #[serde(default)]
+    artifact: ProtocolArtifact,
+    #[serde(default)]
+    entry: Option<ProtocolEntry>,
     #[serde(default, rename = "claims")]
     claims: Vec<ProtocolClaim>,
     #[serde(default, rename = "checks")]
@@ -372,6 +453,59 @@ struct Protocol {
     deviations: Vec<ProtocolDeviation>,
     #[serde(default, rename = "pending")]
     pending: Vec<ProtocolPending>,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+struct ProtocolArtifact {
+    #[serde(default)]
+    scope: Scope,
+}
+
+impl Default for ProtocolArtifact {
+    fn default() -> Self {
+        Self {
+            scope: Scope::Custom,
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize, Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+enum Scope {
+    Full,
+    Main,
+    Subset,
+    Snapshot,
+    #[default]
+    Custom,
+}
+
+#[derive(Deserialize, Clone, Debug, Default)]
+struct ProtocolEntry {
+    #[serde(default)]
+    run: String,
+    #[serde(default)]
+    help: String,
+    #[serde(default)]
+    dry: String,
+}
+
+#[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+enum RunVerdict {
+    Green,
+    Muted,
+    Blocked,
+}
+
+impl RunVerdict {
+    fn as_str(self) -> &'static str {
+        match self {
+            RunVerdict::Green => "green",
+            RunVerdict::Muted => "muted",
+            RunVerdict::Blocked => "blocked",
+        }
+    }
 }
 
 // Audit subagents write a verify_*.toml sidecar next to their markdown report.
@@ -503,6 +637,7 @@ fn print_status_terse(ctx: &Ctx) -> Result<()> {
     println!("flow {label}");
 
     let gates = evaluate_all(ctx);
+    println!("verdict {}", run_verdict(ctx, &gates).as_str());
     let current = gates
         .iter()
         .find(|g| g.runnable && g.status != GATE_PASSED)
@@ -691,6 +826,8 @@ struct GateEval<'a> {
 #[derive(Serialize)]
 struct StatusJson<'a> {
     flow_id: &'a str,
+    scope: Scope,
+    verdict: RunVerdict,
     gates: &'a [GateEval<'a>],
     #[serde(skip_serializing_if = "Vec::is_empty")]
     claims: Vec<ClaimJson<'a>>,
@@ -752,6 +889,7 @@ fn evaluate_all<'a>(ctx: &Ctx<'a>) -> Vec<GateEval<'a>> {
 
 fn print_status_json(ctx: &Ctx) -> Result<()> {
     let gates = evaluate_all(ctx);
+    let verdict = run_verdict(ctx, &gates);
     let next: Vec<&str> = gates.iter().filter(|g| g.runnable).map(|g| g.id).collect();
     let claims: Vec<ClaimJson> = ctx
         .protocol
@@ -794,6 +932,8 @@ fn print_status_json(ctx: &Ctx) -> Result<()> {
         .collect();
     let out = StatusJson {
         flow_id: ctx.state.flow_id.as_deref().unwrap_or(""),
+        scope: ctx.protocol.artifact.scope,
+        verdict,
         gates: &gates,
         claims,
         deviations,
@@ -807,6 +947,38 @@ fn print_status_json(ctx: &Ctx) -> Result<()> {
         serde_json::to_string_pretty(&out).map_err(|e| e.to_string())?
     );
     Ok(())
+}
+
+fn run_verdict(ctx: &Ctx, gates: &[GateEval]) -> RunVerdict {
+    if gates.iter().any(|g| g.status == GATE_FAILED) {
+        return RunVerdict::Blocked;
+    }
+    if ctx.protocol.artifact.scope != Scope::Full {
+        return RunVerdict::Muted;
+    }
+    if gates.iter().any(|g| g.status != GATE_PASSED) {
+        return RunVerdict::Muted;
+    }
+    if !ctx.state.overrides.is_empty()
+        || !ctx.state.deviations.is_empty()
+        || ctx.protocol.deviations.iter().any(|d| !d.id.is_empty())
+        || ctx.protocol.pending.iter().any(|p| !p.id.is_empty())
+    {
+        return RunVerdict::Muted;
+    }
+    for check in ctx.protocol.checks.iter().filter(|c| c.audience) {
+        let Some(result) = gates
+            .iter()
+            .flat_map(|g| g.checks.iter())
+            .find(|r| r.id == check.id)
+        else {
+            return RunVerdict::Muted;
+        };
+        if !result.pass {
+            return RunVerdict::Blocked;
+        }
+    }
+    RunVerdict::Green
 }
 
 // ─── next ────────────────────────────────────────────────────────────────────
@@ -920,7 +1092,7 @@ fn cmd_attempt_start(args: &[String]) -> Result<()> {
     }
     let dir = Path::new(&args[1]);
     let gate = args[2].clone();
-    let kind = required_option(args, "--kind")?;
+    let kind = required_option(args, "--kind")?.parse::<AttemptKind>()?;
     required_option(args, "--actor")?;
     let actor = stamped(args, "");
     let executor = option_value(args, "--executor");
@@ -1015,7 +1187,7 @@ fn cmd_attempt_finish(args: &[String]) -> Result<()> {
             if check.gate != attempt.gate || check.kind != CheckKind::Run {
                 continue;
             }
-            let result = run_check_command(dir, check);
+            let result = run_check_command(dir, &protocol, check);
             append_event(
                 dir,
                 &Event::RunRecorded {
@@ -1493,6 +1665,13 @@ fn validate_protocol(protocol: &Protocol) -> Result<()> {
                 check.id, prev_gate, check.gate
             ));
         }
+        if check.producer.is_some() && matches!(check.kind, CheckKind::Audit | CheckKind::Run) {
+            return Err(format!(
+                "protocol.toml invalid: check {} cannot use producer with {}",
+                check.id,
+                check.kind.as_str()
+            ));
+        }
     }
     Ok(())
 }
@@ -1548,15 +1727,21 @@ fn evaluate_gate(ctx: &Ctx, gate: &str) -> (String, Vec<CheckResult>) {
 }
 
 fn eval_check(ctx: &Ctx, check: &Check) -> CheckResult {
-    let r = match check.kind {
+    let mut r = match check.kind {
         CheckKind::Audit => eval_audit(ctx.dir, ctx.state, check),
-        CheckKind::Run => eval_run(ctx.state, check),
+        CheckKind::Run => eval_run(ctx.protocol, ctx.state, check),
         CheckKind::Exists => eval_exists(ctx.dir, check),
         CheckKind::Agree => eval_agree(ctx.dir, check),
         CheckKind::Near => eval_near(ctx.dir, check),
         CheckKind::Fresh => eval_fresh(ctx.dir, ctx.state, check),
         CheckKind::Cover => eval_cover(ctx.dir, check),
+        CheckKind::Support => eval_support(ctx, check),
     };
+    if r.0 && check.kind != CheckKind::Support {
+        if let Err(e) = eval_producer(ctx, check) {
+            r = (false, e);
+        }
+    }
     CheckResult {
         id: check.id.clone(),
         pass: r.0,
@@ -1571,12 +1756,12 @@ fn eval_audit(dir: &Path, state: &State, check: &Check) -> (bool, String) {
     let producers: Vec<&Attempt> = state
         .attempts
         .values()
-        .filter(|a| a.gate == check.gate && a.kind != ATTEMPT_AUDIT && a.finished)
+        .filter(|a| a.gate == check.gate && a.kind != AttemptKind::Audit && a.finished)
         .collect();
     let auditors: Vec<&Attempt> = state
         .attempts
         .values()
-        .filter(|a| a.gate == check.gate && a.kind == ATTEMPT_AUDIT && a.finished)
+        .filter(|a| a.gate == check.gate && a.kind == AttemptKind::Audit && a.finished)
         .collect();
     if producers.is_empty() {
         return (false, "no producer attempt to audit".to_string());
@@ -1627,14 +1812,15 @@ fn eval_audit(dir: &Path, state: &State, check: &Check) -> (bool, String) {
     )
 }
 
-fn eval_run(state: &State, check: &Check) -> (bool, String) {
-    let cmd = check.cmd.as_deref().unwrap_or("<no cmd>");
+fn eval_run(protocol: &Protocol, state: &State, check: &Check) -> (bool, String) {
+    let cmd = command_for_check(protocol, check).unwrap_or_else(|e| format!("<{e}>"));
     match state.run_results.get(&check.id) {
-        Some(r) if r.ok => (true, format!("exit 0: {cmd}")),
+        Some(r) if r.ok => (true, format!("exit 0: {}", cmd)),
         Some(r) => (
             false,
             format!(
-                "nonzero: {cmd} — {}",
+                "nonzero: {} — {}",
+                cmd,
                 r.output.lines().last().unwrap_or("").trim()
             ),
         ),
@@ -1645,13 +1831,13 @@ fn eval_run(state: &State, check: &Check) -> (bool, String) {
     }
 }
 
-fn run_check_command(dir: &Path, check: &Check) -> RunResult {
-    let cmd = match check.cmd.as_deref() {
-        Some(c) => c,
-        None => {
+fn run_check_command(dir: &Path, protocol: &Protocol, check: &Check) -> RunResult {
+    let cmd = match command_for_check(protocol, check) {
+        Ok(c) => c,
+        Err(e) => {
             return RunResult {
                 ok: false,
-                output: "run check missing cmd".to_string(),
+                output: e,
                 at: now_id(),
             }
         }
@@ -1679,6 +1865,28 @@ fn run_check_command(dir: &Path, check: &Check) -> RunResult {
     }
 }
 
+fn command_for_check(protocol: &Protocol, check: &Check) -> Result<String> {
+    if let Some(entry) = check.entry {
+        let declared = protocol
+            .entry
+            .as_ref()
+            .ok_or_else(|| "run check entry needs [entry]".to_string())?;
+        let cmd = match entry {
+            EntryCmd::Run => &declared.run,
+            EntryCmd::Help => &declared.help,
+            EntryCmd::Dry => &declared.dry,
+        };
+        if cmd.trim().is_empty() {
+            return Err(format!("entry {} is empty", entry.as_str()));
+        }
+        return Ok(cmd.clone());
+    }
+    check
+        .cmd
+        .clone()
+        .ok_or_else(|| "run check missing cmd".to_string())
+}
+
 fn eval_exists(dir: &Path, check: &Check) -> (bool, String) {
     let mut missing = Vec::new();
     for path in &check.paths {
@@ -1687,10 +1895,10 @@ fn eval_exists(dir: &Path, check: &Check) -> (bool, String) {
         }
     }
     for field in &check.fields {
-        let (file, key) = match field.split_once(':') {
-            Some((f, k)) => (f, k),
-            None => {
-                missing.push(format!("{field} (malformed; expected path:field)"));
+        let (file, key) = match split_field_spec(field) {
+            Ok(pair) => pair,
+            Err(e) => {
+                missing.push(e);
                 continue;
             }
         };
@@ -1744,6 +1952,164 @@ fn eval_cover(dir: &Path, check: &Check) -> (bool, String) {
     }
 }
 
+fn eval_support(ctx: &Ctx, check: &Check) -> (bool, String) {
+    let targets = match support_targets(ctx.dir, ctx.protocol, check) {
+        Ok(v) => v,
+        Err(e) => return (false, e),
+    };
+    let mut paths: Vec<String> = targets.keys().cloned().collect();
+    paths.sort();
+    paths.dedup();
+    if let Err(e) = check_producer_paths(ctx, check, paths.iter().map(String::as_str)) {
+        return (false, e);
+    }
+    let mut missing = Vec::new();
+    for (file, keys) in &targets {
+        let Some(json) = read_json(&ctx.dir.join(file)) else {
+            missing.push(format!("{file} missing or not json"));
+            continue;
+        };
+        for key in keys {
+            match pick(&json, key) {
+                Some(v) if !v.is_null() => {}
+                _ => missing.push(format!("{file} missing {key}")),
+            }
+        }
+    }
+    if missing.is_empty() {
+        let n = targets.values().map(Vec::len).sum::<usize>();
+        (true, format!("{n} field(s) supported"))
+    } else {
+        (false, format!("missing: {}", missing.join(", ")))
+    }
+}
+
+fn support_targets(
+    dir: &Path,
+    protocol: &Protocol,
+    check: &Check,
+) -> Result<BTreeMap<String, Vec<String>>> {
+    if check.claims.is_empty() {
+        return Err("support check needs `claims`".to_string());
+    }
+    let mut out = BTreeMap::<String, Vec<String>>::new();
+    let mut patterns = BTreeMap::<String, BTreeSet<String>>::new();
+    for claim_id in &check.claims {
+        let claim = protocol
+            .claims
+            .iter()
+            .find(|c| c.id == *claim_id)
+            .ok_or_else(|| format!("unknown claim: {claim_id}"))?;
+        if claim.fields.is_empty() {
+            return Err(format!("claim {claim_id} has no fields"));
+        }
+        for field in &claim.fields {
+            let (pattern, key) = split_field_spec(field)?;
+            if !patterns.contains_key(pattern) {
+                patterns.insert(pattern.to_string(), relative_files_matching(dir, pattern)?);
+            }
+            let paths = patterns.get(pattern).expect("pattern inserted");
+            if paths.is_empty() {
+                return Err(format!("{pattern} matched no files"));
+            }
+            for path in paths {
+                out.entry(path.clone()).or_default().push(key.to_string());
+            }
+        }
+    }
+    Ok(out)
+}
+
+fn eval_producer(ctx: &Ctx, check: &Check) -> Result<()> {
+    if check.producer.is_none() {
+        return Ok(());
+    }
+    let mut paths = producer_paths(ctx, check)?;
+    paths.sort();
+    paths.dedup();
+    check_producer_paths(ctx, check, paths.iter().map(String::as_str))
+}
+
+fn check_producer_paths<'a>(
+    ctx: &Ctx,
+    check: &Check,
+    paths: impl IntoIterator<Item = &'a str>,
+) -> Result<()> {
+    let Some(expected) = check.producer else {
+        return Ok(());
+    };
+    let artifacts = ctx
+        .state
+        .artifacts
+        .values()
+        .map(|a| (a.path.as_str(), a))
+        .collect::<BTreeMap<_, _>>();
+    for path in paths {
+        let artifact = artifacts.get(path).ok_or_else(|| {
+            format!(
+                "artifact {path} not registered; check requires {}",
+                expected.as_str()
+            )
+        })?;
+        let producer = artifact.producer.as_ref().ok_or_else(|| {
+            format!(
+                "artifact {path} has no producer; check requires {}",
+                expected.as_str()
+            )
+        })?;
+        let attempt = ctx
+            .state
+            .attempts
+            .get(producer)
+            .ok_or_else(|| format!("artifact {path} has unknown producer {producer}"))?;
+        if attempt.kind != expected {
+            return Err(format!(
+                "artifact {path} produced by {}; check requires {}",
+                attempt.kind.as_str(),
+                expected.as_str()
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn producer_paths(ctx: &Ctx, check: &Check) -> Result<Vec<String>> {
+    let mut paths = Vec::new();
+    match check.kind {
+        CheckKind::Exists => {
+            paths.extend(check.paths.iter().cloned());
+            for field in &check.fields {
+                paths.push(split_field_spec(field)?.0.to_string());
+            }
+        }
+        CheckKind::Agree => {
+            for field in &check.against {
+                paths.push(split_field_spec(field)?.0.to_string());
+            }
+        }
+        CheckKind::Near => {
+            for compare in &check.compare {
+                paths.push(compare.actual.path.clone());
+                if let Some(uncertainty) = &compare.uncertainty {
+                    paths.push(uncertainty.path.clone());
+                }
+            }
+        }
+        CheckKind::Fresh | CheckKind::Cover => {
+            paths.extend(check.paths.iter().cloned());
+        }
+        CheckKind::Support => {
+            paths.extend(
+                support_targets(ctx.dir, ctx.protocol, check)?
+                    .into_iter()
+                    .map(|(path, _)| path),
+            );
+        }
+        CheckKind::Audit | CheckKind::Run => {}
+    }
+    Ok(paths)
+}
+
 fn eval_agree(dir: &Path, check: &Check) -> (bool, String) {
     if check.against.len() < 2 {
         return (
@@ -1753,9 +2119,9 @@ fn eval_agree(dir: &Path, check: &Check) -> (bool, String) {
     }
     let mut values: Vec<(String, serde_json::Value)> = Vec::new();
     for entry in &check.against {
-        let (file, key) = match entry.split_once(':') {
-            Some(pair) => pair,
-            None => return (false, format!("malformed against entry: {entry}")),
+        let (file, key) = match split_field_spec(entry) {
+            Ok(pair) => pair,
+            Err(e) => return (false, e),
         };
         let json = match read_json(&dir.join(file)) {
             Some(v) => v,
@@ -1987,7 +2353,7 @@ fn claim_verdict<'a>(state: &'a State, claim_id: &str) -> Option<&'a Verdict> {
     state
         .attempts
         .values()
-        .filter(|a| a.finished && a.kind == ATTEMPT_AUDIT)
+        .filter(|a| a.finished && a.kind == AttemptKind::Audit)
         .filter_map(|a| {
             a.verdicts
                 .iter()
@@ -2028,6 +2394,12 @@ fn pick(value: &serde_json::Value, field: &str) -> Option<serde_json::Value> {
 
 fn pick_number(value: &serde_json::Value, field: &str) -> Option<f64> {
     pick(value, field)?.as_f64()
+}
+
+fn split_field_spec(field: &str) -> Result<(&str, &str)> {
+    field
+        .split_once(':')
+        .ok_or_else(|| format!("{field} (malformed; expected path:field)"))
 }
 
 fn relative_files_matching(root: &Path, pattern: &str) -> Result<BTreeSet<String>> {
@@ -2086,7 +2458,9 @@ fn collect_relative_files_matching(
 }
 
 fn pattern_scan_prefix(pattern: &str) -> &str {
-    let wildcard_at = pattern.find('*').unwrap_or(pattern.len());
+    let Some(wildcard_at) = pattern.find('*') else {
+        return pattern;
+    };
     let literal = &pattern[..wildcard_at];
     literal
         .rfind('/')

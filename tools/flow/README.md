@@ -5,9 +5,11 @@
 The tool is intentionally small:
 
 - `gate` — a checkpoint whose status (`pending` / `passed` / `failed`) is **derived live** from the protocol's `[[checks]]` and the event log. Never stored; never declared.
-- `check` — a typed one-word predicate: `audit`, `run`, `exists`, `agree`, `near`, `fresh`, or `cover`. Check ids are global handles for overrides and cached run results, so `flow` rejects duplicate ids when it parses `protocol.toml`.
-- `attempt` — one actor trying to satisfy one gate. Roles are metadata: `--kind audit`, `--actor agent:source-reviewer`. The `--actor` flag is the human-readable label; the unforgeable identity comes from `FLOW_ACTOR_ID` env when set, or the parent process id (`ppid:<n>`) when it isn't. Different subagent processes get different PPIDs naturally; same agent across calls keeps the same PPID. The `audit` check compares identity, not labels. Audit attempts can attach a `verify_*.md` report; flow hashes its content at finish, so post-finish edits invalidate the audit.
+- `check` — a typed one-word predicate: `audit`, `run`, `exists`, `agree`, `near`, `fresh`, `cover`, or `support`. Check ids are global handles for overrides and cached run results, so `flow` rejects duplicate ids when it parses `protocol.toml`.
+- `attempt` — one actor trying to satisfy one gate. Roles are typed: `audit`, `trial`, `run`, `report`. The `--actor` flag is the human-readable label; the unforgeable identity comes from `FLOW_ACTOR_ID` env when set, or the parent process id (`ppid:<n>`) when it isn't. Different subagent processes get different PPIDs naturally; same agent across calls keeps the same PPID. The `audit` check compares identity, not labels. Audit attempts can attach a `verify_*.md` report; flow hashes its content at finish, so post-finish edits invalidate the audit.
 - `artifact` — a file with a stable content hash, an optional producer attempt, and a `deps` snapshot of any source hashes referenced by `fresh` checks at registration time.
+- `producer` — an optional check field, for example `producer = "run"`. When present, each artifact consumed by the check must be registered from that attempt role. Trial artifacts cannot close run evidence.
+- `scope` — `[artifact].scope` is typed: `full`, `main`, `subset`, `snapshot`, or `custom`. `flow status --json` emits a run `verdict`: `green`, `muted`, or `blocked`.
 - `verdict` — a per-claim ✓/⚠/✗ verdict written by an audit subagent into a `verify_*.toml` sidecar next to its markdown report. Flow parses verdicts at `attempt finish` and exposes them via `flow status --json`. Renderers read claim chip status from here, never by grepping prose.
 - `decision` — a recorded fork choice: `flow decide <run> --id <id> --question "..." --choice "..."`. Surfaces in `flow status` so branches aren't buried in chat.
 - `deviation` — a recorded departure from the protocol-declared contract: `flow deviate <run> --id <id> --statement "..."`. Renders alongside protocol-declared `[[deviations]]`.
@@ -35,7 +37,37 @@ pattern = "cells/*/manifest.json"
 paths = ["cells/cell-0001/manifest.json", "cells/cell-0002/manifest.json"]
 ```
 
-`pattern` is a simple `*` wildcard over relative paths. Flow walks only the literal directory prefix before the first wildcard and skips symlinked directories. This is intentionally generic: it catches missing, extra, smoke, or orphan artifacts without knowing what the cells mean.
+`pattern` is a simple `*` wildcard over relative paths. Flow walks only the literal directory prefix before the first wildcard and skips symlinked directories. This is intentionally generic: it catches missing, extra, trial, or orphan artifacts without knowing what the cells mean.
+
+`support` checks dereference claim fields:
+
+```toml
+[[claims]]
+id = "energy"
+fields = ["cells/*/manifest.json:energy", "cells/*/manifest.json:stderr"]
+
+[[checks]]
+id = "energy"
+kind = "support"
+gate = "assemble"
+claims = ["energy"]
+producer = "run"
+```
+
+`run` checks can execute a declared entry command:
+
+```toml
+[entry]
+run = "scripts/reproduce run"
+help = "scripts/reproduce help"
+dry = "scripts/reproduce dry"
+
+[[checks]]
+id = "entry"
+kind = "run"
+gate = "close"
+entry = "help"
+```
 
 ## Run
 
