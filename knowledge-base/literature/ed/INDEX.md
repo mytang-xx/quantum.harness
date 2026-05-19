@@ -12,8 +12,9 @@ Search inside this dir with `rg --hidden -g '!.raw' "term" .knowledge/` (or `rg`
 | [1610.03042_quspin-a-python-package-for-dynamics-and-exact-diagonalisati.md](1610.03042_quspin-a-python-package-for-dynamics-and-exact-diagonalisati.md) | QuSpin: a Python Package for Dynamics and Exact Diagonalisation of Quantum Many Body Systems part I: spin chains | P. Weinberg, M. Bukov | 2016 | arXiv: Computational Physics | ✅ |
 | [1101.3281_computational-studies-of-quantum-spin-systems.md](1101.3281_computational-studies-of-quantum-spin-systems.md) | Computational Studies of Quantum Spin Systems | A. Sandvik | 2010 | arXiv: Strongly Correlated Electrons | ✅ |
 
-## DOI (1 entries)
+## DOI (2 entries)
 
 | File | Title | Authors | Year | Venue | Full text |
 |---|---|---|---|---|:---:|
+| [10-1038-s41567-018-0137-5.md](10-1038-s41567-018-0137-5.md) | Weak ergodicity breaking from quantum many-body scars | C. J. Turner et al. | 2018 | Nature Physics 14, 745-749 (2018) | ✅ |
 | [10-1007-978-3-540-74686-7-18.md](10-1007-978-3-540-74686-7-18.md) | Exact Diagonalization Techniques | A. Weisse, H. Fehske | 2008 |  | ✅ |
