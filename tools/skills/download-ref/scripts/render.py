@@ -395,13 +395,15 @@ def main() -> int:
         return 0
     if not args.kb:
         p.error("--kb is required unless --pdf/--out are supplied")
-    raw = args.kb / ".raw"
-    m = json.loads(args.manifest.read_text()) if args.manifest else {}
-    print(f"arxiv:  {render_arxiv(args.kb, raw, manifest=m, text_only=args.text_only)}")
-    print(f"doi:    {render_doi(args.kb, raw, manifest=m, text_only=args.text_only)}")
-    print(f"github: {render_github(args.kb, raw)}")
-    print(f"web:    {render_web(args.kb, raw, m)}")
-    print(f"stub:   {render_stubs(args.kb, m)}")
+    kb = args.kb.resolve()
+    manifest = args.manifest.resolve() if args.manifest else None
+    raw = kb / ".raw"
+    m = json.loads(manifest.read_text()) if manifest else {}
+    print(f"arxiv:  {render_arxiv(kb, raw, manifest=m, text_only=args.text_only)}")
+    print(f"doi:    {render_doi(kb, raw, manifest=m, text_only=args.text_only)}")
+    print(f"github: {render_github(kb, raw)}")
+    print(f"web:    {render_web(kb, raw, m)}")
+    print(f"stub:   {render_stubs(kb, m)}")
     return 0
 
 
