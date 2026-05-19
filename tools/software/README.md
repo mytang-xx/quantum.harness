@@ -57,3 +57,10 @@ Optional install fields:
 
 - `modules = ["cuda", "cudnn"]`
 - `notes = "..."`
+
+Optional top-level fields:
+
+- `requires = [{ stack = "stack-id", note = "..." }]` declares prerequisite
+  stacks that must already be installed and smoke-tested before this stack's
+  install command is run. Use it for dependency order, not for package-manager
+  details.

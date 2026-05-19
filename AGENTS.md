@@ -88,7 +88,7 @@ Current cards:
 - `symmetry-cheatsheet.md` — conserved quantities, lattice point groups.
 - `magic-conventions.md` — Pauli / clock-shift conventions, SRE definitions, partition modes, qudit generalizations, Wegner-duality SRE preservation.
 - `magic-benchmarks.md` — reference SRE / long-range-magic values across canonical models, reported as literature ranges.
-- `methods/{ed,dmrg,qmc,ctmrg,tebd,vmc-nqs,spectral,finite-t,pauli-markov,ttn}.md` — per-algorithm notation, code shape, knobs, pitfalls. `ed.md` is a blank placeholder pending refreshed references. `qmc.md` uses Julia SSE/Carlo; `ctmrg.md` uses Julia PEPSKit. `vmc-nqs.md` uses Python/NetKet. `spectral.md` and `finite-t.md` are stubs (pointers only, no tested recipe).
+- `methods/{ed,dmrg,qmc,ctmrg,tebd,vmc-nqs,vqe,spectral,finite-t,pauli-markov,ttn}.md` — per-algorithm notation, code shape, knobs, pitfalls. `ed.md` uses Julia XDiag with QuSpin as a Python fallback reference. `vqe.md` uses TensorCircuit-NG on a preinstalled JAX backend. `qmc.md` uses Julia SSE/Carlo; `ctmrg.md` uses Julia PEPSKit. `vmc-nqs.md` uses Python/NetKet. `spectral.md` and `finite-t.md` are stubs (pointers only, no tested recipe).
 - `literature/<method>/` — rendered methodology references organized by method, each with its own `INDEX.md`. Raw PDFs, Semantic Scholar metadata, and extracted figures live in local-only `.raw/` / `.figures/` subfolders and must remain gitignored.
 - `2302.04919-variational-benchmarks.md` — V-score paper notes.
 

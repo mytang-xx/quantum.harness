@@ -1,0 +1,27 @@
+id = "xdiag"
+name = "XDiag.jl"
+language = "julia"
+canonical_for = ["ed", "exact-diagonalization", "lanczos", "krylov"]
+default_profile = "cpu"
+
+[profiles.cpu]
+label = "CPU"
+default = true
+install = "cpu"
+smoke = "cpu"
+
+[profiles.cpu.requirements]
+allocation = "login-or-compute"
+mpi = false
+
+[install.cpu]
+command = "make install xdiag"
+notes = "Installs the registered Julia wrapper XDiag.jl into julia-env; the underlying binaries are provided through Julia artifacts."
+
+[smoke.cpu]
+where = "login"
+command = "julia --project=julia-env -e 'using XDiag'"
+
+[docs]
+official = "https://awietek.github.io/xdiag/"
+paper = "knowledge-base/literature/ed/2505.02901_xdiag-exact-diagonalization-for-quantum-many-body-systems.md"

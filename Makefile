@@ -21,7 +21,7 @@ ZLP := zlp
 .PHONY: setup core-setup install-flow test test-flow clean help install $(addprefix install-,$(INSTALLABLE))
 .PHONY: zulip-whoami zulip-pull zulip-send zulip-topics zulip-messages zulip-config
 
-INSTALLABLE := quarto quimb julia itensors netket netket-gpu sse pepskit classical-repro
+INSTALLABLE := quarto quimb julia itensors xdiag jax tensorcircuit-ng netket netket-gpu sse pepskit classical-repro
 
 help: ## Show available targets and installable tools
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
@@ -127,6 +127,34 @@ install-itensors: ## Install ITensors.jl + ITensorMPS.jl + KrylovKit.jl into jul
 	@cd julia-env && julia --project=. -e 'using Pkg; Pkg.add(["ITensors", "ITensorMPS", "KrylovKit", "MPSKit", "Plots"])'
 	@echo "Julia/ITensors environment ready in julia-env/"
 	@echo "Activate with: julia --project=julia-env"
+
+install-xdiag: ## Install XDiag.jl exact diagonalization stack into julia-env/
+	@command -v julia >/dev/null 2>&1 || { echo "Julia not found. Run: make install julia"; exit 1; }
+	@mkdir -p julia-env
+	@julia --project=julia-env -e 'using XDiag' >/dev/null 2>&1 || { cd julia-env && julia --project=. -e 'using Pkg; Pkg.add(["XDiag"])'; }
+	@julia --project=julia-env -e 'using XDiag'
+	@echo "XDiag environment ready in julia-env/"
+	@echo "Activate with: julia --project=julia-env"
+
+install-jax: ## Install JAX into .venv. Optional: EXTRA=cpu|cuda12|cuda13|cuda12-local|cuda13-local
+	@command -v uv >/dev/null 2>&1 || { echo "uv not found. Install uv first: https://docs.astral.sh/uv/getting-started/installation/"; exit 1; }
+	@[ -d .venv ] || uv venv .venv
+	@extra="$(or $(EXTRA),cpu)"; \
+	if [ "$$extra" = "cpu" ]; then \
+	  .venv/bin/python -c 'import jax' >/dev/null 2>&1 || uv pip install jax; \
+	else \
+	  uv pip install "jax[$$extra]"; \
+	fi
+	@.venv/bin/python -c 'import jax; print(jax.devices())'
+	@echo "JAX environment ready in .venv"
+	@echo "For GPU extras, run the GPU smoke inside a compute allocation: JAX_PLATFORM_NAME=gpu .venv/bin/python -c 'import jax; print(jax.devices())'"
+
+install-tensorcircuit-ng: ## Install TensorCircuit-NG after JAX has been installed and smoke-tested
+	@command -v uv >/dev/null 2>&1 || { echo "uv not found. Install uv first: https://docs.astral.sh/uv/getting-started/installation/"; exit 1; }
+	@.venv/bin/python -c 'import jax; print(jax.devices())' || { echo "JAX is required first. Run: make install jax EXTRA=cpu"; exit 1; }
+	@.venv/bin/python -c 'import tensorcircuit, cotengra, psutil, matplotlib' >/dev/null 2>&1 || uv pip install tensorcircuit-ng cotengra psutil matplotlib
+	@.venv/bin/python -c 'import tensorcircuit as tc; tc.set_backend("jax"); tc.about()'
+	@echo "TensorCircuit-NG environment ready in .venv"
 
 install-netket: ## Install NetKet + JAX for VMC / neural quantum states into .venv
 	@command -v uv >/dev/null 2>&1 || { echo "uv not found. Install uv first: https://docs.astral.sh/uv/getting-started/installation/"; exit 1; }
