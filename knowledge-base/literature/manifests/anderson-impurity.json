@@ -1,7 +1,11 @@
 {
   "arxiv": [
-    "cond-mat/9306057",
-    "cond-mat/0701105"
+    {
+      "id": "cond-mat/9306057"
+    },
+    {
+      "id": "cond-mat/0701105"
+    }
   ],
   "doi": [],
   "stub": [

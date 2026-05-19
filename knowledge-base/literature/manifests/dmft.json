@@ -1,9 +1,13 @@
 {
   "arxiv": [
-    "cond-mat/9306057"
+    {
+      "id": "cond-mat/9306057"
+    }
   ],
   "doi": [
-    "10.1103/RevModPhys.68.13"
+    {
+      "id": "10.1103/RevModPhys.68.13"
+    }
   ],
   "stub": []
 }

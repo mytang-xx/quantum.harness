@@ -6,13 +6,23 @@ Reads:
 - .raw/{arxiv,doi}/<id>.pdf — original PDFs (optional; rendered as full-text section)
 - .raw/repos/<owner>-<repo>/ — shallow clones (rendered as README + ls-tree)
 - .raw/web/<slug>.html or .raw/web/<slug>/ subdir — web page or local source dir
-- A manifest JSON describing web entries and bib stubs (titles/sources/notes)
+- A manifest JSON describing web entries, bib stubs, and any S2-metadata overrides
 
-Manifest schema (web/stub only — arxiv/doi/github are auto-discovered from .raw/):
+Manifest schema:
   {
-    "web":  {"<slug>": {"source_url": "...", "title": "...", "note": "..."}},
-    "stub": [{"slug": ..., "title": ..., "authors": ..., "note": ...}, ...]
+    "arxiv": [{"id": "<id>", "title"?, "authors"?, "year"?, "venue"?, "note"?}, ...],
+    "doi":   [...],                          # same shape
+    "web":   {"<slug>": {"source_url": "...", "title": "...", "note": "..."}},
+    "stub":  [{"slug": ..., "title": ..., "authors": ..., "note": ...}, ...]
   }
+
+Every `arxiv` / `doi` entry is an object. `id` is the only required field.
+Any of `title`, `authors`, `year`, `venue`, `note` override S2 — the escape
+hatch when S2's record is wrong (dropped diacritics, author typos, journal
+venue stored as arXiv category, arXiv submission year vs publication year).
+When `venue` is overridden, the body **Citation:** line uses it verbatim
+instead of splicing volume/pages from the (often wrong) S2 journal block.
+For an arXiv preprint with no overrides, write `{"id": "<id>"}`.
 
 Usage:
     render.py --kb /abs/path/.knowledge --manifest manifest.json
@@ -60,7 +70,9 @@ def authors_str(s2: dict) -> str:
     return ", ".join(a.get("name", "?") for a in (s2.get("authors") or []))
 
 
-def venue_line(s2: dict) -> str:
+def citation_line(s2: dict, ov: dict) -> str:
+    if "venue" in ov:
+        return ov["venue"]
     venue = s2.get("venue") or (s2.get("journal") or {}).get("name") or "preprint"
     j = s2.get("journal") or {}
     parts = [venue]
@@ -68,7 +80,7 @@ def venue_line(s2: dict) -> str:
         parts.append(f"vol. {j['volume']}")
     if j.get("pages"):
         parts.append(f"pp. {j['pages']}")
-    parts.append(str(s2.get("year", "?")))
+    parts.append(str(ov.get("year") or s2.get("year", "?")))
     return ", ".join(parts)
 
 
@@ -156,7 +168,8 @@ def render_pdf_file(pdf: Path, out: Path, text_only: bool = False) -> None:
     out.write_text(text.rstrip() + "\n")
 
 
-def render_arxiv(kb: Path, raw: Path, text_only: bool = False) -> int:
+def render_arxiv(kb: Path, raw: Path, manifest: dict | None = None, text_only: bool = False) -> int:
+    overrides = {e["id"]: {k: v for k, v in e.items() if k != "id"} for e in (manifest or {}).get("arxiv", [])}
     n = 0
     arx_dir = raw / "arxiv"
     if not arx_dir.exists():
@@ -166,22 +179,24 @@ def render_arxiv(kb: Path, raw: Path, text_only: bool = False) -> int:
         s2 = json.loads(json_path.read_text())
         ext = s2.get("externalIds") or {}
         arxiv_id = s2.get("_harness_arxiv_id") or ext.get("ArXiv") or safe_id
-        title = s2.get("title", "(untitled)")
+        ov = overrides.get(arxiv_id, {})
+        title = ov.get("title") or s2.get("title", "(untitled)")
         slug = f"{safe_id}_{slugify(title)}"
         meta = {
             "source": f"https://arxiv.org/abs/{arxiv_id}",
             "type": "arxiv",
             "canonical_id": arxiv_id,
             "title": title,
-            "authors": authors_str(s2),
-            "year": s2.get("year"),
-            "venue": s2.get("venue") or (s2.get("journal") or {}).get("name"),
+            "authors": ov.get("authors") or authors_str(s2),
+            "year": ov.get("year") or s2.get("year"),
+            "venue": ov.get("venue") or s2.get("venue") or (s2.get("journal") or {}).get("name"),
             "arxiv_id": arxiv_id,
             "doi": ext.get("DOI"),
+            "note": ov.get("note"),
         }
         body = [render_frontmatter(meta), "", f"# {title}", "",
                 f"**Authors:** {meta['authors']}", "",
-                f"**Citation:** {venue_line(s2)}", "",
+                f"**Citation:** {citation_line(s2, ov)}", "",
                 f"**arXiv:** [{arxiv_id}](https://arxiv.org/abs/{arxiv_id})"]
         if meta.get("doi"):
             body += ["", f"**DOI:** [{meta['doi']}](https://doi.org/{meta['doi']})"]
@@ -202,7 +217,8 @@ def render_arxiv(kb: Path, raw: Path, text_only: bool = False) -> int:
     return n
 
 
-def render_doi(kb: Path, raw: Path, text_only: bool = False) -> int:
+def render_doi(kb: Path, raw: Path, manifest: dict | None = None, text_only: bool = False) -> int:
+    overrides = {e["id"]: {k: v for k, v in e.items() if k != "id"} for e in (manifest or {}).get("doi", [])}
     n = 0
     doi_dir = raw / "doi"
     if not doi_dir.exists():
@@ -211,7 +227,8 @@ def render_doi(kb: Path, raw: Path, text_only: bool = False) -> int:
         safe = json_path.stem
         s2 = json.loads(json_path.read_text())
         doi_canon = (s2.get("externalIds") or {}).get("DOI") or safe.replace("-", "/", 1)
-        title = s2.get("title", "(untitled)")
+        ov = overrides.get(doi_canon, {})
+        title = ov.get("title") or s2.get("title", "(untitled)")
         slug = slugify(safe)
         ext = s2.get("externalIds") or {}
         meta = {
@@ -219,15 +236,16 @@ def render_doi(kb: Path, raw: Path, text_only: bool = False) -> int:
             "type": "doi",
             "canonical_id": doi_canon,
             "title": title,
-            "authors": authors_str(s2),
-            "year": s2.get("year"),
-            "venue": s2.get("venue") or (s2.get("journal") or {}).get("name"),
+            "authors": ov.get("authors") or authors_str(s2),
+            "year": ov.get("year") or s2.get("year"),
+            "venue": ov.get("venue") or s2.get("venue") or (s2.get("journal") or {}).get("name"),
             "doi": doi_canon,
             "arxiv_id": ext.get("ArXiv"),
+            "note": ov.get("note"),
         }
         body = [render_frontmatter(meta), "", f"# {title}", "",
                 f"**Authors:** {meta['authors']}", "",
-                f"**Citation:** {venue_line(s2)}", "",
+                f"**Citation:** {citation_line(s2, ov)}", "",
                 f"**DOI:** [{doi_canon}](https://doi.org/{doi_canon})"]
         if meta.get("arxiv_id"):
             body += ["", f"**arXiv preprint:** [{meta['arxiv_id']}](https://arxiv.org/abs/{meta['arxiv_id']})"]
@@ -361,7 +379,7 @@ def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--kb", type=Path)
     p.add_argument("--manifest", type=Path, default=None,
-                   help="Optional JSON manifest for web entries and bib stubs")
+                   help="Optional JSON manifest: web entries, bib stubs, plus per-entry S2 overrides for arxiv/doi")
     p.add_argument("--pdf", type=Path,
                    help="Render one PDF into a Markdown file using the same extraction stack")
     p.add_argument("--out", type=Path,
@@ -379,8 +397,8 @@ def main() -> int:
         p.error("--kb is required unless --pdf/--out are supplied")
     raw = args.kb / ".raw"
     m = json.loads(args.manifest.read_text()) if args.manifest else {}
-    print(f"arxiv:  {render_arxiv(args.kb, raw, text_only=args.text_only)}")
-    print(f"doi:    {render_doi(args.kb, raw, text_only=args.text_only)}")
+    print(f"arxiv:  {render_arxiv(args.kb, raw, manifest=m, text_only=args.text_only)}")
+    print(f"doi:    {render_doi(args.kb, raw, manifest=m, text_only=args.text_only)}")
     print(f"github: {render_github(args.kb, raw)}")
     print(f"web:    {render_web(args.kb, raw, m)}")
     print(f"stub:   {render_stubs(args.kb, m)}")
