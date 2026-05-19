@@ -58,9 +58,10 @@ Compare the protocol against declared primary sources.
 5. **Cell routes** — every executable cell declares `method`, `stack`, `route`, `source`, `check`, `state`, and `scope`; `route` is `paper`, `canonical`, `fallback`, or `deviation`.
 6. **Route authority** — `paper` routes cite primary / official sources, `canonical` routes cite a method card or stack card, `fallback` routes cite a named fallback, and `deviation` routes cite a deviation id before compute. Empty, failed, or skipped route state blocks compute unless scoped as a declared deviation or pending item.
 7. **Deviation clarity** — declared differences from the paper are scoped, claim-tagged, and have their own checks.
-8. **Gate completeness** — every gate the flow template declares has checks sufficient to prevent stale or unsupported artifacts from passing.
+8. **Repair clarity** — post-failure or contract-changing edits have `[[repairs]]` rows with `from`, `wrong`, `changed`, `invalidate`, and `state`.
+9. **Gate completeness** — every gate the flow template declares has checks sufficient to prevent stale or unsupported artifacts from passing.
 
-Severity tags: `supported`, `unsupported`, `hint-leak`, `assumption`, `deviation`, `missing-check`, `missing-route`, `unsupported-route`, `non-generic`.
+Severity tags: `supported`, `unsupported`, `hint-leak`, `assumption`, `deviation`, `repair`, `missing-check`, `missing-route`, `unsupported-route`, `non-generic`.
 
 ### `plan`
 
@@ -98,6 +99,7 @@ Audit a failed gate. Input: the failing check, expected vs observed, protocol, s
 2. **Mismatch class** — `source_misread`, `unsupported_assumption`, `convention_mismatch`, `plan_gap`, `script_bug`, `stack_or_remote_failure`, `stale_or_provenance_gap`, `insufficient_convergence`, `statistical_noise`, `paper_ambiguity`, `out_of_scope`.
 3. **Earliest wrong layer** — source/protocol, trusted reference, plan/run spec, script/aggregator, stack, raw cells, figure/report, or paper scope.
 4. **Invalidation scope** — downstream gates that can no longer support claims.
+5. **Repair row** — the next accepted artifact records the repair with invalidated gates and rerun state.
 
 Severity tags: `classified`, `under-evidenced`, `source-layer`, `plan-layer`, `script-layer`, `compute-layer`, `assembly-layer`, `report-layer`, `scope-layer`.
 
@@ -109,10 +111,11 @@ Audit the final run report, declared entry, protocol, verification reports, and 
 2. **Artifact provenance** — manifests carry required hashes, claim ids, deviation ids, method, stack, route, check, state, and scope.
 3. **Gate closure** — every flow gate is `passed` (or the run is marked partial / has recorded overrides).
 4. **Deviation visibility** — declared differences from the paper appear in the report, linked to protocol deviations.
-5. **Reproducibility** — declared entry + run command sufficient for fresh checkout.
-6. **Audience-facing artifact** — when a `report_*.html` is in scope: every editorial sentence in `editorial.json` traces to its `sourced_by` (re-grep the cited file:line); rendered HTML conforms to `docs/DESIGN.md`; mobile rendering at 375×667 has no overflow and ≥ 44×44px tap targets.
+5. **Repair closure** — each `[[repairs]]` row lists invalidated gates, and those gates have fresh passing attempts after the repair.
+6. **Reproducibility** — declared entry + run command sufficient for fresh checkout.
+7. **Audience-facing artifact** — when a `report_*.html` is in scope: every editorial sentence in `editorial.json` traces to its `sourced_by` (re-grep the cited file:line); rendered HTML conforms to `docs/DESIGN.md`; mobile rendering at 375×667 has no overflow and ≥ 44×44px tap targets.
 
-Severity tags: `supported`, `unsupported-claim`, `hint-leak`, `stale-artifact`, `provenance-gap`, `open-gate`, `hidden-deviation`, `repro-gap`, `editorial-leak`, `design-drift`.
+Severity tags: `supported`, `unsupported-claim`, `hint-leak`, `stale-artifact`, `provenance-gap`, `open-gate`, `hidden-deviation`, `open-repair`, `repro-gap`, `editorial-leak`, `design-drift`.
 
 ## Output
 
@@ -121,9 +124,16 @@ Two files, side by side:
 1. **`<run-dir>/verify/verify_<artifact-stem>_<date>.md`** — human-readable per-axis findings.
 2. **`<run-dir>/verify/verify_<artifact-stem>_<date>.toml`** — machine-readable verdict sidecar consumed by `flow attempt finish` and surfaced in `flow status --json`. Renderers read claim verdicts from here, never by grepping the markdown.
 
-The sidecar carries one `[[verdicts]]` entry per claim the audit voted on:
+The sidecar has a top-level gate status plus one `[[verdicts]]` entry per claim the audit voted on:
 
 ```toml
+status = "pass"      # pass | warn | fail
+mode = "protocol"    # protocol | plan | kb-card | script | result | mismatch | close
+target = "protocol.toml"
+hash = "sha256:..."  # optional, but required when target freshness matters
+author = "codex:<session>"
+reviewer = "codex:<session>"
+
 [[verdicts]]
 claim = "claim.scaling_exponent"
 status = "pass"
@@ -139,7 +149,7 @@ status = "fail"
 note = "disagrees by 4σ — see Axis 3"
 ```
 
-`status` ∈ {`pass`, `warn`, `fail`}. `note` is optional.
+Top-level `status` controls the audit gate: only `pass` passes. Per-claim `status` controls rendered claim chips. `note` is optional.
 
 The markdown carries the verbatim passages, the per-axis table, and the detail. It is what humans read:
 
@@ -176,7 +186,7 @@ The markdown carries the verbatim passages, the per-axis table, and the detail. 
 - Called by KB-card or script authors as a pre-commit gate.
 - The subagent surfaces what is wrong; the *calling skill* translates findings into 2–3 user options via the host's native API (`AskUserQuestion` in Claude Code; equivalent in Codex). User ratifies; only then does cleanup happen.
 
-In a flow-backed run, the caller records this audit as an `audit`-kind attempt on the relevant gate, attaches the report path with `--report`, then `flow attempt finish`. Flow's `audit` check verifies actor distinctness and report presence.
+In a flow-backed run, the caller records this audit as an `audit`-kind attempt on the relevant gate, writes the markdown report and typed TOML sidecar, attaches the report path with `--report`, then `flow attempt finish`. Flow's `audit` check verifies actor distinctness, report/sidecar freshness, and top-level sidecar `status = "pass"`.
 
 ## Anti-patterns
 

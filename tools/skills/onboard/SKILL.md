@@ -18,9 +18,9 @@ First-touch intake. Set up the core harness tools and domain environment, option
 
 ### 1. Setup — do it, don't ask
 
-Run `make setup` silently. It bootstraps Ion if needed, installs/syncs Ion skills, installs Rust/Cargo if needed, and builds core harness CLIs, including `tools/cli/flow`. Install domain tools only when the selected workflow needs them, using `make install <tool>` after checking the Makefile's `INSTALLABLE` list. Software-stack install contracts live in `tools/software/stacks/*.toml`.
+Run `make setup` silently. It installs Rust/Cargo if needed and builds core harness CLIs, including `tools/cli/flow`. Run `make skills` only when skill sync is actually needed. Install domain tools only when the selected workflow needs them, using `make install <tool>` after checking the Makefile's `INSTALLABLE` list. Software-stack install contracts live in `tools/software/stacks/*.toml`.
 
-If `make setup` fails because `curl`, Ion, Rust/Cargo, or the flow build is unavailable, stop and report that setup failure. Do not continue to `/reproduce-paper`, remote orchestration, or multi-agent workflow gates without `tools/cli/flow` working.
+If `make setup` fails because `curl`, Rust/Cargo, or the flow build is unavailable, stop and report that setup failure. Do not continue to `/reproduce-paper`, remote orchestration, or multi-agent workflow gates without `tools/cli/flow` working.
 
 Do not install every available method stack during first-touch onboarding. Humans install the smallest stack needed now, then add stacks when a method actually needs them.
 

@@ -33,7 +33,7 @@ Each gate's contract lives in `protocol.toml` as `[[checks]]`. `flow` runs the c
 
 2. **Acquire sources.** Copy `tools/templates/reproduce-paper/protocol.toml` to `results/<run>/protocol.toml`, fill `[artifact]`, `[[sources]]`, and the `source` gate check paths from primary sources, then start a `run` attempt on `source`. Use Markdown as the readable source: if an official or rendered Markdown source exists, place it under `sources/` and cite that; if only a PDF exists, store the PDF under `sources/` and render it with `python3 tools/skills/download-ref/scripts/render.py --pdf <pdf> --out <markdown>`. Finish the attempt, then `flow require <run> source` before protocol audit.
 
-3. **Author the contract.** Fill the rest of `protocol.toml` from the primary source: `[entry]`, `[[claims]]`, `[[cells]]`, `[[checks]]`, `[[figures]]`, optional `[[deviations]]` and `[[pending]]`. Each executable cell declares one route with one-word fields: `method`, `stack`, `route`, `source`, `check`, `state`, `scope`. Use one-word check kinds: `audit`, `run`, `exists`, `agree`, `near`, `fresh`, `cover`, `support`; keep check ids unique because they are override handles. Use attempt roles `audit`, `trial`, `run`, `report`.
+3. **Author the contract.** Fill the rest of `protocol.toml` from the primary source: `[entry]`, `[[claims]]`, `[[cells]]`, `[[checks]]`, `[[figures]]`, optional `[[deviations]]`, `[[repairs]]`, and `[[pending]]`. Each executable cell declares one route with one-word fields: `method`, `stack`, `route`, `source`, `check`, `state`, `scope`. Use one-word check kinds: `audit`, `run`, `exists`, `agree`, `near`, `fresh`, `cover`, `support`; keep check ids unique because they are override handles. Use attempt roles `audit`, `trial`, `run`, `report`.
 
 4. **Audit the contract.** Start an `audit`-kind attempt on the `protocol` gate with a verifier subagent (different `--actor` from whoever drafted the protocol). The verifier writes a report; finish the attempt with `--report <path>`. `flow` checks actors differ and the report exists.
 
@@ -99,9 +99,10 @@ When `flow attempt finish` reports a failing check:
 1. **Backchain first** — inspect the earliest failed gate and its declared inputs. Do not patch a downstream report to hide an upstream failure.
 2. **Repair the evidence** — fix the artifact, run a new attempt.
 3. **Record a deviation** — `flow deviate <run> --id <id> --statement "..." --reason "..."` for runtime departures, or declare in `protocol.toml`'s `[[deviations]]` upfront. Both surface as ⚠ in `flow status`.
-4. **Record a decision** — at any runtime fork the user hasn't pre-specified, present `AskUserQuestion` then `flow decide <run> --id <id> --question "..." --choice "..."`. Decisions surface in `flow status`.
-5. **Override** — `flow override <run> <check-id> --reason "<text>"`. The override is recorded forever; downstream artifacts show ⊘.
-6. **Stop** — always a real option.
+4. **Record a repair** — for any failed gate or contract-changing edit, add a `[[repairs]]` row with one-word fields: `from`, `wrong`, `changed`, `invalidate`, `state`.
+5. **Record a decision** — at any runtime fork the user hasn't pre-specified, present `AskUserQuestion` then `flow decide <run> --id <id> --question "..." --choice "..."`. Decisions surface in `flow status`.
+6. **Override** — `flow override <run> <check-id> --reason "<text>"`. The override is recorded forever; downstream artifacts show ⊘.
+7. **Stop** — always a real option.
 
 Never edit the script, the protocol, or the run report to *make* a check pass without changing the underlying evidence.
 

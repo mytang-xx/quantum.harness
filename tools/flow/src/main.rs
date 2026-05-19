@@ -22,13 +22,26 @@ const FLOW_TEMPLATE_FILE: &str = "flow.toml";
 const PROTOCOL_FILE: &str = "protocol.toml";
 const ACTOR_ENV: &str = "FLOW_ACTOR_ID";
 
-// Identity is unforgeable-by-label: either host-injected via FLOW_ACTOR_ID,
-// or derived from the parent process id. Different subagent processes get
-// different PPIDs naturally; the same agent across calls keeps the same PPID.
+// Identity is unforgeable-by-label. Prefer host session ids when available,
+// then FLOW_ACTOR_ID for non-host tests/tools, then the parent process id.
+// Different labels are display metadata only; audit checks compare identity.
 fn current_identity() -> String {
-    env::var(ACTOR_ENV)
+    env::var("CODEX_THREAD_ID")
         .ok()
         .filter(|v| !v.is_empty())
+        .map(|v| format!("codex:{v}"))
+        .or_else(|| {
+            env::var("CLAUDE_SESSION_ID")
+                .ok()
+                .filter(|v| !v.is_empty())
+                .map(|v| format!("claude:{v}"))
+        })
+        .or_else(|| {
+            env::var(ACTOR_ENV)
+                .ok()
+                .filter(|v| !v.is_empty())
+                .map(|v| format!("flow:{v}"))
+        })
         .unwrap_or_else(|| format!("ppid:{}", std::os::unix::process::parent_id()))
 }
 
@@ -60,6 +73,13 @@ struct Gate {
 struct Report {
     path: String,
     hash: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct Sidecar {
+    path: String,
+    hash: String,
+    status: VerdictStatus,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -136,6 +156,8 @@ struct Attempt {
     finished: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     report: Option<Report>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    sidecar: Option<Sidecar>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     verdicts: Vec<Verdict>,
 }
@@ -234,6 +256,8 @@ enum Event {
         id: String,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         report: Option<Report>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        sidecar: Option<Sidecar>,
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         verdicts: Vec<Verdict>,
     },
@@ -513,6 +537,17 @@ impl RunVerdict {
 // `flow status --json` can derive per-claim chip status without grepping prose.
 #[derive(Deserialize)]
 struct VerifyDoc {
+    status: VerdictStatus,
+    #[serde(default)]
+    mode: String,
+    #[serde(default)]
+    target: String,
+    #[serde(default)]
+    hash: String,
+    #[serde(default)]
+    author: String,
+    #[serde(default)]
+    reviewer: String,
     #[serde(default)]
     verdicts: Vec<Verdict>,
 }
@@ -539,7 +574,13 @@ fn run() -> Result<()> {
         return Err(usage());
     }
 
-    match args.remove(0).as_str() {
+    let cmd = args.remove(0);
+    if args.iter().any(|a| a == "--help" || a == "-h") {
+        println!("{}", usage_for(&cmd));
+        return Ok(());
+    }
+
+    match cmd.as_str() {
         "init" => cmd_init(&args),
         "status" => cmd_status(&args),
         "next" => cmd_next(&args),
@@ -562,6 +603,24 @@ fn run() -> Result<()> {
 fn usage() -> String {
     "usage: harness-flow <init|status|next|require|artifact|attempt|check|override|decide|deviate|attach> ..."
         .to_string()
+}
+
+fn usage_for(cmd: &str) -> String {
+    match cmd {
+        "init" => "usage: harness-flow init <dir> --template <template.toml>",
+        "status" => "usage: harness-flow status <dir> [--full | --recursive | --json]",
+        "next" => "usage: harness-flow next <dir>",
+        "require" => "usage: harness-flow require <dir> <gate>",
+        "artifact" => "usage: harness-flow artifact <add> ...",
+        "attempt" => "usage: harness-flow attempt <start|finish> ...",
+        "check" => "usage: harness-flow check <dir> <gate>",
+        "override" => "usage: harness-flow override <dir> <check-id> --reason <text> [--actor <actor>]",
+        "decide" => "usage: harness-flow decide <dir> --id <id> --question <text> --choice <text> [--reason <text>]",
+        "deviate" => "usage: harness-flow deviate <dir> --id <id> --statement <text> [--reason <text>]",
+        "attach" => "usage: harness-flow attach <parent-dir> <child-dir>",
+        _ => "usage: harness-flow <init|status|next|require|artifact|attempt|check|override|decide|deviate|attach> ...",
+    }
+    .to_string()
 }
 
 // ─── init ────────────────────────────────────────────────────────────────────
@@ -607,7 +666,7 @@ fn cmd_init(args: &[String]) -> Result<()> {
 // ─── status ──────────────────────────────────────────────────────────────────
 
 fn cmd_status(args: &[String]) -> Result<()> {
-    if args.is_empty() {
+    if args.is_empty() || args[0] == "--help" || args[0] == "-h" {
         return Err("usage: harness-flow status <dir> [--full | --recursive | --json]".to_string());
     }
     let dir = Path::new(&args[0]);
@@ -1139,30 +1198,7 @@ fn cmd_attempt_finish(args: &[String]) -> Result<()> {
     }
     let dir = Path::new(&args[1]);
     let id = args[2].clone();
-    let (report, verdicts) = match option_value(args, "--report") {
-        Some(raw) => {
-            let path = Path::new(&raw);
-            if !path.exists() {
-                return Err(format!("report not found: {raw}"));
-            }
-            let hash = file_hash(path)?;
-            let sidecar = path.with_extension("toml");
-            let verdicts = if sidecar.exists() && sidecar != path {
-                let text = fs::read_to_string(&sidecar).map_err(|e| e.to_string())?;
-                toml::from_str::<VerifyDoc>(&text)
-                    .map_err(|e| format!("verify sidecar {}: {e}", sidecar.display()))?
-                    .verdicts
-            } else {
-                Vec::new()
-            };
-            let rel = path
-                .strip_prefix(dir)
-                .map(|p| p.display().to_string())
-                .unwrap_or(raw);
-            (Some(Report { path: rel, hash }), verdicts)
-        }
-        None => (None, Vec::new()),
-    };
+    let raw_report = option_value(args, "--report");
     with_flow_lock(dir, || {
         let state = rebuild(dir)?;
         let attempt = state
@@ -1173,11 +1209,17 @@ fn cmd_attempt_finish(args: &[String]) -> Result<()> {
         if attempt.finished {
             return Err(format!("attempt already finished: {id}"));
         }
+        let (report, sidecar, verdicts) = finish_report(
+            dir,
+            raw_report.as_deref(),
+            attempt.kind == AttemptKind::Audit,
+        )?;
         append_event(
             dir,
             &Event::AttemptFinished {
                 id: id.clone(),
                 report,
+                sidecar,
                 verdicts,
             },
         )?;
@@ -1212,6 +1254,73 @@ fn cmd_attempt_finish(args: &[String]) -> Result<()> {
         println!("status\t{status}");
         Ok(())
     })
+}
+
+fn finish_report(
+    dir: &Path,
+    raw_report: Option<&str>,
+    audit: bool,
+) -> Result<(Option<Report>, Option<Sidecar>, Vec<Verdict>)> {
+    let Some(raw) = raw_report else {
+        return if audit {
+            Err("audit attempt finish needs --report <path>".to_string())
+        } else {
+            Ok((None, None, Vec::new()))
+        };
+    };
+
+    let path = Path::new(raw);
+    if !path.exists() {
+        return Err(format!("report not found: {raw}"));
+    }
+    let report = Report {
+        path: rel_path(dir, path, raw),
+        hash: file_hash(path)?,
+    };
+    if !audit {
+        return Ok((Some(report), None, Vec::new()));
+    }
+
+    let sidecar_path = path.with_extension("toml");
+    if !sidecar_path.exists() || sidecar_path == path {
+        return Err(format!(
+            "audit report needs typed sidecar: {}",
+            sidecar_path.display()
+        ));
+    }
+    let text = fs::read_to_string(&sidecar_path).map_err(|e| e.to_string())?;
+    let doc: VerifyDoc = toml::from_str(&text)
+        .map_err(|e| format!("verify sidecar {}: {e}", sidecar_path.display()))?;
+    if !doc.author.is_empty() && !doc.reviewer.is_empty() && doc.author == doc.reviewer {
+        return Err(format!(
+            "verify sidecar {}: author and reviewer match",
+            sidecar_path.display()
+        ));
+    }
+    if !doc.hash.is_empty() {
+        if doc.target.is_empty() {
+            return Err(format!(
+                "verify sidecar {}: hash needs target",
+                sidecar_path.display()
+            ));
+        }
+        let target = path_in_dir(dir, &doc.target);
+        let actual =
+            file_hash(&target).map_err(|e| format!("verify sidecar target {}: {e}", doc.target))?;
+        if actual != doc.hash {
+            return Err(format!(
+                "verify sidecar target hash mismatch: {}",
+                doc.target
+            ));
+        }
+    }
+    let _mode = &doc.mode;
+    let sidecar = Sidecar {
+        path: rel_path(dir, &sidecar_path, &sidecar_path.display().to_string()),
+        hash: file_hash(&sidecar_path)?,
+        status: doc.status,
+    };
+    Ok((Some(report), Some(sidecar), doc.verdicts))
 }
 
 // ─── check ───────────────────────────────────────────────────────────────────
@@ -1493,6 +1602,7 @@ fn apply_event(state: &mut State, event: Event) -> Result<()> {
                     executor,
                     command,
                     report: None,
+                    sidecar: None,
                     finished: false,
                     verdicts: Vec::new(),
                 },
@@ -1501,6 +1611,7 @@ fn apply_event(state: &mut State, event: Event) -> Result<()> {
         Event::AttemptFinished {
             id,
             report,
+            sidecar,
             verdicts,
         } => {
             let attempt = state
@@ -1509,6 +1620,7 @@ fn apply_event(state: &mut State, event: Event) -> Result<()> {
                 .ok_or_else(|| format!("unknown attempt in event log: {id}"))?;
             attempt.finished = true;
             attempt.report = report;
+            attempt.sidecar = sidecar;
             attempt.verdicts = verdicts;
         }
         Event::RunRecorded { check, result } => {
@@ -1749,9 +1861,9 @@ fn eval_check(ctx: &Ctx, check: &Check) -> CheckResult {
     }
 }
 
-// Producer and auditor must differ by identity (env FLOW_ACTOR_ID or ppid:<n>);
-// equality means the same process produced and audited. The audit report's
-// content is pinned at attempt-finish — post-finish edits invalidate the audit.
+// Producer and auditor must differ by identity. Prefer host session ids when
+// present, then FLOW_ACTOR_ID, then ppid fallback. The audit report and typed
+// sidecar are pinned at attempt-finish; post-finish edits invalidate the audit.
 fn eval_audit(dir: &Path, state: &State, check: &Check) -> (bool, String) {
     let producers: Vec<&Attempt> = state
         .attempts
@@ -1793,6 +1905,36 @@ fn eval_audit(dir: &Path, state: &State, check: &Check) -> (bool, String) {
                     format!("cannot hash audit report {}: {e}", report.path),
                 )
             }
+        }
+        let sidecar = match v.sidecar.as_ref() {
+            Some(s) => s,
+            None => {
+                return (
+                    false,
+                    format!("audit attempt {} has no sidecar", v.actor.label),
+                )
+            }
+        };
+        match file_hash(&dir.join(&sidecar.path)) {
+            Ok(h) if h == sidecar.hash => {}
+            Ok(_) => {
+                return (
+                    false,
+                    format!("audit sidecar mutated since finish: {}", sidecar.path),
+                )
+            }
+            Err(e) => {
+                return (
+                    false,
+                    format!("cannot hash audit sidecar {}: {e}", sidecar.path),
+                )
+            }
+        }
+        if sidecar.status != VerdictStatus::Pass {
+            return (
+                false,
+                format!("audit sidecar status {:?}", sidecar.status).to_lowercase(),
+            );
         }
         for p in &producers {
             if p.actor.identity == v.actor.identity {
@@ -2570,6 +2712,21 @@ fn file_hash(path: &Path) -> Result<String> {
         hasher.update(&buffer[..n]);
     }
     Ok(format!("sha256:{:x}", hasher.finalize()))
+}
+
+fn rel_path(dir: &Path, path: &Path, raw: &str) -> String {
+    path.strip_prefix(dir)
+        .map(|p| p.display().to_string())
+        .unwrap_or_else(|_| raw.to_string())
+}
+
+fn path_in_dir(dir: &Path, raw: &str) -> PathBuf {
+    let path = Path::new(raw);
+    if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        dir.join(path)
+    }
 }
 
 fn now_id() -> String {

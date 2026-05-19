@@ -301,6 +301,19 @@ reason = ""
 claims = []
 checks = []
 
+# ─── repairs ─────────────────────────────────────────────────────────────────
+# Record corrections after failed gates or contract-changing edits. Runtime
+# fork choices are recorded with `flow decide`; repairs are protocol evidence
+# that downstream artifacts were invalidated and rerun.
+
+[[repairs]]
+id = "repair.example"
+from = ""              # source | protocol | plan | script | trust | run | assemble | close
+wrong = ""
+changed = []           # files or artifact ids changed by the repair
+invalidate = []        # gates invalidated by the repair
+state = ""             # open | rerun | closed
+
 # ─── pending ─────────────────────────────────────────────────────────────────
 # Declare next obligations the run does NOT meet (cross-method check, larger
 # system size, longer runtime). /report renders one muted chip per [[pending]]

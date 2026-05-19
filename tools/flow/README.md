@@ -6,11 +6,11 @@ The tool is intentionally small:
 
 - `gate` — a checkpoint whose status (`pending` / `passed` / `failed`) is **derived live** from the protocol's `[[checks]]` and the event log. Never stored; never declared.
 - `check` — a typed one-word predicate: `audit`, `run`, `exists`, `agree`, `near`, `fresh`, `cover`, or `support`. Check ids are global handles for overrides and cached run results, so `flow` rejects duplicate ids when it parses `protocol.toml`.
-- `attempt` — one actor trying to satisfy one gate. Roles are typed: `audit`, `trial`, `run`, `report`. The `--actor` flag is the human-readable label; the unforgeable identity comes from `FLOW_ACTOR_ID` env when set, or the parent process id (`ppid:<n>`) when it isn't. Different subagent processes get different PPIDs naturally; same agent across calls keeps the same PPID. The `audit` check compares identity, not labels. Audit attempts can attach a `verify_*.md` report; flow hashes its content at finish, so post-finish edits invalidate the audit.
+- `attempt` — one actor trying to satisfy one gate. Roles are typed: `audit`, `trial`, `run`, `report`. The `--actor` flag is the human-readable label; identity comes from host session ids (`CODEX_THREAD_ID`, `CLAUDE_SESSION_ID`) when present, then `FLOW_ACTOR_ID`, then the parent process id (`ppid:<n>`). The `audit` check compares identity, not labels. Audit attempts must attach a `verify_*.md` report plus sibling `verify_*.toml` sidecar; flow hashes both at finish, so post-finish edits invalidate the audit.
 - `artifact` — a file with a stable content hash, an optional producer attempt, and a `deps` snapshot of any source hashes referenced by `fresh` checks at registration time.
 - `producer` — an optional check field, for example `producer = "run"`. When present, each artifact consumed by the check must be registered from that attempt role. Trial artifacts cannot close run evidence.
 - `scope` — `[artifact].scope` is typed: `full`, `main`, `subset`, `snapshot`, or `custom`. `flow status --json` emits a run `verdict`: `green`, `muted`, or `blocked`.
-- `verdict` — a per-claim ✓/⚠/✗ verdict written by an audit subagent into a `verify_*.toml` sidecar next to its markdown report. Flow parses verdicts at `attempt finish` and exposes them via `flow status --json`. Renderers read claim chip status from here, never by grepping prose.
+- `verdict` — a typed audit result written into a `verify_*.toml` sidecar next to its markdown report. Top-level `status = "pass"` is required for the audit check to pass; `warn` and `fail` block the gate. Per-claim `[[verdicts]]` are exposed via `flow status --json` for renderers.
 - `decision` — a recorded fork choice: `flow decide <run> --id <id> --question "..." --choice "..."`. Surfaces in `flow status` so branches aren't buried in chat.
 - `deviation` — a recorded departure from the protocol-declared contract: `flow deviate <run> --id <id> --statement "..."`. Renders alongside protocol-declared `[[deviations]]`.
 - `override` — a user-confirmed bypass of a failing check: `flow override <run> <check-id> --reason "..."`. Surfaces as ⊘ in downstream artifacts.
@@ -25,6 +25,23 @@ State is append-only. `progress/events.jsonl` is the source of truth (typed Rust
 Each command takes a local `progress/.lock` while reading, appending, or rebuilding state. This serializes multiple local agents on the same checkout. Subagents and remote jobs should still report back to the main agent instead of writing the event log directly.
 
 Artifact hashes use SHA-256 and are recorded as `sha256:<hex>`. Re-registering an artifact with a different hash naturally invalidates downstream `fresh` checks (their `deps` snapshot no longer matches). There is no separate "invalidate" command — status is always derived.
+
+Audit sidecars are typed:
+
+```toml
+status = "pass"    # pass | warn | fail
+mode = "script"    # optional one-word verifier mode
+target = "scripts/reproduce"
+hash = "sha256:..." # optional current target hash
+author = "codex:<session>"
+reviewer = "codex:<session>"
+
+[[verdicts]]
+claim = "claim.energy"
+status = "pass"
+```
+
+When `hash` is present, `target` must be present and match the current file hash at `attempt finish`. `author` and `reviewer`, when both present, must differ.
 
 `cover` checks compare an observed file set to a declared set:
 
@@ -75,7 +92,7 @@ entry = "help"
 tools/cli/flow <command>
 ```
 
-`make setup` builds the release binary used by this wrapper. If the binary is absent, the wrapper falls back to `cargo run`.
+`make setup` builds the release binary used by this wrapper. `make skills` syncs Ion skills separately. If the binary is absent, the wrapper falls back to `cargo run`.
 
 For a local shell shortcut during a session:
 
@@ -89,9 +106,13 @@ alias flow=tools/cli/flow
 flow init results/run-a --template tools/flow/templates/reproduce-paper.toml
 flow next results/run-a
 
-attempt=$(flow attempt start results/run-a protocol --kind audit --actor agent:source-reviewer)
-flow artifact add results/run-a protocol results/run-a/protocol.toml --kind protocol --producer "$attempt"
-flow attempt finish results/run-a "$attempt" --report results/run-a/verify/protocol.md
+author=$(flow attempt start results/run-a protocol --kind run --actor agent:protocol-author)
+flow artifact add results/run-a protocol results/run-a/protocol.toml --kind protocol --producer "$author"
+flow attempt finish results/run-a "$author"
+
+audit=$(flow attempt start results/run-a protocol --kind audit --actor agent:source-reviewer)
+# write results/run-a/verify/protocol.md and results/run-a/verify/protocol.toml
+flow attempt finish results/run-a "$audit" --report results/run-a/verify/protocol.md
 
 flow require results/run-a protocol
 flow status results/run-a

@@ -37,7 +37,7 @@ A `<run-dir>` containing:
 
 3. **Render the HTML.** `python tools/skills/report/scripts/render.py <run-dir>`. The renderer is mechanical — reads `flow status --json` for all derived state (gate verdicts, claim verdicts, overrides, deviations, pending), composes the figure-first template, falls back to declared statements when editorial fields are missing, and stamps the provenance footer.
 
-4. **Dispatch the audit subagent** as an `audit`-kind attempt on the `report` gate (`--actor` distinct from the polish actor). The subagent traces every editorial sentence to its `sourced_by` pointer, checks DESIGN.md compliance, checks mobile rendering. Writes `verify/verify_report_<date>.md` + sibling `verify_report_<date>.toml` (verdict sidecar).
+4. **Dispatch the audit subagent** as an `audit`-kind attempt on the `report` gate (`--actor` distinct from the polish actor). The subagent traces every editorial sentence to its `sourced_by` pointer, checks DESIGN.md compliance, checks mobile rendering. Writes `verify/verify_report_<date>.md` + sibling `verify_report_<date>.toml` with top-level `status = "pass" | "warn" | "fail"`.
 
 5. **`flow attempt finish`** on the audit attempt with `--report <md-path>`. Flow parses the sidecar verdicts, runs the `report` gate's `[[checks]]` (audit + editorial_fresh), and derives status. If pass, the run ships. If fail, see *Failed checks*.
 

@@ -36,13 +36,27 @@ fn write(path: &Path, content: &str) {
     fs::write(path, content).unwrap();
 }
 
+fn write_audit(report: &Path, status: &str) {
+    write(report, "audit findings\n");
+    write(
+        &report.with_extension("toml"),
+        &format!("status = \"{status}\"\n"),
+    );
+}
+
 fn run(args: &[&str]) -> std::process::Output {
-    Command::new(bin()).args(args).output().unwrap()
+    let mut command = Command::new(bin());
+    command.args(args);
+    command.env_remove("CODEX_THREAD_ID");
+    command.env_remove("CLAUDE_SESSION_ID");
+    command.output().unwrap()
 }
 
 fn run_with_env(args: &[&str], envs: &[(&str, &str)]) -> std::process::Output {
     let mut command = Command::new(bin());
     command.args(args);
+    command.env_remove("CODEX_THREAD_ID");
+    command.env_remove("CLAUDE_SESSION_ID");
     for (key, value) in envs {
         command.env(key, value);
     }
@@ -330,7 +344,7 @@ gate = "protocol"
     )
     .to_string();
     let report = run_dir.join("verify").join("r.md");
-    write(&report, "audit\n");
+    write_audit(&report, "pass");
     assert_ok(&[
         "attempt",
         "finish",
@@ -343,6 +357,105 @@ gate = "protocol"
         String::from_utf8_lossy(&run(&["check", run_dir.to_str().unwrap(), "protocol"]).stdout)
             .to_string();
     assert!(stdout.contains("self-audit: identity"), "stdout: {stdout}");
+}
+
+#[test]
+fn audit_identity_prefers_host_session() {
+    let root = tmp_dir("audit-host-session");
+    let template = root.join("template.toml");
+    let run_dir = root.join("run");
+    write(&template, "[[gates]]\nid = \"protocol\"\n");
+    fs::create_dir_all(&run_dir).unwrap();
+    write(
+        &run_dir.join("protocol.toml"),
+        r#"
+[[checks]]
+id = "protocol_audit"
+kind = "audit"
+gate = "protocol"
+"#,
+    );
+    assert_ok(&[
+        "init",
+        run_dir.to_str().unwrap(),
+        "--template",
+        template.to_str().unwrap(),
+    ]);
+    let producer = String::from_utf8_lossy(
+        &run_with_env(
+            &[
+                "attempt",
+                "start",
+                run_dir.to_str().unwrap(),
+                "protocol",
+                "--kind",
+                "run",
+                "--actor",
+                "agent:author",
+            ],
+            &[
+                ("CODEX_THREAD_ID", "same-session"),
+                ("FLOW_ACTOR_ID", "author"),
+            ],
+        )
+        .stdout,
+    )
+    .to_string();
+    run_with_env(
+        &[
+            "attempt",
+            "finish",
+            run_dir.to_str().unwrap(),
+            producer.trim(),
+        ],
+        &[
+            ("CODEX_THREAD_ID", "same-session"),
+            ("FLOW_ACTOR_ID", "author"),
+        ],
+    );
+    let auditor = String::from_utf8_lossy(
+        &run_with_env(
+            &[
+                "attempt",
+                "start",
+                run_dir.to_str().unwrap(),
+                "protocol",
+                "--kind",
+                "audit",
+                "--actor",
+                "agent:auditor",
+            ],
+            &[
+                ("CODEX_THREAD_ID", "same-session"),
+                ("FLOW_ACTOR_ID", "auditor"),
+            ],
+        )
+        .stdout,
+    )
+    .to_string();
+    let report = run_dir.join("verify").join("audit.md");
+    write_audit(&report, "pass");
+    run_with_env(
+        &[
+            "attempt",
+            "finish",
+            run_dir.to_str().unwrap(),
+            auditor.trim(),
+            "--report",
+            report.to_str().unwrap(),
+        ],
+        &[
+            ("CODEX_THREAD_ID", "same-session"),
+            ("FLOW_ACTOR_ID", "auditor"),
+        ],
+    );
+    let stdout =
+        String::from_utf8_lossy(&run(&["check", run_dir.to_str().unwrap(), "protocol"]).stdout)
+            .to_string();
+    assert!(
+        stdout.contains("self-audit: identity codex:same-session"),
+        "stdout: {stdout}"
+    );
 }
 
 #[test]
@@ -650,7 +763,7 @@ gate = "protocol"
         "agent:author", // SAME actor — should fail audit
     ]);
     let report = run_dir.join("verify").join("self.md");
-    write(&report, "self review\n");
+    write_audit(&report, "pass");
     assert_ok(&[
         "attempt",
         "finish",
@@ -732,7 +845,7 @@ gate = "protocol"
     )
     .to_string();
     let report = run_dir.join("verify").join("independent.md");
-    write(&report, "independent review\n");
+    write_audit(&report, "pass");
     assert_ok(&[
         "attempt",
         "finish",
@@ -743,6 +856,151 @@ gate = "protocol"
     ]);
 
     assert_ok(&["require", run_dir.to_str().unwrap(), "protocol"]);
+}
+
+#[test]
+fn audit_finish_requires_typed_sidecar() {
+    let root = tmp_dir("audit-sidecar-missing");
+    let template = root.join("template.toml");
+    let run_dir = root.join("run");
+    write(&template, "[[gates]]\nid = \"protocol\"\n");
+    fs::create_dir_all(&run_dir).unwrap();
+    write(
+        &run_dir.join("protocol.toml"),
+        r#"
+[[checks]]
+id = "audit"
+kind = "audit"
+gate = "protocol"
+"#,
+    );
+    assert_ok(&[
+        "init",
+        run_dir.to_str().unwrap(),
+        "--template",
+        template.to_str().unwrap(),
+    ]);
+    let producer = assert_ok(&[
+        "attempt",
+        "start",
+        run_dir.to_str().unwrap(),
+        "protocol",
+        "--kind",
+        "run",
+        "--actor",
+        "agent:author",
+    ]);
+    assert_ok(&[
+        "attempt",
+        "finish",
+        run_dir.to_str().unwrap(),
+        producer.trim(),
+    ]);
+    let auditor = assert_ok(&[
+        "attempt",
+        "start",
+        run_dir.to_str().unwrap(),
+        "protocol",
+        "--kind",
+        "audit",
+        "--actor",
+        "agent:auditor",
+    ]);
+    let report = run_dir.join("verify").join("audit.md");
+    write(&report, "audit findings\n");
+    let err = assert_fail(&[
+        "attempt",
+        "finish",
+        run_dir.to_str().unwrap(),
+        auditor.trim(),
+        "--report",
+        report.to_str().unwrap(),
+    ]);
+    assert!(err.contains("typed sidecar"), "stderr: {err}");
+}
+
+#[test]
+fn audit_sidecar_warn_blocks_gate() {
+    let root = tmp_dir("audit-sidecar-warn");
+    let template = root.join("template.toml");
+    let run_dir = root.join("run");
+    write(&template, "[[gates]]\nid = \"protocol\"\n");
+    fs::create_dir_all(&run_dir).unwrap();
+    write(
+        &run_dir.join("protocol.toml"),
+        r#"
+[[checks]]
+id = "audit"
+kind = "audit"
+gate = "protocol"
+"#,
+    );
+    assert_ok(&[
+        "init",
+        run_dir.to_str().unwrap(),
+        "--template",
+        template.to_str().unwrap(),
+    ]);
+    let producer = String::from_utf8_lossy(
+        &run_with_env(
+            &[
+                "attempt",
+                "start",
+                run_dir.to_str().unwrap(),
+                "protocol",
+                "--kind",
+                "run",
+                "--actor",
+                "agent:author",
+            ],
+            &[("FLOW_ACTOR_ID", "author")],
+        )
+        .stdout,
+    )
+    .to_string();
+    run_with_env(
+        &[
+            "attempt",
+            "finish",
+            run_dir.to_str().unwrap(),
+            producer.trim(),
+        ],
+        &[("FLOW_ACTOR_ID", "author")],
+    );
+    let auditor = String::from_utf8_lossy(
+        &run_with_env(
+            &[
+                "attempt",
+                "start",
+                run_dir.to_str().unwrap(),
+                "protocol",
+                "--kind",
+                "audit",
+                "--actor",
+                "agent:auditor",
+            ],
+            &[("FLOW_ACTOR_ID", "auditor")],
+        )
+        .stdout,
+    )
+    .to_string();
+    let report = run_dir.join("verify").join("audit.md");
+    write_audit(&report, "warn");
+    run_with_env(
+        &[
+            "attempt",
+            "finish",
+            run_dir.to_str().unwrap(),
+            auditor.trim(),
+            "--report",
+            report.to_str().unwrap(),
+        ],
+        &[("FLOW_ACTOR_ID", "auditor")],
+    );
+    let out =
+        String::from_utf8_lossy(&run(&["check", run_dir.to_str().unwrap(), "protocol"]).stdout)
+            .to_string();
+    assert!(out.contains("audit sidecar status warn"), "stdout: {out}");
 }
 
 fn fresh_setup(name: &str) -> (PathBuf, PathBuf) {
@@ -872,6 +1130,18 @@ fn status_is_pure_does_not_execute_run_checks() {
 }
 
 #[test]
+fn status_help_is_pure() {
+    let root = tmp_dir("status-help");
+    let target = root.join("--help");
+    let out = assert_ok(&["status", target.to_str().unwrap(), "--help"]);
+    assert!(out.contains("usage: harness-flow status"), "stdout: {out}");
+    assert!(
+        !target.exists(),
+        "status --help must not create or rebuild a flow directory"
+    );
+}
+
+#[test]
 fn attempt_finish_executes_run_checks_and_caches_result() {
     let root = tmp_dir("run-cached");
     let template = root.join("template.toml");
@@ -952,7 +1222,7 @@ fn audit_detects_report_tampering_after_finish() {
         &[("FLOW_ACTOR_ID", "producer-id")],
     );
     let report = run_dir.join("verify_source.md");
-    write(&report, "audit: ok\n");
+    write_audit(&report, "pass");
     let aud = String::from_utf8_lossy(
         &run_with_env(
             &[
@@ -1611,6 +1881,8 @@ gate = "source"
     write(
         &sidecar,
         r#"
+status = "pass"
+
 [[verdicts]]
 claim = "claim.alpha"
 status = "pass"

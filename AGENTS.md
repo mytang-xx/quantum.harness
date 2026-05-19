@@ -105,6 +105,7 @@ Skills cite these cards; they never hardcode the data. New cards land when a rea
 - No first-cell provenance. Per-cell run-spec overrides are allowed, but assembly must validate each manifest against the merged shared+cell settings and provenance, then report settings as constant vs varying. Never summarize a correctness-affecting setting, budget, or uncertainty rule from the first completed manifest unless a manifest-consensus check has proved it is global.
 - Failed checks block claims. A failed protocol, script, command, manifest, freshness, consensus, numeric, or result check stops the workflow until repaired, scoped down, or recorded as a justified assumption/deviation.
 - Failed checks enter the correction loop: classify the mismatch, locate the earliest wrong layer, revise that layer, invalidate downstream artifacts, rerun affected gates, then re-verify.
+- Repairs are evidence. Any correction after a failed gate or contract-changing edit must record a `repair` with `from`, `wrong`, `changed`, `invalidate`, and `state`; close cannot rely on artifacts from invalidated gates until those gates rerun.
 - Use artifact-scoped subagents, not permanent domain personas: source/protocol, plan/run-spec, script, result, mismatch, and close reviewers each receive the primary source context and exact artifact under review. KB-only review cannot close a scientific gate.
 - The agent that writes or materially edits a reproduction protocol, script, check command, aggregator, or result report cannot be the sole verifier of that artifact. Self-checks catch syntax and smoke failures; independent `/verify` or separate-agent review closes the verification loop.
 - Stale artifacts or artifacts missing required provenance cannot support conclusions. Remote job status, `ssh` exit status, and scheduler `COMPLETED` state are operational facts only; fetched manifests and checks are the evidence.
@@ -249,7 +250,7 @@ ion self --help                          # Manage the Ion install
 
 ## Setup & Tool Installation
 
-- `make setup` performs the **minimum bootstrap only** — it bootstraps Ion and Rust/Cargo if needed, installs/syncs Ion skills, and builds core harness CLI tools such as `tools/cli/flow`. It does NOT install heavy domain tools.
+- `make setup` performs the **minimum bootstrap only** — it installs Rust/Cargo if needed and builds core harness CLI tools such as `tools/cli/flow`. It does NOT install Ion skills or heavy domain tools. Use `make skills` for Ion-managed skills and `make doctor` for a read-only core readiness check.
 - Install domain tools **on demand** with `make install <tool>`. Running `make help` lists the currently installable tools.
 - Adding a new installable tool: append its name to the `INSTALLABLE` variable in the `Makefile` and add a matching `install-<tool>` recipe. Keep recipes idempotent (check before installing).
 - When suggesting a command that requires a tool, first check that tool is in `INSTALLABLE` (and installed) — otherwise tell the user to run `make install <tool>` before proceeding.
@@ -296,7 +297,7 @@ Agents working in this project should:
 3. Run `make help` to discover available workflow targets.
 4. Check `Ion.toml` (or `ion` CLI) for installed / available skills.
 5. For methodology references, use `download-ref`; keep different methods in different `knowledge-base/literature/<method>/` folders and never commit `.raw/` or `.figures/`.
-6. Treat `make setup` as **minimal bootstrap only** — install heavy domain tools on demand via `make install <tool>`. Before recommending a tool-dependent command, verify the tool is in `INSTALLABLE` (and installed); if not, instruct the user to run `make install <tool>` first.
+6. Treat `make setup` as **core bootstrap only** — install Ion skills with `make skills` and heavy domain tools on demand via `make install <tool>`. Before recommending a tool-dependent command, verify the tool is in `INSTALLABLE` (and installed); if not, instruct the user to run `make install <tool>` first.
 
 ## Daily Workflow
 
