@@ -55,18 +55,20 @@ Compare the protocol against declared primary sources.
 2. **Claim support** — each claim cites a primary passage or is marked `assumption=true`.
 3. **Check coverage** — each non-assumption claim is covered by ≥1 `[[checks]]` entry or by a justified deviation.
 4. **Generic check shape** — checks use one of the eight kinds: `audit`, `run`, `exists`, `agree`, `near`, `fresh`, `cover`, `support`; ids are unique override handles. No paper-specific or domain-specific kind names.
-5. **Deviation clarity** — declared differences from the paper are scoped, claim-tagged, and have their own checks.
-6. **Gate completeness** — every gate the flow template declares has checks sufficient to prevent stale or unsupported artifacts from passing.
+5. **Cell routes** — every executable cell declares `method`, `stack`, `route`, `source`, `check`, `state`, and `scope`; `route` is `paper`, `canonical`, `fallback`, or `deviation`.
+6. **Route authority** — `paper` routes cite primary / official sources, `canonical` routes cite a method card or stack card, `fallback` routes cite a named fallback, and `deviation` routes cite a deviation id before compute. Empty, failed, or skipped route state blocks compute unless scoped as a declared deviation or pending item.
+7. **Deviation clarity** — declared differences from the paper are scoped, claim-tagged, and have their own checks.
+8. **Gate completeness** — every gate the flow template declares has checks sufficient to prevent stale or unsupported artifacts from passing.
 
-Severity tags: `supported`, `unsupported`, `hint-leak`, `assumption`, `deviation`, `missing-check`, `non-generic`.
+Severity tags: `supported`, `unsupported`, `hint-leak`, `assumption`, `deviation`, `missing-check`, `missing-route`, `unsupported-route`, `non-generic`.
 
 ### `plan`
 
 Compare `reproduce-plan.toml` and `run_spec.json` against the protocol and methodology source.
 
-1. **Claim-to-route coverage** — every non-assumption claim has an executable route, artifact target, and check.
+1. **Claim-to-route coverage** — every non-assumption claim has an executable `cell` route, artifact target, and check.
 2. **Figure dependency graph** — shared artifacts and edges consistent with the protocol.
-3. **Run-spec provenance** — cells carry source ids, claim ids, deviation ids, stack identity, settings.
+3. **Run-spec provenance** — cells carry source ids, claim ids, deviation ids, method, stack, route, check, state, scope, and settings.
 4. **Trusted-reference reachability** — the chosen reference exercises the run code path at easier scale.
 5. **Hint quarantine** — old data, old figures, old plans never serve as evidence.
 
@@ -77,15 +79,16 @@ Severity tags: `covered`, `missing-route`, `plan-gap`, `stale-dependency`, `prov
 Compare the script against the protocol and the cited methodology section.
 
 1. **Claim coverage** — script produces evidence for every assigned claim.
-2. **Deviation honesty** — every difference from the paper is recorded as a deviation.
-3. **Manifest provenance** — script writes the fields required by `exists`/`agree`/`fresh`/`support` checks and registers evidence artifacts with the producer role required by the protocol.
-4. **Regime support** — budgets and knobs are sufficient for the declared checks, not just plausible-looking numbers.
+2. **Route match** — imports, commands, entrypoints, manifests, and generated artifacts match each declared cell's `method`, `stack`, `route`, `source`, `check`, `state`, and `scope`.
+3. **Deviation honesty** — every difference from the paper, method card, selected stack, or route check is recorded as a deviation.
+4. **Manifest provenance** — script writes the fields required by `exists`/`agree`/`fresh`/`support` checks and registers evidence artifacts with the producer role required by the protocol.
+5. **Regime support** — budgets and knobs are sufficient for the declared checks, not just plausible-looking numbers.
 
-Severity tags: `match`, `proxy`, `unrecorded-deviation`, `provenance-gap`, `regime-gap`.
+Severity tags: `match`, `proxy`, `route-mismatch`, `unrecorded-deviation`, `provenance-gap`, `regime-gap`.
 
 ### `result`
 
-For each numerical claim: ✓ within paper's error bar, ⚠ outside paper but within convergence margin, ✗ disagrees. Confirm each result artifact is `current_run` evidence with matching hashes.
+For each numerical claim: ✓ within paper's error bar, ⚠ outside paper but within convergence margin, ✗ disagrees. Confirm each result artifact is `current_run` evidence with matching hashes and manifest route fields matching the protocol cell.
 
 ### `mismatch`
 
@@ -103,7 +106,7 @@ Severity tags: `classified`, `under-evidenced`, `source-layer`, `plan-layer`, `s
 Audit the final run report, declared entry, protocol, verification reports, and manifest set.
 
 1. **Claim boundedness** — every report claim maps to a protocol claim, a result artifact, and a verify report.
-2. **Artifact provenance** — manifests carry required hashes, claim ids, deviation ids.
+2. **Artifact provenance** — manifests carry required hashes, claim ids, deviation ids, method, stack, route, check, state, and scope.
 3. **Gate closure** — every flow gate is `passed` (or the run is marked partial / has recorded overrides).
 4. **Deviation visibility** — declared differences from the paper appear in the report, linked to protocol deviations.
 5. **Reproducibility** — declared entry + run command sufficient for fresh checkout.

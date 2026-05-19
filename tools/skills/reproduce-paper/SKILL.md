@@ -5,7 +5,7 @@ description: Use when the user wants to reproduce the figures and main results o
 
 # reproduce-paper
 
-Thin orchestrator. The discipline lives in `protocol.toml`'s `[[checks]]`, evaluated mechanically by `tools/cli/flow`. This skill only sequences the work and composes the primitives.
+Thin orchestrator. The discipline lives in `protocol.toml`: `[[cells]]` declares the method route and `[[checks]]` declares the evidence checks evaluated mechanically by `tools/cli/flow`. This skill only sequences the work and composes the primitives.
 
 ## When to activate
 
@@ -33,19 +33,19 @@ Each gate's contract lives in `protocol.toml` as `[[checks]]`. `flow` runs the c
 
 2. **Acquire sources.** Copy `tools/templates/reproduce-paper/protocol.toml` to `results/<run>/protocol.toml`, fill `[artifact]`, `[[sources]]`, and the `source` gate check paths from primary sources, then start a `run` attempt on `source`. Use Markdown as the readable source: if an official or rendered Markdown source exists, place it under `sources/` and cite that; if only a PDF exists, store the PDF under `sources/` and render it with `python3 tools/skills/download-ref/scripts/render.py --pdf <pdf> --out <markdown>`. Finish the attempt, then `flow require <run> source` before protocol audit.
 
-3. **Author the contract.** Fill the rest of `protocol.toml` from the primary source: `[entry]`, `[[claims]]`, `[[checks]]`, `[[figures]]`, optional `[[deviations]]` and `[[pending]]`. Use one-word check kinds: `audit`, `run`, `exists`, `agree`, `near`, `fresh`, `cover`, `support`; keep check ids unique because they are override handles. Use attempt roles `audit`, `trial`, `run`, `report`.
+3. **Author the contract.** Fill the rest of `protocol.toml` from the primary source: `[entry]`, `[[claims]]`, `[[cells]]`, `[[checks]]`, `[[figures]]`, optional `[[deviations]]` and `[[pending]]`. Each executable cell declares one route with one-word fields: `method`, `stack`, `route`, `source`, `check`, `state`, `scope`. Use one-word check kinds: `audit`, `run`, `exists`, `agree`, `near`, `fresh`, `cover`, `support`; keep check ids unique because they are override handles. Use attempt roles `audit`, `trial`, `run`, `report`.
 
 4. **Audit the contract.** Start an `audit`-kind attempt on the `protocol` gate with a verifier subagent (different `--actor` from whoever drafted the protocol). The verifier writes a report; finish the attempt with `--report <path>`. `flow` checks actors differ and the report exists.
 
-5. **Plan the figure graph.** Author `results/<run>/reproduce-plan.toml` (figure ids, categorisations — substantive / methodology / verification / cross-check — and dependency edges). Start and finish the `plan` attempt.
+5. **Plan the figure graph.** Author `results/<run>/reproduce-plan.toml` (figure ids, categorisations — substantive / methodology / verification / cross-check — dependency edges, and the `cell` ids that produce them). Start and finish the `plan` attempt.
 
-6. **Implement the entry.** One declared `[entry]` runs the reproduction. Start a `run` attempt on `script`; register the entry as an artifact (`flow artifact add`); start a separate `audit` attempt; finish both. The entry's `help` and `dry` commands must exit before evidence IO.
+6. **Implement the entry.** One declared `[entry]` runs the reproduction. Start a `run` attempt on `script`; register the entry as an artifact (`flow artifact add`); start a separate `audit` attempt; finish both. The entry's `help` and `dry` commands must exit before evidence IO. The script and every manifest must echo each cell's `method`, `stack`, `route`, `source`, `check`, `state`, and `scope`.
 
 7. **Trust.** Start a `run` attempt on `trust`. For each substantive figure, run the entry at a point where the answer is known (analytic limit, exact small instance, official benchmark), write trust artifacts under `trust/`, register them, and finish the attempt. Declare the check as `kind = "near"`. Failure here blocks `run`.
 
-8. **Run.** Dispatch via `/parameter-scan` + `/slurm` (or the declared primitive). The cell wrappers register manifests as artifacts with `--producer <run-attempt>`. The `run` gate's `[[checks]]` enforce `cover`, `exists`, `agree`, `fresh`, and `producer = "run"`.
+8. **Run.** Dispatch via `/parameter-scan` + `/slurm` (or the declared primitive). The cell wrappers register manifests as artifacts with `--producer <run-attempt>`. The `run` gate's `[[checks]]` enforce `cover`, `exists`, `agree`, `fresh`, and `producer = "run"`. A manifest whose route fields do not match its `[[cells]]` block is invalid evidence.
 
-9. **Assemble.** Start a `run` attempt on `assemble`. Walk the run manifests, validate consensus/support, and produce each figure as `figs/<id>.png` plus `figs/<id>.json` (interactive plot source). Register assembled artifacts such as `figs/*` with the `run` attempt and finish it.
+9. **Assemble.** Start a `run` attempt on `assemble`. Walk the run manifests, validate consensus/support and route-field agreement, and produce each figure as `figs/<id>.png` plus `figs/<id>.json` (interactive plot source). Register assembled artifacts such as `figs/*` with the `run` attempt and finish it.
 
 10. **Close.** Start a `report` attempt on `close`; generate `run-report.md`; keep the declared `[entry]` commands runnable with all parameters explicit. Register close-stage artifacts such as `run-report.md` with the `report` attempt; the entry artifact remains producer `run`. Finish the report attempt, then independently audit the close. The close gate runs `[entry].help` and `[entry].dry`; any evidence mutation should be caught by `fresh`.
 
@@ -59,6 +59,38 @@ Each gate's contract lives in `protocol.toml` as `[[checks]]`. `flow` runs the c
 - **Audits** (gate audit attempts in any mode) → spawn a verifier subagent with the host's option API or direct dispatch; pass it the protocol + primary source + artifact under review; have it write `verify/verify_<artifact>_<date>.md`; record the audit attempt with the verifier's actor id.
 - **Cluster execution** → `/slurm` (called by `/parameter-scan`).
 - **User-facing forks** → host platform's option API (Claude Code: `AskUserQuestion`; Codex: equivalent). Three options max, recommended first.
+
+## Cell routes
+
+`reproduce-paper` is method-agnostic, not method-optional. It never hardcodes method or stack names; it requires the protocol to name them.
+
+Per executable cell:
+
+```toml
+[[cells]]
+id = "cell-0001"
+claims = ["claim.example"]
+figures = ["fig1a"]
+method = "ed"
+stack = "xdiag"
+route = "canonical"  # paper | canonical | fallback | deviation
+source = "knowledge-base/methods/ed.md"
+check = "julia --project=julia-env -e 'using XDiag'"
+state = "passed"     # passed | failed | skipped
+scope = "full"       # full | partial | sketch
+deviation = ""
+```
+
+Meanings:
+
+- `paper` — primary source or official code/data specifies the route.
+- `canonical` — harness method card plus `tools/software/stacks/<stack>.toml` authorize the route.
+- `fallback` — named fallback in the method card, with source cited.
+- `deviation` — any other route; `deviation` must name a `[[deviations]]` row before compute.
+
+`flow` remains method-blind. It records the protocol, artifacts, and check outcomes; `/verify` decides whether the declared route is supported by the cited source and whether the script/manifests match it.
+
+`state` is the route-check result. Do not set it to `passed` until the check has actually run or the primary/official route has been inspected enough to support the claim. A `failed`, `skipped`, or empty state blocks compute unless the cell is explicitly scoped as `deviation` or `pending`.
 
 ## Failed checks
 
@@ -86,6 +118,7 @@ The plan file and `progress/events.jsonl` are durable. Re-running this skill on 
 ## Notes
 
 - Paper-specific words (claim ids, figure ids, deviation labels) live as data values in `protocol.toml`. Never in `flow`'s vocabulary, never in this skill's check-kind names.
+- Method- and stack-specific words also live as data values in `protocol.toml` and stack cards. Never add method-specific check kinds or `flow` gates.
 - Methodology absorption is a side-effect of running the verification figures the paper declares — they appear alongside the substantive figures because they are also `[[figures]]` entries with `claim_ids`.
 - The writeup-handoff close (declared entry + run report) happens in Step 10. Route to `scientific-writing` / `latex-paper-en` / `scientific-visualization` / `jupyter-notebook` for downstream artifacts.
 
