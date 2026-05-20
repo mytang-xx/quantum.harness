@@ -28,7 +28,7 @@ Use method slugs that match the local method cards when possible:
 ```text
 dmrg
 tebd
-ed-lanczos
+ed
 vmc-nqs
 anderson-impurity
 spectral
@@ -60,14 +60,37 @@ mkdir -p "$KB"
 
 ### 2. Build a manifest
 
-Use arXiv IDs without `arXiv:` and without version suffixes. Old-style IDs such
-as `cond-mat/0701105` are supported. DOIs may be given verbatim. Stubs are for
-books or closed references that should be indexed but cannot be downloaded.
+Every `arxiv` / `doi` entry is an object with at minimum an `id`. Use arXiv IDs
+without `arXiv:` and without version suffixes (old-style `cond-mat/0701105` is
+fine); DOIs verbatim. Stubs are for books or closed references that should be
+indexed but cannot be downloaded.
+
+The optional fields `title`, `authors`, `year`, `venue`, `note` pin per-paper
+overrides on top of Semantic Scholar. Use them when S2 mis-stores the
+journal-of-record (returns the arXiv subject category in `journal.name`),
+reports the arXiv submission year instead of the publication year, drops
+Unicode diacritics from author names, or carries an author typo. The renderer
+is mechanical — the only way to correct a wrong S2 field is to override it
+here. When `venue` is overridden, the body **Citation:** line uses it verbatim
+(no splicing of volume/pages).
 
 ```json
 {
-  "arxiv": ["1008.3477"],
-  "doi": ["10.1007/BFb0106062"],
+  "arxiv": [
+    {"id": "1008.3477"},
+    {
+      "id": "1610.03042",
+      "year": 2017,
+      "venue": "SciPost Physics 2, 003 (2017)"
+    }
+  ],
+  "doi": [
+    {
+      "id": "10.1007/BFb0106062",
+      "authors": "Alexander Weiße, Holger Fehske",
+      "venue": "Lecture Notes in Physics 739, Springer (2008)"
+    }
+  ],
   "stub": [
     {
       "slug": "hewson-1993-kondo-problem",
@@ -103,6 +126,15 @@ python3 "$SCRIPTS/render.py" \
 Rendering uses `pymupdf4llm` when installed, then falls back to `markitdown` or
 `pdftotext`. If `pymupdf4llm` is missing, full text can still render but figures
 may be absent.
+
+For a single PDF that is already in hand, render it with the same extraction
+stack:
+
+```sh
+python3 "$SCRIPTS/render.py" \
+  --pdf sources/paper.pdf \
+  --out sources/paper.md
+```
 
 For long lecture notes or books where image/OCR extraction is too slow, prefer
 searchable text-only rendering:

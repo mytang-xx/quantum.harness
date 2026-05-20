@@ -1,0 +1,37 @@
+[flow]
+id = "reproduce"
+
+[[gates]]
+id = "source"
+
+[[gates]]
+id = "protocol"
+requires = ["source"]
+
+[[gates]]
+id = "plan"
+requires = ["protocol"]
+
+[[gates]]
+id = "script"
+requires = ["plan"]
+
+[[gates]]
+id = "trust"
+requires = ["script"]
+
+[[gates]]
+id = "run"
+requires = ["trust"]
+
+[[gates]]
+id = "assemble"
+requires = ["run"]
+
+[[gates]]
+id = "close"
+requires = ["assemble"]
+
+[[gates]]
+id = "report"
+requires = ["close"]

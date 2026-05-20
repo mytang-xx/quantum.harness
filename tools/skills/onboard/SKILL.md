@@ -1,11 +1,11 @@
 ---
 name: onboard
-description: Use when the user is new to the harness, asks "where do I start", or opens with an unclear / empty problem. Sets up domain software and routes to the right problem skill.
+description: Use when the user is new to the harness, asks "where do I start", or opens with an unclear / empty problem. Sets up domain software, optionally configures the user's compute cluster, and routes to the right problem skill.
 ---
 
 # Onboard
 
-First-touch intake. Set up the domain environment, then get the user onto a real problem fast.
+First-touch intake. Set up the core harness tools and domain environment, optionally configure the user's compute cluster, then get the user onto a real problem fast.
 
 ## When to activate
 
@@ -18,26 +18,87 @@ First-touch intake. Set up the domain environment, then get the user onto a real
 
 ### 1. Setup — do it, don't ask
 
-Run `make setup && make domain-setup` silently. This installs Ion + skills + the full domain stack (currently Julia + ITensors ecosystem). The Makefile's `DOMAIN_TOOLS` variable defines what gets installed — if the domain needs change, update the Makefile, not this skill.
+Run `make setup` silently. It installs Rust/Cargo if needed and builds core harness CLIs, including `tools/cli/flow`. Run `make skills` only when skill sync is actually needed. Install domain tools only when the selected workflow needs them, using `make install <tool>` after checking the Makefile's `INSTALLABLE` list. Software-stack install contracts live in `tools/software/stacks/*.toml`.
+
+If `make setup` fails because `curl`, Rust/Cargo, or the flow build is unavailable, stop and report that setup failure. Do not continue to `/reproduce-paper`, remote orchestration, or multi-agent workflow gates without `tools/cli/flow` working.
+
+Do not install every available method stack during first-touch onboarding. Humans install the smallest stack needed now, then add stacks when a method actually needs them.
 
 Report one line:
 - All good: "Domain stack ready."
 - Something installed: "Installed [what]. Ready."
 - Install failed: say what failed, offer to debug. Don't proceed until the stack works.
 
-### 2. Problem intake — one question
+### 2. Cluster setup — warm gate, optional
 
-> "What problem are you trying to solve?"
+Skip this stage if `tools/cluster/active.md` already exists (user has a profile from a prior session — idempotent).
+
+Otherwise, ask one warm gate via `AskUserQuestion`:
+
+> *"Will you run paper-grade calculations on a remote cluster (SLURM, PBS, plain ssh, ...)? If yes, I'll wire it into the harness now — ship/submit/monitor/fetch all happen from this session, no manual ssh relay. You can also skip and configure later when you actually need it."*
+
+Options:
+- "Yes, set it up now (Recommended if you have cluster docs handy)"
+- "Skip for now — local-only is fine"
+
+If the user picks "skip", continue to step 3. If "yes", continue inside this stage:
+
+#### 2a. Path to profile
+
+> *"What's the easiest way for you to share your cluster's setup? Either paste your docs URL — I'll pull out the partitions, walltime caps, and how Julia is provided — or run through 4 quick questions. Either way takes about a minute."*
+
+Options:
+- Text field for docs URL (the user pastes; the skill `WebFetch`'s it)
+- "Walk me through the 4 questions"
+
+#### 2b. From URL — dispatch a subagent for a thorough crawl
+
+A single `WebFetch` rarely captures everything — most cluster docs sites have a sidebar with 5-10+ sub-pages (connection / scheduler / partitions / filesystem / modules / data) that each carry one piece of the profile. Dispatch an **Agent subagent** (`model: "opus"`, `subagent_type: "general-purpose"`, max-effort framing in the prompt) to crawl the docs site comprehensively.
+
+**Subagent brief**:
+- Input: the cluster docs root URL the user provided (e.g., `https://docs.hpc.hkust-gz.edu.cn/en/docs/hpc12/`).
+- Job:
+  1. Fetch the root page; identify the sidebar / nav menu; enumerate every sub-page relevant to: **login & connection**, **scheduler & job submission**, **partitions / queues / resource limits**, **environment setup / modules / `.bashrc`**, **filesystem layout**, **network reach** (internet from login / from compute).
+  2. Fetch each relevant sub-page; extract verbatim instructions (sbatch examples, partition tables, module load lines, ssh hostnames, etc.).
+  3. Synthesize into the cluster profile schema declared in `tools/cluster/README.md`.
+  4. **Identify harness-side gotchas not explicit in the docs**: e.g., non-interactive ssh sessions not sourcing `/etc/profile` (so scheduler binaries are off PATH); two scheduler binaries on the system (`/usr/bin/sbatch` Ubuntu default vs `/opt/slurm/bin/sbatch` cluster's own); login-shell-only quirks. These are inferred from "the docs assume X, our harness uses Y" reasoning.
+- Output:
+  - The full **sub-page URL index** for the cluster (table: URL → what it documents). This goes into the profile's "Documentation" section so the harness has complete coverage, not a single-link fallback.
+  - The proposed `tools/cluster/<short-name>.md` content matching the schema.
+  - A **"Harness-side gotchas"** section capturing inferred issues + their workarounds (e.g., "ssh with `bash -l -c '...'` to get a login shell so `/opt/slurm/bin` is on PATH").
+  - Anything the subagent could *not* extract from the docs — flagged for fallback to step **2c** (interactive questions) on those specific fields only, not the whole profile.
+
+**Show the user** the proposed profile (Superpowers brainstorming pattern: present, ratify, then write). Edits-before-write are encouraged. The user owns the final content; the subagent only proposes.
+
+If the subagent fails outright (docs site is paywalled / JS-only with no API / 403 on subpages), fall through to **2c** (questions).
+
+#### 2c. Walk-through fallback (≤4 questions, each warm)
+
+Pre-amble:
+> *"OK, let's walk through 4 things — each one fills in a field of your cluster profile."*
+
+1. *"Paste the ssh command you use to reach the login node — e.g., `ssh -i ~/.ssh/id_rsa user@host`. A `~/.ssh/config` stanza works too."* Parse `host` / `user` / `identity_file` (and optional `port`) from the single input; default the alias to the cluster short-name. One paste → four fields, no question pile.
+2. AskUserQuestion: *"Which workload manager does the cluster use?"* with options: `Slurm` / `PBS / Torque` / `LSF` / `Plain ssh, no scheduler` / `Not sure — I'll probe`.
+3. *"What's your default queue or partition? You can override per job — this is just where jobs go if nothing else is specified."*
+4. AskUserQuestion: *"Which region is the cluster in?"* with options: `Mainland China (mirrors will be set up downstream)` / `Outside mainland China (default mirrors)` / `Air-gapped / no internet from login` / `Not sure`.
+
+Write the profile to `tools/cluster/<short-name>.md`, symlink `tools/cluster/active.md → <short-name>.md`. Confirm one line: *"Cluster profile saved at `tools/cluster/<name>.md`. Future jobs will use it automatically."*
+
+Do NOT bootstrap Julia or instantiate environments here — that's `/setup-julia`'s job, dispatched on demand by `/slurm` when the first cluster Julia run happens.
+
+### 3. Problem intake — one question
+
+> *"What problem are you trying to solve?"*
 
 That's it. Don't list models. Don't explain the architecture.
 
-### 3. Route
+### 4. Route
 
 Infer the model or physics topic from the answer. Hand off to the matched skill. This skill exits.
 
 If ambiguous, use `AskUserQuestion` with 2–3 candidate skills — short labels, one-line tradeoff each, recommended first. Don't list all 13.
 
-If nothing fits: "That's outside current scope (ground-state lattice problems). Want me to try an off-skill approach, or help you reframe?"
+If nothing fits: *"That's outside current scope (ground-state lattice problems). Want me to try an off-skill approach, or help you reframe?"*
 
 ## What this skill does NOT do
 
@@ -45,6 +106,12 @@ If nothing fits: "That's outside current scope (ground-state lattice problems). 
 - Walk through a tutorial.
 - Ask the user to read docs.
 - Show a menu of 13 skills.
-- Hardcode which software to install (that's the Makefile's job).
+- Hardcode package-level install instructions (the stack contracts in `tools/software/stacks/*.toml` name install commands, smoke tests, and upstream docs; the Makefile and setup scripts execute them).
+- Bootstrap Julia on the cluster (that's `/setup-julia`, dispatched by `/slurm` on first cluster Julia run).
+- Pile questions on the user — every gate is one question with a clear *why* and an escape hatch.
 
-One exchange to setup + route, then exit.
+## UX rule (applies to every gate in this skill)
+
+Each user-facing question follows the pattern: *frame the why → state the consequence → offer the escape hatch → ask*. No question stands alone without context. Telegraphic prompts ("Cluster?", "URL?") are rude even when short. Warm-clear-concise.
+
+One short setup → one optional cluster gate → one problem question → route. Then exit.

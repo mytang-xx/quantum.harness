@@ -25,13 +25,13 @@ Infer the problem from the user's prompt. Do NOT ask clarifying questions if def
 
 ### 2. Match skill
 
-Find the matching model skill (`tools/skills/problems/models/*`) and any relevant physics skill (`tools/skills/problems/physics/*`). Read the skill's Diagnose section for canonical defaults. Read the method recommendation table for which method card to use.
+Find the matching model skill (`tools/skills/problems/models/*`) and any relevant physics skill (`tools/skills/problems/physics/*`). Read the skill's Diagnose section for canonical defaults. Read the method recommendation table for which method card to use, then read that method card's canonical software stack and `tools/software/stacks/<stack>.toml` install contract.
 
 If the problem hits a branch table redirect (e.g., dynamics → `spectral.md`, finite-T → `finite-t.md`), follow it immediately.
 
 ### 3. Act
 
-Run the calculation silently using the method card's code shape. Auto-generate a convergence plot. Save script to `scripts/` and results to `results/`.
+Run the calculation silently using the method card's code shape. If the canonical stack is missing, install the selected stack profile first; for remote runs, let `/slurm` run the profile's smoke test in the declared place (`login` or `compute`). Auto-generate a convergence plot. Save script to `scripts/` and results to `results/`.
 
 For frontier problems: act on literature first (run `arxiv-search`), then offer compute as a follow-up.
 
@@ -60,9 +60,9 @@ Common next-steps (pick the 2–3 most relevant):
 | Visualization (correlations, structure factor, publication figure) | Always after a ground-state calculation. |
 | Parameter scan (U/t sweep, J2/J1 sweep, finite-size extrapolation) | When the user has one data point and the natural next step is a sweep. |
 | Deeper analysis (gap, entanglement, order parameter) | When the ground state is done but the physics question isn't answered. |
-| Cross-method check (DMRG ↔ ED, DMRG ↔ VMC) | When verification is thin or the problem is hard. |
+| Cross-method check (DMRG ↔ TEBD, DMRG ↔ VMC) | When verification is thin or the problem is hard. |
 | Literature context (arxiv-search) | When approaching a frontier regime. |
-| Writeup (consolidated script + run report → writing skills) | When the user seems done with computation. |
+| Writeup (declared entry + run report → writing skills) | When the user seems done with computation. |
 | Different problem | When the user pivots. |
 | Done | Always. |
 

@@ -13,7 +13,7 @@ Infer the canonical setup from the user's prompt and propose it for ratification
 
 **Canonical defaults:** S=1/2, isotropic NN, antiferromagnetic (J > 0), OBC, target E/N. Lattice and system size inferred from the prompt — if only "Heisenberg" is given, default to 1D chain N=20.
 
-**Proposal pattern:** "Going with: 1D chain, S=1/2, J=1 AFM, OBC, N=20, target E/N. Override any, or pick a variant: square lattice (4×4 ED), triangular cylinder (Ly=4), kagome cylinder (Ly=4)."
+**Proposal pattern:** "Going with: 1D chain, S=1/2, J=1 AFM, OBC, N=20, target E/N. Override any, or pick a variant: square lattice (4×4 pending ED), triangular cylinder (Ly=4), kagome cylinder (Ly=4)."
 
 Only surface a real choice when the prompt is genuinely ambiguous about the lattice family. Build the Hamiltonian per `knowledge-base/conventions.md`.
 
@@ -31,7 +31,7 @@ Only surface a real choice when the prompt is genuinely ambiguous about the latt
 | Regime | Method | Card |
 |---|---|---|
 | 1D chain (any N), quasi-1D ladder | DMRG | `knowledge-base/methods/dmrg.md` |
-| Small cluster (N ≲ 24 sites), exact spectrum, debugging | ED | `knowledge-base/methods/ed.md` |
+| Small cluster (N ≲ 24 sites), exact spectrum, debugging | ED pending refreshed references | `knowledge-base/methods/ed.md` |
 | Cylinder (square / triangular / kagome strips, `L_y` small) | DMRG | `knowledge-base/methods/dmrg.md` |
 | Imaginary-time route to ground state, gap probes | TEBD | `knowledge-base/methods/tebd.md` |
 | Frustrated 2D variational (VMC / NQS) | Compare ansatz energies on kagome / triangular. Requires `make install netket`. | `knowledge-base/methods/vmc-nqs.md` |
@@ -44,19 +44,21 @@ Only surface a real choice when the prompt is genuinely ambiguous about the latt
 | Lattice is triangular, kagome, or pyrochlore (frustrated) | Continue here for setup; if the question is about absence of order or topology, also call `spin-liquid`; if about the source of frustration, call `frustration`. |
 | User asks about NN + NNN couplings | Switch to `j1-j2`. |
 | Question is about quantum critical behavior (e.g., XXZ at Δ=1, dimerization) | Call `criticality` after the calculation. |
+| Question is about magic / SRE / nonstabilizerness on the spin-1/2 Heisenberg / XXZ chain | Run the wavefunction here; hand off to `physics/magic`. Default partition: `L(ρ_AB)` for criticality (full-state magic alone is often inconclusive across XXZ scans — see `knowledge-base/magic-benchmarks.md`). Two-site Pauli updates preserve U(1) `S^z` symmetry; see `knowledge-base/methods/pauli-markov.md`. |
+| User wants `S = 1` chain with single-ion anisotropy | Switch to `spin-1-xxz`. |
 | User wants doped, fermionic correlated physics | Switch to `t-j` or `hubbard`. |
 | User asks about `S(q,ω)` or dynamics | Route to `knowledge-base/methods/spectral.md` (stub). |
 | User asks about finite-T (susceptibility, specific heat) | Route to `knowledge-base/methods/finite-t.md` (stub). |
 
 ## Verification
 
-Default checks (always run):
+Default checks (all auto-run; results aggregated into the report's verification line):
 
 - **Limit checks** — confirm sign convention and trivial limits via `knowledge-base/limits.md`. Examples: at `Δ = 1` XXZ reduces to isotropic Heisenberg; ferromagnetic ground state is fully polarized; `J = 0` gives uncoupled spins.
 - **Symmetry** — total `S^z` conservation; expected ground-state sector (singlet for finite AFM); lattice point group respected (see `knowledge-base/symmetry-cheatsheet.md`).
 - **Convergence** — bond-dim or basis-size sweep produces a monotonic, asymptoting curve. Report the curve, not just the final value.
 - **Internal consistency** — energy variance is small relative to `E²` at the reported accuracy.
-- **Cross-method validation** (when feasible) — re-run on a small cluster with an independent method (DMRG ↔ ED, or DMRG ↔ TEBD imaginary-time) and confirm agreement. See AGENTS.md "Verification practice".
+- **Cross-method validation (auto-paired when available)** — use TEBD or another active independent route. Use ED only after `knowledge-base/methods/ed.md` is rebuilt.
 
 Optional check (when a published reference exists):
 

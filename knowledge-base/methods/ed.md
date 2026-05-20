@@ -1,68 +1,119 @@
 # ED (Exact Diagonalization)
 
-Direct diagonalization of the Hamiltonian as a sparse matrix in a chosen basis. Exact within the chosen Hilbert subspace; limited by basis size, hence by system size.
+Finite-Hilbert-space method that constructs a many-body basis, represents the Hamiltonian exactly in that basis or applies it matrix-free, then computes eigenvalues, eigenvectors, dynamics, or level diagnostics. Use ED as the small-system reference method and as the cross-method oracle for approximate methods.
+
+This card is generic methodology. Paper-specific Hamiltonian reductions, constrained bases, figure protocols, and target claims belong in `/reproduce-paper` protocols, not here.
 
 ## Setup
 
-Julia + KrylovKit.jl: `make install julia && make install itensors` (the itensors target also installs KrylovKit).
+Recommended stack order:
 
-For very small problems, dense `LinearAlgebra.eigen` works directly on `Matrix{Float64}`.
+1. `xdiag` (`tools/software/stacks/xdiag.toml`) — canonical ED stack.
+2. `quspin` (`tools/software/stacks/quspin.toml`) — Python fallback stack.
+
+```
+make install julia
+make install xdiag
+```
+
+Activate the environment with `julia --project=julia-env`.
+
+Fallback means the second recommended stack, not arbitrary installed Python packages. QuSpin is a Python ED library with a broad spin-chain interface. Use `quspin` only when a workflow already depends on Python, when a QuSpin example exactly matches the target model, or when the canonical XDiag route is recorded as failed/pending and the protocol declares `route = "fallback"`. XDiag remains the default harness route. Generic NumPy/SciPy ED is a deviation unless the paper's official code uses it.
+
+## Scope
+
+Use this card for:
+
+- Small clusters where the Hilbert space fits in memory after symmetry reduction.
+- Sparse Lanczos / Krylov ground states and low-lying states.
+- Exact or Krylov time evolution on finite Hilbert spaces.
+- Eigenstate overlaps, participation diagnostics, and level statistics.
+- Small-system cross-checks for DMRG, VMC, QMC, VQE, TEBD, and tensor-network runs.
+
+Do not use this card as the full recipe for:
+
+- Finite-temperature Lanczos, METTS, purification, or thermodynamic trace estimators; route those to `methods/finite-t.md`.
+- Frequency-resolved spectral functions; route those to `methods/spectral.md`.
+- Paper-specific constrained Hilbert spaces or figure protocols.
 
 ## Notation
 
-- Full Hilbert space dimension: `2^N` (spin-1/2), `4^N` (electron / Hubbard), `3^N` (t-J projected).
-- Sector dimension: typically much smaller after fixing `(N↑, N↓)` or `S^z`.
-- Sparse matrix `H` in chosen basis; eigenvalue solver returns `(eigvals, eigvecs)`.
+- `N`: number of physical sites or orbitals.
+- `dim`: dimension of the selected Hilbert-space block.
+- Sector: fixed quantum-number block such as total magnetization, particle number, momentum, parity, or lattice irrep.
+- Full ED: dense matrix diagonalization of the selected block.
+- Lanczos / Krylov: iterative matrix-vector method for extremal eigenpairs or time evolution.
+- Shift-invert / interior solve: targeted interior-spectrum method; use only when the linear solver and memory budget are explicit.
+- Level-spacing ratio: adjacent-gap diagnostic after resolving symmetries and removing degeneracies.
 
-## Code shape (Julia / KrylovKit.jl)
+## Code Shape (Julia / XDiag.jl)
+
+The exact constructors and keyword names should be checked against the installed XDiag docs before writing a production script; the harness-level shape is:
 
 ```julia
-using LinearAlgebra, KrylovKit, SparseArrays
+using XDiag
 
-# 1. Build the basis for the target sector (e.g., S^z = 0 of N spins)
-#    — domain-specific construction; for spin-1/2 chains, use bit representation.
+# 1. Select a Hilbert-space block.
+N = 16
+nup = div(N, 2)
+block = Spinhalf(N, nup)
 
-# 2. Build sparse H by acting term-by-term on basis states
+# 2. Build an operator sum. Julia site labels follow the XDiag Julia interface.
+ops = OpSum()
+for i in 1:(N - 1)
+    ops += 1.0 * Op("SdotS", [i, i + 1])
+end
 
-# 3. Solve for the lowest k eigenvalues
-n_states = 4
-energies, vectors, info = eigsolve(H, n_states, :SR; tol=1e-12, krylovdim=30)
-# :SR  → smallest real eigenvalues
-# tol  → convergence tolerance
-# krylovdim → Krylov subspace size (raise if not converging)
+# 3. Ground state / low-lying states.
+e0, psi0 = eig0(ops, block)
 
-# 4. Compute observables on the ground-state vector
-psi0 = vectors[1]
-sz_total = real(psi0' * Sz_total_op * psi0)
+# 4. Operator application and Krylov dynamics stay matrix-free when possible.
+phi = apply(ops, psi0)
+# psi_t = time_evolve(ops, psi0, t; algorithm = "lanczos")
 ```
 
-For ITensors-MPO-based ED (small systems handled as MPS at full bond dimension), the DMRG card pattern works at very small `N`. For genuinely small `N`, build the matrix directly.
+Densify only for deliberately small blocks where the complete spectrum is needed:
+
+```julia
+H = matrix(ops, block)
+```
+
+For scripts that need precise control over convergence or excited states, use the lower-level Lanczos routines exposed by XDiag rather than only the convenience ground-state wrapper.
 
 ## Knobs
 
 | Knob | Effect | Starting point |
 |---|---|---|
-| Sector / quantum numbers | Block-diagonalize. | Always fix `(N↑, N↓)` for fermions; `S^z_total` for spins. |
-| `n_states` | Number of low-lying states to compute. | 1 for ground state; 4–10 for spectrum / gap. |
-| `tol` | Convergence tolerance (residual). | `1e-10` to `1e-12` for benchmarks. |
-| `krylovdim` | Krylov subspace dimension. | 30 default; raise if convergence fails. |
+| Sector choice | Dominates memory and correctness. Wrong sector gives a correct answer to the wrong problem. | Fix all conserved quantities before diagonalizing. |
+| Dense vs sparse | Dense gives complete spectra but scales quickly; sparse Lanczos gives selected eigenpairs. | Dense only for small `dim`; Lanczos otherwise. |
+| Lanczos tolerance | Controls eigenvalue residual and runtime. | Tight enough that residual is below the target observable tolerance. |
+| Number of Lanczos vectors | Controls convergence and memory. | Increase until target eigenpairs and observables stop moving. |
+| Reorthogonalization | Controls ghost eigenvalues in long Lanczos runs. | Enable or strengthen when repeated eigenvalues appear. |
+| Symmetry resolution | Required before level statistics and degeneracy claims. | Block by every exact symmetry used by the Hamiltonian. |
+| Thread count | XDiag uses shared-memory parallelism for matrix-vector operations. | Record `JULIA_NUM_THREADS` / OpenMP settings in manifests. |
 
 ## Pitfalls
 
-- **Memory blowup**: full Hilbert space for `N = 24` spin-1/2 is `2^24 ≈ 16M`; use sectors aggressively. Hubbard at `N = 12` half-filled has `(12 choose 6)² ≈ 850k`.
-- **Fermion sign**: when constructing matrix elements of `c†_i c_j` in occupation-number basis, track Jordan-Wigner sign factors.
-- **Wrong sector**: ground state may not be in the sector you constructed; verify by computing in adjacent sectors.
-- **Sparse vs dense**: dense diagonalization is fine for `dim < ~3000`; sparse Lanczos for larger.
-- **Degeneracy**: gapless ground states have many close-by states; `n_states ≥ 4` and check for degeneracy structure.
+- **Unresolved symmetries**: level statistics are meaningless if independent symmetry sectors are mixed.
+- **Basis convention drift**: spin, Pauli, fermion sign, and site-index conventions must match the model skill or protocol.
+- **Dense matrix overuse**: building `H` explicitly can dominate memory; prefer matrix-free `apply`/Lanczos for larger blocks.
+- **Lanczos ghosts**: insufficient orthogonalization or too many iterations can produce repeated spurious eigenvalues.
+- **Interior-state fragility**: rare high-energy eigenstates require an explicit targeting method and residual checks.
+- **Degeneracy handling**: exact or near degeneracies can make eigenvectors basis-dependent; compare invariant subspaces or projectors when needed.
 
 ## Verification
 
-- **Sector consistency**: compute total `S^z`, particle number on the eigenvector; should match the constructed sector.
-- **Limit checks**: at trivial parameter values, the ED spectrum should match analytic results (e.g., `J = 0` Heisenberg → all `E = 0`).
-- **Multi-method cross-check**: ED should agree with DMRG at small system sizes (within DMRG's bond-dim accuracy).
+- **Dimension check**: confirm the block dimension against combinatorics or the software-reported basis size.
+- **Hermiticity check**: verify the operator is Hermitian before diagonalization when complex terms or custom matrices are used.
+- **Residual check**: for every reported eigenpair, check `norm(apply(ops, psi) - E * psi)`; use dense `H * psi` only for deliberately small blocks.
+- **Symmetry check**: measure all imposed conserved quantities on returned states.
+- **Dense/sparse cross-check**: on a smaller block, compare dense diagonalization with Lanczos.
+- **Limit check**: compare against trivial limits from `knowledge-base/limits.md`.
+- **Level-stat check**: unfold or ratio only within one fully resolved symmetry sector.
 
 ## Citations
 
-- Lin, *Phys. Rev. B* **42**, 6561 (1990) — early ED for Hubbard.
-- Sandvik, *AIP Conf. Proc.* **1297**, 135 (2010) — ED for spin systems.
-- KrylovKit.jl documentation — Julia eigensolver.
+- `knowledge-base/literature/ed/10-1007-978-3-540-74686-7-18.md` - Weiße and Fehske, exact diagonalization techniques.
+- `knowledge-base/literature/ed/1101.3281_computational-studies-of-quantum-spin-systems.md` - Sandvik, spin-model ED and Lanczos pedagogy.
+- `knowledge-base/literature/ed/2505.02901_xdiag-exact-diagonalization-for-quantum-many-body-systems.md` - XDiag software reference.
+- `knowledge-base/literature/ed/1610.03042_quspin-a-python-package-for-dynamics-and-exact-diagonalisati.md` - QuSpin fallback reference.

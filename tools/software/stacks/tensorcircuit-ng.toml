@@ -1,0 +1,30 @@
+id = "tensorcircuit-ng"
+name = "TensorCircuit-NG"
+language = "python"
+canonical_for = ["vqe", "differentiable-circuit-simulation"]
+default_profile = "cpu"
+requires = [{ stack = "jax", note = "Install and smoke-test JAX first with EXTRA=cpu locally or the cluster-declared CUDA extra on GPU servers." }]
+
+[profiles.cpu]
+label = "CPU"
+default = true
+install = "cpu"
+smoke = "cpu"
+
+[profiles.cpu.requirements]
+allocation = "login-or-compute"
+mpi = false
+
+[install.cpu]
+command = "make install tensorcircuit-ng"
+notes = "Requires a working JAX install. This target checks JAX before installing TensorCircuit-NG and does not choose CUDA extras."
+
+[smoke.cpu]
+where = "login"
+command = ".venv/bin/python -c 'import jax; import tensorcircuit as tc; print(jax.devices()); tc.set_backend(\"jax\"); tc.about()'"
+
+[docs]
+kb = "knowledge-base/literature/vqe/tensorcircuit-tensorcircuit-ng.md"
+official = "https://tensorcircuit-ng.readthedocs.io/"
+install = "https://github.com/tensorcircuit/tensorcircuit-ng"
+repository = "https://github.com/tensorcircuit/tensorcircuit-ng"

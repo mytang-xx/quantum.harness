@@ -8,7 +8,10 @@ each. That's MUCH faster and more reliable than per-paper calls (which 429 fast)
 Usage:
     fetch_metadata.py --kb /abs/path/.knowledge --manifest manifest.json
 
-The manifest is JSON: {"arxiv": ["2401.12345", ...], "doi": ["10.xxx/yyy", ...]}
+The manifest is JSON: {"arxiv": [{"id": "...", ...overrides}], "doi": [...]}
+Each entry is an object with at minimum an `id`; any other fields (title,
+authors, year, venue, note) are S2-metadata overrides that render.py consumes.
+This script only reads `id`.
 Output: .raw/arxiv/<id>.json and .raw/doi/<safe>.json (where safe = doi with /→-)
 
 If --download-arxiv-pdfs is passed, also fetches the arXiv preprint PDFs into the
@@ -99,8 +102,8 @@ def main() -> int:
 
     raw = args.kb / ".raw"
     manifest = json.loads(args.manifest.read_text())
-    arxiv_ids = manifest.get("arxiv", [])
-    dois = manifest.get("doi", [])
+    arxiv_ids = [e["id"] for e in manifest.get("arxiv", [])]
+    dois = [e["id"] for e in manifest.get("doi", [])]
 
     ids = [f"ARXIV:{a}" for a in arxiv_ids] + [f"DOI:{d}" for d in dois]
     if not ids:
