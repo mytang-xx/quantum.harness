@@ -23,6 +23,7 @@ setup-julia = { type = "local" }        # Julia install + mirror + project env (
 reproduce-paper = { type = "local" }    # paper orchestrator (absorbs run-report close)
 verify = { type = "local" }
 report = { type = "local" }             # render single-page interactive HTML report from a reproduction run
+memorize = { type = "local" }           # session-end retrospective: distill lessons → TACITS.toml or AGENTS.md
 
 # Visualization & writing
 scientific-visualization = { source = "davila7/claude-code-templates/scientific-visualization" }
