@@ -7,6 +7,12 @@ description: Use when the user is new to the harness, asks "where do I start", o
 
 First-touch intake. Set up the core harness tools and domain environment, optionally configure the user's compute cluster, then get the user onto a real problem fast.
 
+## Audience definition (binding)
+
+<audience name="binding">
+The user is on first touch — they may not know the harness vocabulary (skill, gate, attempt, ledger, profile), have no `julia-env/`, and have ≤2 minutes of patience before the conversation feels bureaucratic. Every question MUST read as a single warm sentence, not a checklist.
+</audience>
+
 ## When to activate
 
 - "I'm new here" / "where do I start" / "how do I use this".
@@ -18,11 +24,19 @@ First-touch intake. Set up the core harness tools and domain environment, option
 
 ### 1. Setup — do it, don't ask
 
-Run `make setup` silently. It installs Rust/Cargo if needed and builds core harness CLIs, including `tools/cli/flow`. Run `make skills` only when skill sync is actually needed. Install domain tools only when the selected workflow needs them, using `make install <tool>` after checking the Makefile's `INSTALLABLE` list. Software-stack install contracts live in `tools/software/stacks/*.toml`.
+<checklist name="setup">
+
+- Run `make setup` first (core CLI build only).
+- Install domain stacks on demand via `make install <tool>`, after confirming `<tool>` appears in the Makefile's `INSTALLABLE` list.
+- Read the per-stack contract at `tools/software/stacks/<stack>.toml` for install commands, smoke tests, and upstream docs.
+
+</checklist>
+
+Run `make setup` silently. It installs Rust/Cargo if needed and builds core harness CLIs, including `tools/cli/flow`. Run `make skills` only when skill sync is actually needed.
 
 If `make setup` fails because `curl`, Rust/Cargo, or the flow build is unavailable, stop and report that setup failure. Do not continue to `/reproduce-paper`, remote orchestration, or multi-agent workflow gates without `tools/cli/flow` working.
 
-Do not install every available method stack during first-touch onboarding. Humans install the smallest stack needed now, then add stacks when a method actually needs them.
+Install only the stack the user's first selected workflow needs. Do not pre-install other method stacks. Each additional stack is installed on demand when that method is first invoked.
 
 Report one line:
 - All good: "Domain stack ready."
@@ -31,17 +45,31 @@ Report one line:
 
 ### 2. Cluster setup — warm gate, always asked
 
+<checklist name="cluster-setup">
+
 Skip this stage if `tools/cluster/active.md` already exists (user has a profile from a prior session — idempotent).
 
 Otherwise, ask one warm gate via `AskUserQuestion`. Most paper-grade calculations end up on a remote cluster eventually, and even a quick setup now persists the profile so future sessions ship/submit/monitor/fetch automatically without re-asking:
 
-> *"Will you want to run on a remote cluster at some point (SLURM, PBS, plain ssh)? If yes, I'll capture the config now so future sessions don't have to re-ask. If local-only is genuinely all you need, that's fine too — pick that and we'll move on."*
+<example name="warm-gate good">
+*"Will you want to run on a remote cluster at some point (SLURM, PBS, plain ssh)? If yes, I'll capture the config now so future sessions don't have to re-ask. If local-only is genuinely all you need, that's fine too — pick that and we'll move on."*
+</example>
+
+<example name="warm-gate bad">
+Cluster?
+</example>
+
+<example name="warm-gate cold">
+Do you want to configure a cluster? Yes/No.
+</example>
 
 Options:
 - "Yes, capture cluster config now (Recommended — persists for every future session)"
-- "Local-only for now"
+- `"Local-only for now"` — "No cluster config saved. Future remote runs will re-ask before they can ship."
 
 If the user picks "local-only", continue to step 3. If "yes", continue inside this stage:
+
+</checklist>
 
 #### 2a. Path to profile
 
@@ -54,6 +82,8 @@ Options:
 #### 2b. From URL — dispatch a subagent for a thorough crawl
 
 A single `WebFetch` rarely captures everything — most cluster docs sites have a sidebar with 5-10+ sub-pages (connection / scheduler / partitions / filesystem / modules / data) that each carry one piece of the profile. Dispatch an **Agent subagent** (`model: "opus"`, `subagent_type: "general-purpose"`, max-effort framing in the prompt) to crawl the docs site comprehensively.
+
+<brief name="cluster-docs-crawl">
 
 **Subagent brief**:
 - Input: the cluster docs root URL the user provided (e.g., `https://docs.hpc.hkust-gz.edu.cn/en/docs/hpc12/`).
@@ -68,7 +98,11 @@ A single `WebFetch` rarely captures everything — most cluster docs sites have 
   - A **"Harness-side gotchas"** section capturing inferred issues + their workarounds (e.g., "ssh with `bash -l -c '...'` to get a login shell so `/opt/slurm/bin` is on PATH").
   - Anything the subagent could *not* extract from the docs — flagged for fallback to step **2c** (interactive questions) on those specific fields only, not the whole profile.
 
-**Show the user** the proposed profile (Superpowers brainstorming pattern: present, ratify, then write). Edits-before-write are encouraged. The user owns the final content; the subagent only proposes.
+**Coverage, not filtering.** Report every relevant sub-page URL, every partition row, every module-load line, every harness-side gotcha you spot — including ones you are unsure about or judge minor. Silently dropping a partition or a gotcha is the failure mode, not over-reporting.
+
+</brief>
+
+Display the proposed `tools/cluster/<short-name>.md` content inline as a fenced markdown block, then dispatch one `AskUserQuestion` with options: Accept and save, Edit then save, Discard and use walk-through (2c) instead. Write to disk only after the user picks Accept or completes an edit.
 
 If the subagent fails outright (docs site is paywalled / JS-only with no API / 403 on subpages), fall through to **2c** (questions).
 
@@ -104,13 +138,17 @@ That's it. Don't list models. Don't explain the architecture.
 
 ### 4. Route
 
+<checklist name="route">
+
 If the user picked "Save setup and exit" in step 3, exit with one line: *"Harness ready. `/model` or `/physics` will route you when you bring a problem."*
 
 Otherwise, infer the model or physics topic from the step 3a answer. Hand off to `/model` (if a specific Hamiltonian) or `/physics` (if a cross-model phenomenon question); the dispatcher reads the matching card. This skill exits.
 
-If ambiguous, use `AskUserQuestion` with 2–3 candidate cards — short labels, one-line tradeoff each, recommended first. Don't list every card.
+If the user's prompt is ambiguous between two or three specific routes, use `AskUserQuestion` with 2 or 3 options — each option is one candidate model card OR one candidate physics card. Each option has a short label and a one-line tradeoff. Recommended option first. Do not enumerate the full model or physics card lists.
 
 If nothing fits: *"That's outside current scope (ground-state lattice problems). Want me to try an off-skill approach, or help you reframe?"*
+
+</checklist>
 
 ## What this skill does NOT do
 
@@ -124,6 +162,6 @@ If nothing fits: *"That's outside current scope (ground-state lattice problems).
 
 ## UX rule (applies to every gate in this skill)
 
-Each user-facing question follows the pattern: *frame the why → state the consequence → offer the escape hatch → ask*. No question stands alone without context. Telegraphic prompts ("Cluster?", "URL?") are rude even when short. Warm-clear-concise.
+**Every** user-facing question in this skill — including the warm gate in 2, the path-to-profile gate in 2a, **each** of the 4 walk-through questions in 2c, and the problem-or-exit gate in 3 — follows the pattern: *frame the why → state the consequence → offer the escape hatch → ask*. No question stands alone without context. Telegraphic prompts ("Cluster?", "URL?") are rude even when short. Warm-clear-concise.
 
 One short setup → one optional cluster gate → one problem question → route. Then exit.

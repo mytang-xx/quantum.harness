@@ -7,6 +7,14 @@ description: Use when the user has a size-indexed (and optionally parameter-inde
 
 Fit a finite-size scaling form to a size-indexed (and optionally parameter-indexed) observable. Produce fitted exponents with bootstrap or jackknife error bars, a quality-of-fit report, and an auto-generated diagnostic plot (residuals + collapse). Generic over the observable and the model.
 
+## Audience / scope (binding)
+
+<audience>
+This primitive is content-agnostic. It receives a typed data table from the calling skill (a model card, a physics card, `/reproduce-paper`, or `solve` chained from `/parameter-scan`) and returns a fit plus a diagnostic plot. The calling skill consumes the fitted parameters; the user reads the 2–3-line report.
+
+This skill MUST NEVER name the physical exponent (ν, γ, c, etc.) or identify a universality class. Labels and interpretation belong to the calling skill.
+</audience>
+
 ## When to activate
 
 - User has a `(L, observable)` or `(L, parameter, observable)` table and wants exponents.
@@ -16,7 +24,7 @@ Fit a finite-size scaling form to a size-indexed (and optionally parameter-index
 ## Inputs
 
 - A data table: `(L, [parameter,] observable, uncertainty)` from `results/<run>/`.
-- A *fit form* — picked by the calling skill, the user, or this skill's defaults:
+- A *fit form* — **exactly one** of the four below, picked by the calling skill, the user, or this skill's defaults. The skill does NOT auto-cycle through forms; the caller commits to one form per run.
   - `power-law` — `obs(L) ~ L^{-α}`. For gap-closing, correlation-length, and order-parameter scalings.
   - `log-L` — `obs(L) ~ A log L + B`. For 1D CFT entanglement, long-range magic at criticality, and similar.
   - `polynomial` — fixed-degree polynomial in `1/L`. Standard for energy-per-site extrapolation to the thermodynamic limit.
@@ -25,11 +33,11 @@ Fit a finite-size scaling form to a size-indexed (and optionally parameter-index
 
 ## Workflow
 
-1. Load the table; verify size and uncertainty columns.
+1. Load the table; verify size and uncertainty columns are present and non-empty for **every** row. If any row is missing one of the columns, stop with a one-line `blocked:` report naming the missing column; do NOT silently impute.
 2. Pick the fit form (default or as instructed). For `data-collapse`, both axes are scanned over `(h_c, ν, γ/ν)` to minimize collapse residual; for `power-law` / `log-L` / `polynomial`, weighted least-squares.
-3. Estimate uncertainties via bootstrap (resample data points with their uncertainties; refit; quantile error bars).
+3. Estimate uncertainties via bootstrap: resample the data points with their uncertainties **N times** (default N=1000), refit on **every** resample, and report quantile error bars from the resulting distribution. Cover **every** declared bootstrap resample; do NOT drop resamples for which the fit failed to converge silently — surface them in the report as `failed_resamples = N` so the caller can assess fit stability.
 4. Plot the residuals and (for collapse) the collapsed curves; save to `results/<run>/scaling-fit.png`.
-5. Report fitted parameters with uncertainties, the quality-of-fit (`χ²/ν` for least-squares; collapse-residual norm for data-collapse), and a one-line interpretation if the calling skill provided a universality-class anchor.
+5. Report fitted parameters with uncertainties, the quality-of-fit (`χ²/ν` for least-squares; collapse-residual norm for data-collapse), and a one-line interpretation if the calling skill provided a universality-class anchor. When no anchor is provided, omit the interpretation line — do NOT fabricate one from this skill's prior knowledge of common exponents.
 6. Hand back the report to the caller.
 
 ## Output
@@ -41,19 +49,34 @@ Fit a finite-size scaling form to a size-indexed (and optionally parameter-index
 
 ## Quality-of-fit interpretation
 
-- For weighted least-squares: `χ²/ν ≈ 1` is consistent with the model; `χ²/ν ≫ 1` means either the fit form is wrong or uncertainties are underestimated; `χ²/ν ≪ 1` means uncertainties are overestimated.
-- For data-collapse: a small residual *with* visually clean collapsed curves is the meaningful signal. A small residual with visually scattered curves means the fit is over-fitting noise.
+<checklist name="qof-rules">
+
+- `χ²/ν ≈ 1` → fit is consistent with the model.
+- `χ²/ν ≫ 1` → either the fit form is wrong OR uncertainties are under-estimated.
+- `χ²/ν ≪ 1` → uncertainties are over-estimated.
+- Data-collapse + visually clean collapsed curves → meaningful signal.
+- Data-collapse + visually scattered curves → noise (over-fit); a small residual number alone is NOT signal.
+
+</checklist>
 
 ## Composition
 
 - Pairs with `/parameter-scan` (data input — single- or multi-axis).
 - After this skill runs, common follow-ups (offered via `AskUserQuestion`):
-  - `/cross-method-check` — verify the fitted exponent against an independent method or observable on the same data (Recommended when the result will be reported).
+  - `/cross-method-check` — verify the fitted exponent against an independent method or observable on the same data (Recommended whenever the exponent will leave this session — run report, paper figure, declared entry, or message to the user).
   - Extend the scan range — when the fit is poor at the boundary of the swept range.
   - Compare to a literature *range* — through `knowledge-base/physics/criticality/PHYSICS.md` (or the calling physics card).
   - Done.
 
 ## Notes
 
-- This skill is *content-agnostic*: it does not know whether the exponent is `ν`, `γ`, or `c`. The calling skill provides the label and interpretation. Universality-class comparison happens in the calling skill, citing `knowledge-base/benchmark-numbers.md` or `knowledge-base/magic-benchmarks.md`.
-- For contested universality classes the result should be presented as a range with the harness's value sitting inside the literature range, not as a definitive identification. The calling skill enforces this; this primitive just produces the fit.
+**Binding.** This skill MUST NOT label the fitted parameter with a physics name (ν, γ, c, etc.). The calling skill provides labels.
+
+**Explanatory.** Universality-class comparison happens in the calling skill, citing `knowledge-base/benchmark-numbers.md` or `knowledge-base/magic-benchmarks.md`. For contested universality classes the result should be presented as a range with the harness's value sitting inside the literature range, not as a definitive identification. The calling skill enforces this; this primitive just produces the fit.
+
+## Anti-patterns (auto-reject)
+
+- Inventing the physics label (calling the fitted parameter `ν`, `γ`, `c`, etc.).
+- Auto-cycling through fit forms when one form fits poorly — the caller commits to one form per run.
+- Reporting `χ²/ν` without the bootstrap confidence interval.
+- Suppressing visually scattered collapse curves behind a low residual number.

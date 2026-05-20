@@ -9,30 +9,38 @@ Sweep a Cartesian product of declared axes, holding other payload fields fixed. 
 
 This primitive subsumes any single-axis or multi-axis scan whose cells can be represented as opaque `params` plus optional `settings`.
 
+## Audience / scope (binding)
+
+<audience>
+The caller is a workflow skill (`solve`, a model skill, `/reproduce-paper`, or a physics card) that needs a parameter sweep executed and assembled. The output (table + plot + shape labels) is consumed by that calling workflow; the user reads only the 2–3-line report.
+
+This primitive MUST stay generic over: axis names, payload schema, the produced quantity, and the per-cell implementation. It does NOT know what an axis means physically, does NOT decide ranges, and does NOT interpret shapes.
+</audience>
+
 ## When to activate
 
-- User asks "how does this depend on `[parameter]`?" - single-axis scan.
+- User asks "how does this depend on `[parameter]`?" — single-axis scan.
 - User asks for a two-axis or higher-dimensional grid.
 - A calling workflow needs a sweep to characterize a response, locate a feature, or support an extrapolation.
 - After any single-point calculation, this is the canonical follow-up offered through `solve`.
 
 ## Inputs
 
-- *Calling workflow* and *anchor configuration* - fixed payload fields not on any axis.
-- *Axes* - list of named axes with value lists. Axis names and values are opaque to this primitive; the calling workflow or entrypoint resolves them.
-- *Quantity* - output field or artifact selected by the caller.
-- *Default value lists* - provided by the caller or user. This primitive does not infer domain-specific ranges.
-- *Optional* - per-cell settings overrides for any correctness-affecting or budget-affecting payload.
+- *Calling workflow* and *anchor configuration* — fixed payload fields not on any axis.
+- *Axes* — list of named axes with value lists. Axis names and values are opaque to this primitive; the calling workflow or entrypoint resolves them.
+- *Quantity* — output field or artifact selected by the caller.
+- *Default value lists* — provided by the caller or user. This primitive does not infer domain-specific ranges.
+- *Optional* — per-cell settings overrides for any correctness-affecting or budget-affecting payload.
 
 ## Workflow
 
 1. **Plan**: enumerate cells (Cartesian product of axes). Plan output: `results/<run>/parameter-scan.plan.json` listing cell ids and their parameter assignments.
-2. **Resume detection**: walk `results/<run>/cells/` and identify completed cells via their manifests. Build the *to-run* set.
+2. **Resume detection**: walk **every** subdirectory of `results/<run>/cells/` and identify completed cells via their manifests. Build the *to-run* set.
 3. **Execute**:
    - **Local** (laptop, no cluster profile active): loop over cells, dispatching the caller's calculation per cell.
    - **Cluster** (`tools/cluster/active.md` symlink or `HARNESS_CLUSTER_PROFILE` env var present): compose with `/slurm`, handing it the per-cell script and cell map. The slurm skill submits an sbatch array job, monitors, fetches.
-4. **Auto-bump controlling settings**: if the caller declares a retry policy and a cell reports non-convergence, apply the declared bump and re-run.
-5. **Collect**: walk `results/<run>/cells/*/manifest.json` and assemble `results/<run>/parameter-scan.csv` with axis values, selected quantity, uncertainty, controlling settings, runtime, and status.
+4. **Auto-bump controlling settings**: for **every** cell that reports non-convergence AND for which the caller has declared a retry policy, apply the declared bump and re-run that cell. Cells without a declared retry policy are left as-is and surfaced in the report.
+5. **Collect**: walk `results/<run>/cells/*/manifest.json` and assemble **every** cell manifest into `results/<run>/parameter-scan.csv` with axis values, selected quantity, uncertainty, controlling settings, runtime, and status. Cover **every** cell directory; do not drop or merge cells silently. Cells without manifests or with failed manifests appear in the assembled CSV with their `status` field set accordingly.
 6. **Auto-plot**: emit one or more plots via `scientific-visualization` based on axis arity:
    - 1D: `observable(parameter)` line plot with error bars.
    - 2D: family of `observable(axis_1)` curves indexed by `axis_2` (or vice versa); plus an optional `observable(axis_1, axis_2)` heatmap when both axes are continuous.
@@ -61,19 +69,48 @@ Setup that affects correctness or uncertainty also belongs in `settings` as opaq
 
 If the caller needs stricter assemble gates, `run_spec.json` may carry `assemble.manifest_contract`, `assemble.consensus_fields`, and `assemble.provenance_fields`. The contract is generic over manifest field paths: required/nonempty fields, equality checks, list membership, numeric fields, optional numeric fields, numeric bounds, and evidence-set bindings. Domain requirements are encoded as payload values in the protocol/run spec and echoed by manifests, not as new `/parameter-scan` types.
 
-Assemblers must validate each manifest's `settings` and declared provenance against the merged shared+cell payload from `run_spec.json`, then report settings as constant vs varying across cells. Never treat the first manifest's settings or provenance as global unless `assemble.consensus_fields` declares and passes that invariant. The protocol should pair this with `cover` plus `producer = "run"` so the observed cell manifests exactly match the declared run-spec cells; `trial` artifacts belong outside that covered path unless explicitly declared.
+Assembler obligations:
+
+<checklist name="assemble-contract">
+
+- The assembler validates **every** manifest's `settings` against the merged shared+cell payload from `run_spec.json`.
+- The assembler validates **every** manifest's declared provenance against the run-spec provenance.
+- The assembler reports settings as constant vs varying across **all** cells.
+- The assembler NEVER treats the first manifest's settings or provenance as global unless `assemble.consensus_fields` declares and passes that invariant.
+
+</checklist>
+
+The protocol should pair this with `cover` plus `producer = "run"` so the observed cell manifests exactly match the declared run-spec cells; `trial` artifacts belong outside that covered path unless explicitly declared.
 
 ## Shape detection (auto labels)
 
-The skill labels only the shape of the data:
+The skill labels only the shape of the data. Each entry below splits into a **detection criterion** (binary) and a **recommended downstream label/handoff**.
 
-- **Monotone** — observable goes one direction across an axis range.
-- **Asymptoting** — successive differences along a declared axis shrink monotonically; an extrapolation check may be appropriate.
-- **Power-law-like trend** - log-log slope is approximately stable across a declared axis; pass to `/scaling-fit` if the calling skill needs exponents.
-- **Drifting / oscillating** - neither asymptoting nor a clean power-law-like trend; surface the unresolved shape and the controlling settings.
-- **Extremum** - peak or valley at an interior point on an axis.
-- **Crossing** - curves indexed by one axis cross at one value of another axis.
-- **Step-like** - a sharp jump relative to neighboring points; flag for follow-up.
+<checklist name="shape-labels">
+
+- **Monotone**
+  - Detection: observable goes one direction across an axis range.
+  - Handoff: surface the direction; no follow-up named.
+- **Asymptoting**
+  - Detection: successive differences along a declared axis shrink monotonically.
+  - Handoff: surface an extrapolation-check follow-up.
+- **Power-law-like trend**
+  - Detection: log-log slope is approximately stable across a declared axis.
+  - Handoff: pass to `/scaling-fit` if the calling skill needs exponents.
+- **Drifting / oscillating**
+  - Detection: neither asymptoting nor a clean power-law-like trend.
+  - Handoff: surface the unresolved shape and the controlling settings.
+- **Extremum**
+  - Detection: peak or valley at an interior point on an axis.
+  - Handoff: surface the location; pass to `/scaling-fit` if exponents on the peak are wanted.
+- **Crossing**
+  - Detection: curves indexed by one axis cross at one value of another axis.
+  - Handoff: surface the crossing point; pass to `/scaling-fit` if the crossing pins a critical parameter.
+- **Step-like**
+  - Detection: a sharp jump relative to neighboring points.
+  - Handoff: flag for follow-up.
+
+</checklist>
 
 Labels are descriptive, not interpretive. The calling workflow decides what the shape means.
 
@@ -89,7 +126,7 @@ Labels are descriptive, not interpretive. The calling workflow decides what the 
 ## Resume semantics
 
 - Re-running on a partial run reuses cells with `success`-tagged manifests; re-submits cells without manifests.
-- Cells tagged `failed` are *not* automatically retried — the user ratifies the retry. (Avoids wasting compute on logic errors.)
+- **Every** cell whose manifest tags the run as `failed` (or whose script exited non-zero with no manifest) is left in place and surfaced in the report — never auto-retried. The user ratifies the retry per-cell or in bulk. (Avoids wasting compute on logic errors.)
 - The plan file is immutable per run id; if axes or values change, the user starts a new run id.
 
 ## Composition
@@ -107,11 +144,21 @@ Labels are descriptive, not interpretive. The calling workflow decides what the 
 - This skill does *not* know the meaning of any axis. It is generic over parameter names and values.
 - Retry and convergence logic delegate to the calling workflow and declared check commands.
 - For literature-dependent interpretation, the calling workflow should invoke its source-search or source-audit mechanism before interpreting; this primitive only produces data.
-- Per-cell manifest schema lives at `results/<run>/cells/<cell_id>/manifest.json` and is consumed by `/reproduce-paper` close at session close. Each cell's compute script writes its own manifest; this skill does not invent a parallel format.
+- **Every** cell's compute script (declared by the calling workflow) writes its own manifest at `results/<run>/cells/<cell_id>/manifest.json`. This skill does NOT invent a parallel format and does NOT write manifests itself. Per-cell manifests are consumed by `/reproduce-paper` close at session close.
 
 ## Anti-patterns (auto-reject)
 
 - Hardcoding domain-specific axis ranges or default values.
-- Bundling sbatch / ssh / rsync logic into this skill - that's `/slurm`'s job.
-- Inventing a new manifest format - the per-cell manifest convention is shared with `/reproduce-paper`.
-- Silent skip of failed cells - every failed cell must be classified and surfaced.
+
+<example name="anti-hardcode bad">
+bond_dim_axis = [16, 32, 64, 128]  # baked into the skill
+</example>
+
+<example name="anti-hardcode good">
+# The caller passes the axis range in; this skill never names a bond dim.
+axes = caller.axes  # e.g. {"bond_dim": [16, 32, 64, 128]}
+</example>
+
+- Bundling sbatch / ssh / rsync logic into this skill — that's `/slurm`'s job.
+- Inventing a new manifest format — the per-cell manifest convention is shared with `/reproduce-paper`.
+- Silent skip of failed cells — every failed cell must be classified and surfaced.

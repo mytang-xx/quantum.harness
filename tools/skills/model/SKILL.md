@@ -13,8 +13,10 @@ description: |
   - multiorbital-hubbard: multi-band + Hund's J
   - spin-1-xxz: Haldane phase, AKLT
   - potts-clock: q-state, first-order / continuous / BKT by q
-  Read knowledge-base/models/<name>/MODEL.md; grep ^signal in
-  knowledge-base/models/<name>/TACITS.toml before any verdict.
+  For EVERY matched model, read knowledge-base/models/<name>/MODEL.md AND
+  grep ^signal in knowledge-base/models/<name>/TACITS.toml before issuing
+  any verdict. Do this for each model you touch, not just the first one
+  matched in the session.
 ---
 
 # model dispatcher
@@ -22,23 +24,67 @@ description: |
 Auto-triggered. The user does not type `/model`; the description above fires
 the skill when their prose names a harness-tracked model.
 
+## Audience definition (binding)
+
+<audience>
+The reader is a working physicist with no harness-internal context. They
+want the result with embedded reasoning (what method, why, what was
+verified), not the agent's process. They do NOT know harness vocabulary
+(subagent, manifest, attempt, gate, kind, override, deviation, flow,
+producer). Every user-facing line is anchored to this audience.
+</audience>
+
 ## Workflow
 
 1. **Match.** Resolve user's prose to one canonical model name. Handle
    aliases (TFIM → transverse-field-ising, SIAM → anderson-impurity, …).
-2. **Read the card.** `knowledge-base/models/<name>/MODEL.md` carries the
-   definition, conventions, phases, observables, recommended methods, and
-   verification rubric. The card is authoritative; agent memory is not.
-3. **Grep tacits.** If `knowledge-base/models/<name>/TACITS.toml` exists,
-   grep `^signal` to scan for relevant lore before doing compute.
-4. **Execute.** Follow the card's declared workflow using primitive skills
-   (`/solve`, `/parameter-scan`, `/verify`, `/scaling-fit`,
-   `/cross-method-check`, `/slurm`, `/reproduce-paper` as appropriate).
-5. **Report.** Per AGENTS.md output norms (≤3 lines + convergence plot).
+2. **Read the card.** `knowledge-base/models/<name>/MODEL.md` is
+   authoritative; agent memory is not. Work through the following checklist
+   before any compute:
+
+   <checklist name="card-read">
+   - Hamiltonian definition and sign/normalization conventions read
+   - Declared phases and their order parameters identified
+   - Observables and their canonical forms noted
+   - Recommended method(s) and their stack noted
+   - Verification rubric (limit / symmetry / convergence / cross-method) noted
+   </checklist>
+
+3. **Grep tacits (REQUIRED before compute).** Run `grep ^signal` on
+   `knowledge-base/models/<name>/TACITS.toml` for every matched model. For
+   each signal whose surface symptom matches your planned setup or
+   anticipated error, read the full `[[tacit]]` block. Skipping this grep
+   when a `TACITS.toml` exists is itself a failed step.
+
+   Read every signal line before deciding which is relevant. Filtering
+   happens after reading, not before — a signal you dismiss as "probably
+   not it" but whose symptom matches has cost the harness real compute in
+   prior sessions.
+
+4. **Execute.** Follow the card's declared workflow. The card names which
+   primitive skills to compose (`/solve`, `/parameter-scan`, `/verify`,
+   `/scaling-fit`, `/cross-method-check`, `/slurm`, `/reproduce-paper`). Do
+   NOT substitute a different primitive because it feels more familiar; the
+   card's choice is authoritative.
+
+5. **Report.** Three lines or fewer in prose: primary quantity (value +
+   units), verification status (which checks passed), and one-line
+   reasoning (method + why). Auto-generate and embed the relevant
+   convergence or stability plot — never report a result without the visual
+   proof it converged.
 
 ## Anti-patterns
 
-- Substituting generic ED/DMRG defaults for the card's declared workflow.
-- Acting on "I remember Heisenberg has 3 phases" instead of re-reading the
-  card. Memory drifts; cards don't.
-- Ignoring TACITS.toml signals when the audited artifact's symptom matches.
+<checklist name="anti-patterns">
+- Substituting generic ED/DMRG defaults for the card's declared workflow — fail.
+- Acting on agent memory ("I remember Heisenberg has 3 phases") instead of re-reading the card — fail. Memory drifts; cards don't.
+- Ignoring `TACITS.toml` signals when the audited artifact's symptom matches — fail.
+</checklist>
+
+<example name="memory-substitution bad">
+"Heisenberg has 3 phases — AFM, FM, and PM — so I'll measure ⟨S·S⟩ and ⟨Sᶻ⟩."
+</example>
+
+<example name="memory-substitution good">
+"Re-reading knowledge-base/models/heisenberg/MODEL.md before naming phases. The card declares [list from card]; observables [list from card]."
+</example>

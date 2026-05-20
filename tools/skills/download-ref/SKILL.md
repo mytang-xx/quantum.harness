@@ -5,7 +5,23 @@ description: Use when adding arXiv IDs, DOIs, or bibliography stubs to this quan
 
 # download-ref
 
-Add methodology references to this repo's knowledge base.
+Renders methodology PDFs into Markdown under `knowledge-base/literature/<method>/`
+and indexes them. Raw PDFs and extracted figures stay local (gitignored). The
+workflow MUST be run via the bundled scripts — manual editing of `INDEX.md` or
+rendered Markdown is not the intended path.
+
+<example name="activate good">
+User: "Pull arXiv 1008.3477 into the DMRG references." → download-ref fires.
+</example>
+
+<example name="activate not-applicable">
+User: "Cite Hewson 1993 in the run report." → download-ref does NOT fire (citation already in KB); just cite directly.
+</example>
+
+## When to activate
+
+Trigger phrases: "download this arXiv ID", "add a DMRG reference", "pull in
+DOI 10...", "render this PDF I have", "add a bibliography stub for ...".
 
 This is the repo-local adaptation of the `zlp-harness` download workflow. The
 upstream workflow assumes a `.knowledge/` root; this harness uses
@@ -23,7 +39,15 @@ knowledge-base/literature/<method>/
   .figures/  # extracted PDF images, gitignored
 ```
 
-Use method slugs that match the local method cards when possible:
+| Path | Committed? |
+|---|---|
+| `INDEX.md` | YES |
+| `<rendered-reference>.md` | YES |
+| `.raw/` | NO (gitignored) |
+| `.figures/` | NO (gitignored) |
+
+Method slugs MUST match an existing method card slug under
+`knowledge-base/methods/<method>` when one exists. Use these canonical slugs:
 
 ```text
 dmrg
@@ -37,6 +61,9 @@ dmft
 qmc
 ```
 
+Introduce a new slug only when no existing method card matches the
+methodology.
+
 ## Scripts
 
 The helper scripts are bundled with this skill:
@@ -49,6 +76,10 @@ They are idempotent. Re-running a manifest skips existing metadata/PDFs and
 overwrites rendered markdown from raw sources.
 
 ## Workflow
+
+Run all six steps in order for a new manifest. Steps 3–5 (fetch / render /
+index) are idempotent and safe to re-run; step 2 (manifest authoring) is your
+edit. Step 6 (verify) is REQUIRED before reporting.
 
 ### 1. Prepare a method folder
 
@@ -65,14 +96,18 @@ without `arXiv:` and without version suffixes (old-style `cond-mat/0701105` is
 fine); DOIs verbatim. Stubs are for books or closed references that should be
 indexed but cannot be downloaded.
 
-The optional fields `title`, `authors`, `year`, `venue`, `note` pin per-paper
-overrides on top of Semantic Scholar. Use them when S2 mis-stores the
-journal-of-record (returns the arXiv subject category in `journal.name`),
-reports the arXiv submission year instead of the publication year, drops
-Unicode diacritics from author names, or carries an author typo. The renderer
-is mechanical — the only way to correct a wrong S2 field is to override it
-here. When `venue` is overridden, the body **Citation:** line uses it verbatim
-(no splicing of volume/pages).
+Optional fields pin per-paper overrides on top of Semantic Scholar. The
+renderer is mechanical — the only way to correct a wrong S2 field is to
+override it here. When `venue` is overridden, the body **Citation:** line
+uses it verbatim (no splicing of volume/pages).
+
+| Field | When to set |
+|---|---|
+| `title` | S2 returns wrong or empty title |
+| `authors` | S2 drops diacritics or carries a typo |
+| `year` | S2 reports arXiv submission year, not publication year |
+| `venue` | S2 stores subject category; use for verbatim citation |
+| `note` | Free-form annotation surfaced in INDEX.md |
 
 ```json
 {
@@ -117,34 +152,15 @@ metadata and uses an arXiv preprint when one is available.
 
 ### 4. Render markdown
 
-```sh
-python3 "$SCRIPTS/render.py" \
-  --kb "$KB" \
-  --manifest "$MANIFEST"
-```
-
 Rendering uses `pymupdf4llm` when installed, then falls back to `markitdown` or
 `pdftotext`. If `pymupdf4llm` is missing, full text can still render but figures
 may be absent.
 
-For a single PDF that is already in hand, render it with the same extraction
-stack:
-
-```sh
-python3 "$SCRIPTS/render.py" \
-  --pdf sources/paper.pdf \
-  --out sources/paper.md
-```
-
-For long lecture notes or books where image/OCR extraction is too slow, prefer
-searchable text-only rendering:
-
-```sh
-python3 "$SCRIPTS/render.py" \
-  --kb "$KB" \
-  --manifest "$MANIFEST" \
-  --text-only
-```
+| Use case | Command |
+|---|---|
+| Standard render (manifest) | `python3 "$SCRIPTS/render.py" --kb "$KB" --manifest "$MANIFEST"` |
+| Single PDF in hand | `python3 "$SCRIPTS/render.py" --pdf sources/paper.pdf --out sources/paper.md` |
+| Long book/lecture notes | add `--text-only` |
 
 ### 5. Regenerate the method index
 
@@ -165,11 +181,18 @@ test -f "$KB/INDEX.md"
 find "$KB" -maxdepth 1 -name '*.md' -print
 ```
 
+<checklist name="verify-render">
+- `.raw/` and `.figures/` are gitignored (verify with `git check-ignore`)
+- `INDEX.md` exists at the method root
+- Each manifest entry has a corresponding `.md` file at the method root
+- Each entry's `INDEX.md` row marks `full_text: yes / no / stub` correctly
+</checklist>
+
 Report the rendered files, which entries have `full_text: yes`, and which are
 metadata-only or stubs.
 
 ## Notes
 
-- Do not commit `.raw/` or `.figures/`.
-- Do not put all methods in one folder; use one method folder per methodology.
-- For paywalled books, create a stub entry rather than fabricating a PDF.
+- DO NOT commit `.raw/` or `.figures/`.
+- DO NOT put multiple methods in one folder; one method folder per methodology.
+- For paywalled books, create a stub entry — DO NOT fabricate a PDF.

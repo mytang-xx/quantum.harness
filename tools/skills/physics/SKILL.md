@@ -11,29 +11,87 @@ description: |
   - kondo-effect: local-moment screening
   - magic: non-stabilizerness, SRE, long-range magic
   - confinement: gauge-theory confinement diagnostics
-  Read knowledge-base/physics/<topic>/PHYSICS.md; grep ^signal in
-  knowledge-base/physics/<topic>/TACITS.toml before any verdict.
+  For EVERY matched topic, read knowledge-base/physics/<topic>/PHYSICS.md
+  AND grep ^signal in knowledge-base/physics/<topic>/TACITS.toml before
+  issuing any verdict on phase, mechanism, or diagnostic. Each verdict
+  requires its own card-read + tacit-grep, not a single per-session pass.
 ---
 
 # physics dispatcher
 
 Auto-triggered when the user asks about a cross-model phenomenon, mechanism,
-or diagnostic. Different from `/model`: `/physics` fires for "is this a spin
-liquid?" or "what would Kondo physics look like here?", not for "solve
-Heisenberg" (that's `/model`).
+or diagnostic. Different from `/model`: `/physics` fires for diagnostic or
+mechanism questions, not for "solve <model>" (that's `/model`).
+
+<example name="physics good">
+"Is this a spin liquid?" — /physics fires on the diagnostic question.
+"What would Kondo physics look like here?" — /physics fires on the mechanism question.
+</example>
+
+<example name="physics not-applicable">
+"Solve Heisenberg" — /model fires; /physics does not.
+"Compute the ground state of TFIM" — /model fires; /physics does not.
+</example>
 
 ## Workflow
 
 1. **Match.** Resolve to one canonical topic name.
-2. **Read the card.** `knowledge-base/physics/<topic>/PHYSICS.md` defines
-   the evidence rubric and cross-checks.
-3. **Grep tacits.** `knowledge-base/physics/<topic>/TACITS.toml` if present.
-4. **Compose.** Most physics questions cross models; the card lists model
-   hooks (`see knowledge-base/models/<model>/MODEL.md`) and primitive
-   compositions (`/parameter-scan`, `/scaling-fit`, `/cross-method-check`).
+2. **Read the card.** `knowledge-base/physics/<topic>/PHYSICS.md` is
+   authoritative. Work through the following checklist before any compute:
+
+   <checklist name="card-read">
+   - Evidence rubric (which observables, which sectors, which limits) noted
+   - Cross-checks (independent methods or diagnostics) noted
+   - Model hooks (which `knowledge-base/models/<model>/MODEL.md` files to consult) noted
+   </checklist>
+
+3. **Grep tacits (REQUIRED before compute or verdict).** When
+   `knowledge-base/physics/<topic>/TACITS.toml` exists, run `grep ^signal`
+   and read the full `[[tacit]]` block for every signal whose surface
+   symptom matches your evidence or interpretation. Skipping this grep is
+   itself a failed step.
+
+4. **Compose.** Read every model hook the topic card declares — not just
+   the one that feels most relevant. The card chooses the cross-model
+   evidence pattern; an agent that consults only one model when the card
+   lists three has weakened the evidence rubric. Then compose the named
+   primitives (`/parameter-scan`, `/scaling-fit`,
+   `/cross-method-check`) per the card's declared workflow.
+
+   Coverage, not filtering: gather every item in the topic's evidence
+   rubric before issuing a verdict. Reporting "I checked the obvious one
+   and it looked right" is a failed verdict.
+
 5. **Report.** Caveat-after, not caveat-first.
+
+   <example name="caveat-after bad">
+   "While there is some debate, and the picture is not fully settled, the evidence is consistent with a spin liquid in the J2/J1 ≈ 0.5 regime."
+   </example>
+
+   <example name="caveat-after good">
+   "The evidence is consistent with a spin-liquid phase at J2/J1 ≈ 0.5. The exact nature of the liquid (Z2 vs gapless U(1)) remains debated in the literature."
+   </example>
 
 ## Anti-patterns
 
-- Declaring a phase without running the evidence rubric.
-- Ignoring the model hooks the topic card declares.
+<checklist name="anti-patterns">
+- Declaring a phase without running the card's full evidence rubric — fail.
+- Ignoring the model hooks the topic card declares — fail.
+</checklist>
+
+<example name="evidence-rubric bad">
+"The structure factor peaks at q = (π, π), so this is the AFM Néel phase."
+(One diagnostic, no cross-check, no scaling, no limit; the card declared a multi-item rubric.)
+</example>
+
+<example name="evidence-rubric good">
+"Running the card's full rubric: structure factor at q = (π, π), staggered magnetization, spin gap, and the J → 0 limit cross-check. All four agree with AFM Néel; verdict stands."
+</example>
+
+<example name="model-hooks bad">
+"The topic card lists Heisenberg, J1-J2, and Hubbard as model hooks; I'll just use J1-J2 since it feels most relevant."
+</example>
+
+<example name="model-hooks good">
+"The topic card lists Heisenberg, J1-J2, and Hubbard as model hooks. Reading all three cards before composing the cross-model evidence pattern."
+</example>

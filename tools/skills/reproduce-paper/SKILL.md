@@ -9,15 +9,29 @@ Thin orchestrator. The discipline lives in `protocol.toml`: `[[cells]]` declares
 
 ## Non-negotiables
 
-- Start from primary sources. KB cards, old scripts, previous figures, notes, and summaries are hints until confirmed or regenerated.
-- Fill `[[cells]]` before coding. Every executable cell MUST name `method`, `stack`, `route`, `source`, `check`, `state`, and `scope`.
-- Method-agnostic is not method-optional. `flow` is a ledger; DO NOT use `flow` gates, attempt roles, or check kinds as the software-stack choice.
-- DO NOT probe fallback tooling just because the paper/canonical stack fails locally. Record the canonical route as `failed` or `pending`; only then declare `fallback` or `deviation` before touching the alternate stack.
-- Fallback means the method card's next recommended stack. A source note's bibliography order and installed packages are not stack priority.
-- DO NOT silently weaken the target. Any change to paper setup, route, data, budget, scope, or uncertainty is a `[[deviations]]` row before compute.
-- DO NOT trust the first manifest as global. Assemble from all manifests; report settings as constant only after consensus.
-- Failed gates are not status text. Classify the mismatch, repair the earliest wrong layer, invalidate downstream artifacts, rerun, then re-verify.
-- READ EVERY FIGURE CAPTION VERBATIM BEFORE CODING. The pre-compute figure-reading checklist (AGENTS.md → Knowledge Base Role → "Pre-compute figure-reading checklist") is binding for every `[[figures]]` entry: caption verbatim, x-axis + scale, y-axis + normalization factor (× L, divided by D, log₂ vs log₁₀, …), per-curve identity, state-selection language as a contract, window / sub-region, stated numerical anchors, and what the figure is NOT. Audit subagents in `script` and `result` modes MUST work through it; "math looks right" is not a verdict.
+<checklist name="non-negotiables">
+
+- **N1.** Start from primary sources. KB cards, old scripts, previous figures, notes, and summaries are hints until confirmed or regenerated.
+- **N2.** Fill `[[cells]]` before coding. Every executable cell MUST name `method`, `stack`, `route`, `source`, `check`, `state`, and `scope`.
+- **N3.** Method-agnostic is not method-optional. `flow` is a ledger; method and stack live in protocol data, not in `flow` vocabulary. DO NOT use `flow` gates, attempt roles, or check kinds as the software-stack choice.
+- **N4.** DO NOT probe fallback tooling just because the paper/canonical stack fails locally. Record the canonical route as `failed` or `pending`; only then declare `fallback` or `deviation` before touching the alternate stack.
+- **N5.** Fallback means the method card's next recommended stack. A source note's bibliography order and installed packages are not stack priority.
+- **N6.** DO NOT silently weaken the target. Any change to paper setup, route, data, budget, scope, or uncertainty is a `[[deviations]]` row before compute.
+- **N7.** DO NOT trust the first manifest as global. Assemble from all manifests; report settings as constant only after consensus.
+- **N8.** Failed gates are not status text. Classify the mismatch, repair the earliest wrong layer, invalidate downstream artifacts, rerun, then re-verify.
+- **N9.** READ EVERY FIGURE CAPTION VERBATIM BEFORE CODING. See the [Pre-compute figure invariant](#pre-compute-figure-invariant) section below.
+
+</checklist>
+
+### Pre-compute figure invariant
+
+The pre-compute figure-reading checklist (AGENTS.md → Knowledge Base Role → "Pre-compute figure-reading checklist") is binding for every `[[figures]]` entry: caption verbatim, x-axis + scale, y-axis + normalization factor (× L, divided by D, log₂ vs log₁₀, …), per-curve identity, state-selection language as a contract, window / sub-region, stated numerical anchors, and what the figure is NOT. Audit subagents in `script` and `result` modes MUST work through it; "math looks right" is not a verdict.
+
+## Verifier dispatch
+
+<note name="audit-dispatch">
+Every gate audit attempt MUST SPAWN a real verifier subagent with the host subagent/delegation tool; pass it the protocol + primary source + artifact under review; have it write `verify/verify_<artifact>_<date>.md`; record the audit attempt with the returned verifier actor id. Role text is not verification.
+</note>
 
 ## When to activate
 
@@ -37,29 +51,42 @@ Thin orchestrator. The discipline lives in `protocol.toml`: `[[cells]]` declares
 source → protocol → plan → script → trust → run → assemble → close
 ```
 
-Each gate's contract lives in `protocol.toml` as `[[checks]]`. `flow` runs the checks on `flow attempt finish` and derives the gate status. The agent never declares pass.
+Each token is a `flow` gate name; the workflow steps below execute attempts against these gates in sequence. Each gate's contract lives in `protocol.toml` as `[[checks]]`. `flow` runs the checks on `flow attempt finish` and derives the gate status. The agent never declares pass.
 
 ## Workflow
 
 1. **Init the ledger.** `tools/cli/flow init results/<run> --template tools/flow/templates/reproduce-paper.toml`. This is the first run-dir action.
 
-2. **Acquire sources.** Copy `tools/templates/reproduce-paper/protocol.toml` to `results/<run>/protocol.toml`, fill `[artifact]`, `[[sources]]`, and the `source` gate check paths from primary sources, then start a `run` attempt on `source`. Use Markdown as the readable source: if an official or rendered Markdown source exists, place it under `sources/` and cite that; if only a PDF exists, store the PDF under `sources/` and render it with `python3 tools/skills/download-ref/scripts/render.py --pdf <pdf> --out <markdown>`. Finish the attempt, then `flow require <run> source` before protocol audit.
+2. **Acquire sources.**
+   - **2a.** Copy `tools/templates/reproduce-paper/protocol.toml` to `results/<run>/protocol.toml`, fill `[artifact]`, `[[sources]]`, and the `source` gate check paths from primary sources.
+   - **2b.** Prefer rendered Markdown as the readable source. If an official or rendered Markdown source exists, place it under `sources/` and cite that; if only a PDF exists, store the PDF under `sources/` and render it with `python3 tools/skills/download-ref/scripts/render.py --pdf <pdf> --out <markdown>`.
+   - **2c.** Start a `run` attempt on `source`; finish the attempt; `flow require <run> source` MUST pass before protocol audit.
 
 3. **Author the contract.** Fill the rest of `protocol.toml` from the primary source: `[entry]`, `[[claims]]`, `[[cells]]`, `[[checks]]`, `[[figures]]`, optional `[[deviations]]`, `[[repairs]]`, and `[[pending]]`. Each executable cell declares one route with one-word fields: `method`, `stack`, `route`, `source`, `check`, `state`, `scope`. Do this before implementing scripts or running compute. Use one-word check kinds: `audit`, `run`, `exists`, `agree`, `near`, `fresh`, `cover`, `support`; keep check ids unique because they are override handles. Use attempt roles `audit`, `trial`, `run`, `report`.
 
-4. **Audit the contract.** MUST SPAWN a real verifier subagent for an `audit`-kind attempt on the `protocol` gate (different `--actor` from whoever drafted the protocol). Do not write the verifier report yourself. If no verifier can be spawned, stop with `blocked: verifier subagent unavailable` and leave the gate open. Finish the attempt only after the verifier returns a report, using `--report <path>`.
+4. **Audit the contract.** MUST SPAWN a real verifier subagent for an `audit`-kind attempt on the `protocol` gate (different `--actor` from whoever drafted the protocol). Do not write the verifier report yourself. If no verifier can be spawned, stop with `blocked: verifier subagent unavailable` and leave the gate open. Finish the attempt only after the verifier returns a report, using `--report <path>`. The verifier brief MUST include "Coverage, not filtering — report every issue you find, including uncertain or minor ones; the calling skill ranks and decides."
 
 5. **Plan the figure graph.** Author `results/<run>/reproduce-plan.toml` (figure ids, categorisations — substantive / methodology / verification / cross-check — dependency edges, and the `cell` ids that produce them). Start and finish the `plan` attempt.
 
-6. **Implement the entry.** One declared `[entry]` runs the reproduction. Start a `run` attempt on `script`; register the entry as an artifact (`flow artifact add`); start a separate `audit` attempt; finish both. The entry's `help` and `dry` commands must exit before evidence IO. The script and every manifest must echo each cell's `method`, `stack`, `route`, `source`, `check`, `state`, and `scope`.
+6. **Implement the entry.** One declared `[entry]` runs the reproduction. Start a `run` attempt on `script`; register the entry as an artifact (`flow artifact add`); start a separate `audit` attempt; finish both.
+
+   <checklist name="entry-invariants">
+   - The entry's `help` and `dry` commands must exit before evidence IO.
+   - The script must echo each cell's `method`, `stack`, `route`, `source`, `check`, `state`, and `scope`.
+   - Every manifest must echo each cell's `method`, `stack`, `route`, `source`, `check`, `state`, and `scope`.
+   </checklist>
 
 7. **Trust.** Start a `run` attempt on `trust`. For each substantive figure, run the entry at a point where the answer is known (analytic limit, exact small instance, official benchmark), write trust artifacts under `trust/`, register them, and finish the attempt. Declare the check as `kind = "near"`. Failure here blocks `run`.
 
-8. **Run.** Dispatch via `/parameter-scan` + `/slurm` (or the declared primitive). The cell wrappers register manifests as artifacts with `--producer <run-attempt>`. The `run` gate's `[[checks]]` enforce `cover`, `exists`, `agree`, `fresh`, and `producer = "run"`. A manifest whose route fields do not match its `[[cells]]` block is invalid evidence. Remote job status, `ssh` exit status, and scheduler `COMPLETED` are operational facts only; fetched manifests and checks are the evidence.
+8. **Run.** Dispatch via `/parameter-scan` + `/slurm` (or the declared primitive). The cell wrappers register manifests as artifacts with `--producer <run-attempt>`. The `run` gate's `[[checks]]` enforce `cover`, `exists`, `agree`, `fresh`, and `producer = "run"`. A manifest whose route fields do not match its `[[cells]]` block is invalid evidence.
+
+   > **Evidence rule.** Scheduler `COMPLETED` and `ssh` exit 0 are NOT evidence. Only fetched manifests with passing checks count.
 
 9. **Assemble.** Start a `run` attempt on `assemble`. Walk all run manifests, validate consensus/support and route-field agreement, and produce each figure as `figs/<id>.png` plus `figs/<id>.json` (interactive plot source). Never infer global settings from the first completed cell. Register assembled artifacts such as `figs/*` with the `run` attempt and finish it.
 
-10. **Close.** Start a `report` attempt on `close`; generate `run-report.md`; keep the declared `[entry]` commands runnable with all parameters explicit. Register close-stage artifacts such as `run-report.md` with the `report` attempt; the entry artifact remains producer `run`. Finish the report attempt, then independently audit the close. The close gate runs `[entry].help` and `[entry].dry`; any evidence mutation should be caught by `fresh`.
+10. **Close.**
+    - **10a.** Start a `report` attempt on `close`; generate `run-report.md`; keep the declared `[entry]` commands runnable with all parameters explicit. Register close-stage artifacts such as `run-report.md` with the `report` attempt; the entry artifact remains producer `run`. Finish the report attempt.
+    - **10b.** Dispatch a separate `audit`-kind attempt with a different `--actor` from the report writer. The report-writer cannot self-audit. The close gate runs `[entry].help` and `[entry].dry`; any evidence mutation should be caught by `fresh`.
 
 11. **Render the deliverable.** `/report` consumes the run dir.
 
@@ -68,13 +95,13 @@ Each gate's contract lives in `protocol.toml` as `[[checks]]`. `flow` runs the c
 - **Parameter sweeps** → `/parameter-scan`
 - **Critical scaling** → `/scaling-fit`
 - **Cross-checks** → `/cross-method-check`
-- **Audits** (gate audit attempts in any mode) → MUST SPAWN a real verifier subagent with the host subagent/delegation tool; pass it the protocol + primary source + artifact under review; have it write `verify/verify_<artifact>_<date>.md`; record the audit attempt with the returned verifier actor id. Role text is not verification.
+- **Audits** (gate audit attempts in any mode) → `/verify`. See [Verifier dispatch](#verifier-dispatch).
 - **Cluster execution** → `/slurm` (called by `/parameter-scan`).
 - **User-facing forks** → host platform's option API (Claude Code: `AskUserQuestion`; Codex: equivalent). Three options max, recommended first.
 
 ## Cell routes
 
-`reproduce-paper` is method-agnostic, not method-optional. It never hardcodes method or stack names; it requires the protocol to name them.
+See N3: `flow` is a ledger; method/stack live in protocol data, not in `flow` vocabulary. `reproduce-paper` never hardcodes method or stack names; it requires the protocol to name them.
 
 Per executable cell:
 
@@ -100,6 +127,16 @@ Meanings:
 - `fallback` — next recommended fallback stack in the method card, with source cited.
 - `deviation` — any other route; `deviation` must name a `[[deviations]]` row before compute.
 
+<example name="deviation bad">
+route = "deviation"
+deviation = "no built-in basis"
+</example>
+
+<example name="deviation good">
+route = "deviation"
+deviation = "custom basis would cost 3× wall-time vs raw LAPACK; see [[deviations]] row dev.basis-cost"
+</example>
+
 `flow` remains method-blind. It records the protocol, artifacts, and check outcomes; `/verify` decides whether the declared route is supported by the cited source and whether the script/manifests match it. Do not invent method-specific gates or use `flow` commands to force a stack choice.
 
 `state` is the route-check result. Do not set it to `passed` until the check has actually run or the primary/official route has been inspected enough to support the claim. A `failed`, `skipped`, or empty state blocks compute unless the cell is explicitly scoped as `deviation` or `pending`.
@@ -110,13 +147,13 @@ If the route check fails because of a local environment problem, stop at the fai
 
 When `flow attempt finish` reports a failing check:
 
-1. **Backchain first** — inspect the earliest failed gate and its declared inputs. Do not patch a downstream report to hide an upstream failure.
-2. **Repair the evidence** — fix the artifact, run a new attempt.
-3. **Record a deviation** — `flow deviate <run> --id <id> --statement "..." --reason "..."` for runtime departures, or declare in `protocol.toml`'s `[[deviations]]` upfront. Both surface as ⚠ in `flow status`.
-4. **Record a repair** — for any failed gate or contract-changing edit, add a `[[repairs]]` row with one-word fields: `from`, `wrong`, `changed`, `invalidate`, `state`.
-5. **Record a decision** — at any runtime fork the user hasn't pre-specified, present `AskUserQuestion` then `flow decide <run> --id <id> --question "..." --choice "..."`. Decisions surface in `flow status`.
-6. **Override** — `flow override <run> <check-id> --reason "<text>"`. The override is recorded forever; downstream artifacts show ⊘.
-7. **Stop** — always a real option.
+1. **When any gate fails**, do backchain first — inspect the earliest failed gate and its declared inputs. Do not patch a downstream report to hide an upstream failure.
+2. **When the artifact itself is wrong**, do repair the evidence — fix the artifact, run a new attempt.
+3. **When the run diverges from the paper at runtime**, do record a deviation — `flow deviate <run> --id <id> --statement "..." --reason "..."` for runtime departures, or declare in `protocol.toml`'s `[[deviations]]` upfront. Both surface as ⚠ in `flow status`.
+4. **When a failed gate or contract-changing edit happens**, do record a repair — add a `[[repairs]]` row with one-word fields: `from`, `wrong`, `changed`, `invalidate`, `state`.
+5. **When a runtime fork is not pre-specified**, do record a decision — present `AskUserQuestion` then `flow decide <run> --id <id> --question "..." --choice "..."`. Decisions surface in `flow status`.
+6. **When a check must be bypassed**, do override — `flow override <run> <check-id> --reason "<text>"`. The override is recorded forever; downstream artifacts show ⊘.
+7. **When no path forward fits**, do stop — always a real option.
 
 Never edit the script, the protocol, or the run report to *make* a check pass without changing the underlying evidence.
 
@@ -124,11 +161,22 @@ Never edit the script, the protocol, or the run report to *make* a check pass wi
 
 End every turn with `tools/cli/flow status <run>` (or `flow status <run> --json` for tools). The default projection is terse: current gate, first blocker, next command. Use `flow status <run> --full` only when a human asks for details. Do not author a separate closeout paragraph that upgrades the gate status; the truthful summary always lives in the projection.
 
+<example name="closeout bad">
+All gates passed except the close audit which is pending — overall the reproduction is essentially complete.
+</example>
+
+<example name="closeout good">
+$ flow status results/<run>
+gate: close (pending)
+first blocker: audit attempt not finished
+next: dispatch close audit subagent
+</example>
+
 Before the agent declares the reproduction complete, the close gate must pass: `tools/cli/flow require <run> close` exits 0. The default protocol template gates per-figure `figs/<id>.{png,json}` in `assemble`, then gates `run-report.md`, the explicit entry artifact, and `[entry].help` / `[entry].dry` in `close` — so completion cannot pass with missing deliverables or unsafe inspection entrypoints. If close fails, repair the evidence or record a deviation; do not stop with an open close gate.
 
 ## Resume
 
-The plan file and `progress/events.jsonl` are durable. Re-running this skill on an existing run dir reuses figures already produced (manifest-driven). Failed figures surface with their failure mode; not auto-retried.
+The plan file and `progress/events.jsonl` are durable. Re-running on an existing run dir: completed figures (those with valid `figs/<id>.{png,json}` and registered manifests passing freshness) are reused; failed figures surface in `flow status` with their failure mode and are NOT auto-retried — the user re-ratifies before retry.
 
 ## Notes
 
