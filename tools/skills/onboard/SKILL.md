@@ -29,19 +29,19 @@ Report one line:
 - Something installed: "Installed [what]. Ready."
 - Install failed: say what failed, offer to debug. Don't proceed until the stack works.
 
-### 2. Cluster setup — warm gate, optional
+### 2. Cluster setup — warm gate, always asked
 
 Skip this stage if `tools/cluster/active.md` already exists (user has a profile from a prior session — idempotent).
 
-Otherwise, ask one warm gate via `AskUserQuestion`:
+Otherwise, ask one warm gate via `AskUserQuestion`. Most paper-grade calculations end up on a remote cluster eventually, and even a quick setup now persists the profile so future sessions ship/submit/monitor/fetch automatically without re-asking:
 
-> *"Will you run paper-grade calculations on a remote cluster (SLURM, PBS, plain ssh, ...)? If yes, I'll wire it into the harness now — ship/submit/monitor/fetch all happen from this session, no manual ssh relay. You can also skip and configure later when you actually need it."*
+> *"Will you want to run on a remote cluster at some point (SLURM, PBS, plain ssh)? If yes, I'll capture the config now so future sessions don't have to re-ask. If local-only is genuinely all you need, that's fine too — pick that and we'll move on."*
 
 Options:
-- "Yes, set it up now (Recommended if you have cluster docs handy)"
-- "Skip for now — local-only is fine"
+- "Yes, capture cluster config now (Recommended — persists for every future session)"
+- "Local-only for now"
 
-If the user picks "skip", continue to step 3. If "yes", continue inside this stage:
+If the user picks "local-only", continue to step 3. If "yes", continue inside this stage:
 
 #### 2a. Path to profile
 
@@ -86,7 +86,17 @@ Write the profile to `tools/cluster/<short-name>.md`, symlink `tools/cluster/act
 
 Do NOT bootstrap Julia or instantiate environments here — that's `/setup-julia`'s job, dispatched on demand by `/slurm` when the first cluster Julia run happens.
 
-### 3. Problem intake — one question
+### 3. Problem intake — skippable
+
+Setup and cluster profile are now persisted. Some users want to dive into a problem immediately; some just wanted the harness initialized and will return later. Ask once via `AskUserQuestion`:
+
+> *"Setup is done. Want to start on a problem now, or save what we have and exit?"*
+
+Options:
+- "Start a problem now (Recommended if you have one in mind)" — proceed to step 3a
+- "Save setup and exit" — skip to exit
+
+#### 3a. Describe the problem
 
 > *"What problem are you trying to solve?"*
 
@@ -94,7 +104,9 @@ That's it. Don't list models. Don't explain the architecture.
 
 ### 4. Route
 
-Infer the model or physics topic from the answer. Hand off to `/model` (if a specific Hamiltonian) or `/physics` (if a cross-model phenomenon question); the dispatcher reads the matching card. This skill exits.
+If the user picked "Save setup and exit" in step 3, exit with one line: *"Harness ready. `/model` or `/physics` will route you when you bring a problem."*
+
+Otherwise, infer the model or physics topic from the step 3a answer. Hand off to `/model` (if a specific Hamiltonian) or `/physics` (if a cross-model phenomenon question); the dispatcher reads the matching card. This skill exits.
 
 If ambiguous, use `AskUserQuestion` with 2–3 candidate cards — short labels, one-line tradeoff each, recommended first. Don't list every card.
 
