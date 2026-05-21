@@ -1,6 +1,10 @@
 ---
 name: setup-julia
-description: Use when Julia is missing, wrong-version, uninstantiated, or mirror-misconfigured — symptoms like `julia: command not found`, missing `julia-env/Manifest.toml`, package downloads timing out, fresh cluster account, fresh laptop, package-mirror change, or Julia-version bump.
+description: >-
+  Use when Julia is missing, wrong-version, uninstantiated, or mirror-misconfigured —
+  symptoms like `julia: command not found`, missing `julia-env/Manifest.toml`,
+  package downloads timing out, fresh cluster account, fresh laptop,
+  package-mirror change, or Julia-version bump.
 ---
 
 # setup-julia
