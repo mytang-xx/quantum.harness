@@ -85,20 +85,51 @@ export interface Assumption {
   text_unicode?: string | null;
   scope_label?: string | null;
 }
+// Per-side delta block inside a Deviation (paper-did / ours-did).
+// All fields optional — renderer falls back to the prose-only paragraph.
+export interface DeltaStatement {
+  tex?: string | null;             // KaTeX math (display); use `unicode_fallback` when KaTeX is unavailable
+  unicode_fallback?: string | null;
+  badge?: MethodBadge | null;      // method-family pill (e.g. "iTEBD", "ED Krylov")
+  cite?: Cite;
+}
+
 export interface Deviation {
   id: string;
   statement: string;
   why: string;
+  // Protocol pass-through (used as fallback when polish hasn't provided structured fields):
+  kind?: string | null;
+  from?: string | null;
+  to?: string | null;
+  reason?: string | null;          // alias for `why` from older protocol.toml rows
+  // Polish-subagent emitted (all optional; renderer falls back to prose):
   display_label?: string | null;
   discrepancy_paragraph?: string | null;
+  headline?: string | null;        // one-line summary (may contain $...$ math markers)
+  paper_did?: DeltaStatement | null;
+  ours_did?: DeltaStatement | null;
+  cite?: Cite;
+}
+
+// Key-result stat-chip used by the verdict hero. The polish subagent emits
+// 3-5 of these to surface headline numerical results. `value_tex` renders
+// via inline KaTeX; `value_unicode` is the accessibility / fallback string.
+export interface KeyResult {
+  label: string;
+  value?: string;
+  value_tex?: string | null;
+  value_unicode?: string | null;
+  cite?: Cite;
 }
 
 export type VerdictStatus = 'match' | 'partial' | 'fail' | 'unknown';
 export interface Verdict {
   status: VerdictStatus;
   label: string;
-  detail: string;
-  cite?: Cite;             // optional — polish subagent attaches a source pointer
+  detail: string;          // may contain `$...$` math markers — rendered via MathInText
+  cite?: Cite;
+  key_results?: KeyResult[];  // 3-5 stat-chip headline numbers; renderer omits the strip when empty
 }
 
 export interface Chip {

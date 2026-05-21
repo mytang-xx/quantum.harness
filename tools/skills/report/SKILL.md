@@ -103,12 +103,36 @@ The polish subagent's sole output. Schema is generic over model count, method co
       "why": { "text": "…", "cite": "sources/paper.md:172-180" }
     } ]
   },
-  "verdict":     { "status": "match | partial | fail | unknown", "label": "…", "detail": "…" },
+  "verdict": {
+    "status": "match | partial | fail | unknown",
+    "label":  "…",
+    "detail": "… with $math$ markers; ≤ 1 sentence; no caveats",
+    "cite":   "run-report.md:…",
+    "key_results": [
+      { "label": "…", "value_tex": "…", "value_unicode": "…", "cite": "…" }
+    ]
+  },
   "headline":    { "text": "…", "cite": "verify/…:line" },
   "claims":      [ { "id": "…", "display_label": "…", "popover": "…", "cite": "…" } ],
-  "chips":       [ { "id": "…", "label": "…", "popover": "…", "cite": "…" } ],
-  "deviations":  [ { "id": "…", "display_label": "…", "discrepancy_paragraph": "…", "cite": "…" } ],
-  "figures":     [ { "id": "…", "caption_paper": "…", "caption_ours": "…", "cite": "…" } ]
+  "chips":       [ { "id": "…", "label": "… with $math$ markers", "popover": "plain English", "status": "ok|warn|muted", "cite": "…" } ],
+  "deviations": [
+    {
+      "id":             "…",
+      "display_label":  "…",
+      "headline":       "One-line summary; may contain $math$",
+      "discrepancy_paragraph": "Optional follow-up paragraph; may contain $math$",
+      "paper_did":      { "tex": "…", "unicode_fallback": "…", "badge": { "label": "…", "tone": "olive | primary | stone" }, "cite": "…" },
+      "ours_did":       { "tex": "…", "unicode_fallback": "…", "badge": { "label": "…", "tone": "primary" }, "cite": "…" },
+      "cite":           "protocol.toml:[[deviations]] …"
+    }
+  ],
+  "figures":     [
+    {
+      "id":            "…",
+      "caption_paper": "Paper-side caption with $math$ markers",
+      "caption_ours":  "Run-side caption with $math$ markers"
+    }
+  ]
 }
 ```
 
@@ -409,6 +433,10 @@ Both briefs follow the GPT-5.5 Role / Goal / Constraints / Output / Stop frame, 
 - **Role.** Editorial layer for the rendered doc. Read-only on `<run-dir>` and `sources/paper.md`; writes only `<run-dir>/editorial.json`. Same model id and effort as the main agent. Different actor id from any producer.
 - **Goal.** Produce `editorial.json` such that every item in **A** · **C** · **E** passes when the build composes the HTML. Cover every model in `[[claims]]`, every distinct method in `[[cells]]`, every axis a cell declares, every implicit choice the protocol makes. One sentence is one fact.
 - **Anchor-emission rule.** When the paper centrally identifies a model with a defining equation, an initial state, a basis, a sector, or a Hilbert-space dimension, emit those as `equation`, `key_facts`, `dimension` — not buried inside `paper.text` prose. When the implementation matches the paper, emit a single `delta_from_paper` phrase ("Matches the paper." / "Differs: <one phrase>"); do NOT restate the paper in the `ours` slot. For methods, emit `badge` (method family), `headline` (one-line math-mixed sentence), and `operational` (table-row pairs the protocol fixes — solver, sizes, sector, outputs). For parameters and assumptions, emit `label` and `scope_label` so the renderer can show audience phrases instead of raw `name` / `method:<id>`.
+- **Results-anchor rule.** The Results section must NOT put headline quantitative findings only inside `verdict.detail`. Emit `verdict.key_results[]` for the 3–5 most important numbers a collaborator should scan first (gap, exponent, period, dimension, energy error, scaling ratio). Each item has `{ label, value_tex, value_unicode, cite }`. `verdict.detail` becomes a single short sentence about WHAT the run did, math content wrapped in `$...$`; deviation / pending language is hoisted OUT of `verdict.detail` and into the deviations / chips arrays (C5 caveats-after).
+- **Deviation-delta rule.** Every `[[deviation]]` in `protocol.toml` becomes a paper-vs-ours delta in **What didn't match**. Emit `deviations[].display_label` (audience eyebrow), `deviations[].headline` (one-line summary), and the two-column delta `deviations[].paper_did { tex, unicode_fallback, badge?, cite }` / `deviations[].ours_did { tex, unicode_fallback, badge?, cite }`. The `badge.label` is a method-family or stack pill (`iTEBD`, `ED Krylov`, `DMRG`, `QMC`, `XDiag.jl`, `NumPy / SciPy`); never a raw id. For stack/route deviations the paper side is the canonical / reference route, not the literal paper. `discrepancy_paragraph` remains a prose fallback only.
+- **Math-in-prose rule.** Any Results prose field that contains math must wrap math spans in `$...$`: `verdict.detail`, `chips[].label`, `figures[].caption_paper`, `figures[].caption_ours`, `deviations[].headline`, `deviations[].discrepancy_paragraph`. The renderer's `MathInText` helper splits on `$...$` and renders each span via KaTeX inline; plain text passes through untouched. Do not use ASCII fallbacks (`Delta`, `Omega`, `<=`, `|<E|Z2>|^2`) in visible prose.
+- **Figure-caption rule.** Emit one paper-side and one run-side caption per declared figure. Captions name the plotted observable, the state / sector / window, and any normalization that matters. Wrap every math span in `$...$`.
 - **Math-rendering rule.** `tex` strings are authoritative LaTeX (KaTeX dialect; double-escape backslashes in JSON). `unicode_fallback` is the same content as plain Unicode for the SSR-failure path and a11y tools. Renderer never falls back to ASCII like `\sum` or `<=`.
 - **Constraints.** Every sentence carries a `cite` resolving to a real `file:line` — `sources/paper.md` for paper-side content, `protocol.toml` for ours-side content. Empty `cite` is allowed only when the slot has no source in the evidence pack — leave the slot empty; the renderer falls back to the declared statement. Identifiers (`model.id`, `method.id`, raw `scope`) are reference keys only and must never appear in any user-facing field (A1 / A6).
 - **Output.** `editorial.json` matching the schema in [Schema](#schema-editorialjson). One entry per surface: problem block, model (with optional `equation` / `summary` / `key_facts` / `dimension` / `delta_from_paper`), method (with optional `badge` / `headline` / `operational`), parameter (with `label` / `scope_label`), assumption (with `label` / `text_tex` / `scope_label`), chip, figure, override, deviation.

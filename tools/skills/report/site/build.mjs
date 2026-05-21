@@ -167,16 +167,23 @@ async function loadRun({ runDir, stage }) {
   const kb_refs = m.kb_refs ?? [];
   const expected_output_summary = m.expected_output_summary ?? '';
   // Deviation id → { statement, why } so methodology cards can surface the
-  // full reason without leaking the raw id (checklist A1).
+  // full reason without leaking the raw id (checklist A1). protocol.toml's
+  // historical field is `reason`; SKILL.md schema names it `why` — accept
+  // both so the `Why?` line is never empty when one is filled.
   const deviations_by_id = Object.fromEntries(
-    (protocol.deviations ?? []).map(d => [d.id, { statement: d.statement ?? '', why: d.why ?? '' }])
+    (protocol.deviations ?? []).map(d => [d.id, {
+      statement: d.statement ?? '',
+      why:       d.why ?? d.reason ?? '',
+    }])
   );
 
   // Results ---------------------------------------------------------------
-  const verdict = editorial.verdict ?? {
-    status: protocol.deviations?.length ? 'partial' : 'unknown',
-    label:  protocol.deviations?.length ? 'Partial' : 'Pending',
-    detail: '',
+  const verdict = {
+    status: editorial.verdict?.status ?? (protocol.deviations?.length ? 'partial' : 'unknown'),
+    label:  editorial.verdict?.label  ?? (protocol.deviations?.length ? 'Partial' : 'Pending'),
+    detail: editorial.verdict?.detail ?? '',
+    cite:   editorial.verdict?.cite   ?? null,
+    key_results: editorial.verdict?.key_results ?? [],
   };
   const chips = (editorial.chips ?? []).map(c => ({
     id: c.id, label: c.label ?? c.id, popover: c.popover ?? '',
@@ -201,9 +208,21 @@ async function loadRun({ runDir, stage }) {
   const deviations = (protocol.deviations ?? []).map(d => {
     const ed = (editorial.deviations ?? []).find(e => e.id === d.id) ?? {};
     return {
-      id: d.id, statement: d.statement ?? '', why: d.why ?? '',
+      id: d.id,
+      statement: d.statement ?? '',
+      // Accept both `why` (schema-canonical) and `reason` (historical protocol field).
+      why:    d.why ?? d.reason ?? '',
+      reason: d.reason ?? d.why ?? null,
+      kind:   d.kind ?? null,
+      from:   d.from ?? null,
+      to:     d.to ?? null,
+      // Polish-subagent emitted Results-side fields (all optional):
       display_label:         ed.display_label ?? null,
       discrepancy_paragraph: ed.discrepancy_paragraph ?? null,
+      headline:              ed.headline ?? null,
+      paper_did:             ed.paper_did ?? null,
+      ours_did:              ed.ours_did ?? null,
+      cite:                  ed.cite ?? null,
     };
   });
 

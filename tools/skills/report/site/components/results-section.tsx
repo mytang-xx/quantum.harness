@@ -1,7 +1,10 @@
 import { Callout } from 'fumadocs-ui/components/callout';
-import { Card, Cards } from 'fumadocs-ui/components/card';
-import { AlertTriangle } from 'lucide-react';
 import type { Verdict, Chip, FigureMeta, Deviation, Provenance } from '@/lib/types';
+import { Cite } from './cite';
+import { Math } from './math';
+import { MathInText } from './math-in-text';
+import { StatChip } from './stat-chip';
+import { DeviationDelta } from './deviation-delta';
 
 const VERDICT_ICON: Record<Verdict['status'], string> = {
   match: '✓', partial: '◐', fail: '✗', unknown: '?',
@@ -48,18 +51,41 @@ export function ResultsSection({
           </Callout>
         ) : (
           <>
-            {/* Hero verdict — Results is the payoff; dominant visual element */}
+            {/* Hero verdict — dominant element. verdict.detail may contain
+                $...$ math markers; the key headline numbers move to the
+                key_results stat-chip strip below the detail. */}
             <div className={`verdict-hero ${verdict.status} not-prose`}>
               <div className="verdict-icon" aria-hidden>{VERDICT_ICON[verdict.status]}</div>
               <div>
                 <div className="verdict-eyebrow">Verdict</div>
                 <h3 className="verdict-label">{verdict.label}</h3>
-                <p className="verdict-detail">{verdict.detail}</p>
+                <p className="verdict-detail">
+                  <MathInText text={verdict.detail} />
+                  {verdict.cite && <Cite cite={verdict.cite} />}
+                </p>
+
+                {(verdict.key_results ?? []).length > 0 && (
+                  <div className="verdict-key-results stat-chip-strip"
+                       aria-label="Headline numerical results">
+                    {verdict.key_results!.map((r, i) => (
+                      <StatChip
+                        key={`${r.label}-${i}`}
+                        label={r.label}
+                        value={r.value}
+                        value_tex={r.value_tex}
+                        value_unicode={r.value_unicode}
+                        cite={r.cite ?? null}
+                      />
+                    ))}
+                  </div>
+                )}
+
                 {chips.length > 0 && (
                   <div className="verdict-chips">
                     {chips.map(c => (
-                      <span key={c.id} className={`chip ${c.status}`} title={c.popover}>
-                        {c.label}
+                      <span key={c.id} className={`chip ${c.status}`}
+                            title={c.popover} aria-label={c.popover || c.label}>
+                        <MathInText text={c.label} />
                       </span>
                     ))}
                   </div>
@@ -67,7 +93,7 @@ export function ResultsSection({
               </div>
             </div>
 
-            {/* Figures — paper vs reproduction, side-by-side, click to open full-size */}
+            {/* Figures — paper vs reproduction, side-by-side, math captions */}
             {figures.length > 0 && (
               <section>
                 <div className="figures-header not-prose">
@@ -92,11 +118,13 @@ export function ResultsSection({
                           </div>
                           {f.paper_data_url && (
                             <div className="img-frame">
-                              <img src={f.paper_data_url} alt={f.caption_paper || `Paper figure ${f.id}`} />
+                              <img src={f.paper_data_url} alt={`Paper figure ${f.id}`} />
                             </div>
                           )}
                           {f.caption_paper && (
-                            <p className="figure-caption">{f.caption_paper}</p>
+                            <p className="figure-caption">
+                              <MathInText text={f.caption_paper} />
+                            </p>
                           )}
                         </div>
                         <div className="figure-panel-large brand">
@@ -105,11 +133,13 @@ export function ResultsSection({
                           </div>
                           {f.ours_data_url && (
                             <div className="img-frame">
-                              <img src={f.ours_data_url} alt={f.caption_ours || `Reproduction of ${f.id}`} />
+                              <img src={f.ours_data_url} alt={`Reproduction of ${f.id}`} />
                             </div>
                           )}
                           {f.caption_ours && (
-                            <p className="figure-caption">{f.caption_ours}</p>
+                            <p className="figure-caption">
+                              <MathInText text={f.caption_ours} />
+                            </p>
                           )}
                         </div>
                       </div>
@@ -119,27 +149,13 @@ export function ResultsSection({
               </section>
             )}
 
-            {/* What didn't match — Cards grid, terracotta-toned */}
+            {/* What didn't match — structured paper-vs-ours delta cards */}
             {deviations.length > 0 && (
               <section id="what-didnt-match">
                 <h3 className="text-xl font-semibold mb-5 mt-0 text-[color:var(--near-black)]">What didn't match</h3>
-                <Cards className="not-prose">
-                  {deviations.map(d => (
-                    <Card
-                      key={d.id}
-                      className="report-card report-card-warn"
-                      icon={<AlertTriangle />}
-                      title={d.display_label ?? 'Documented exception'}
-                    >
-                      <p className="report-card-body">{d.discrepancy_paragraph ?? d.statement}</p>
-                      {d.why && (
-                        <p className="report-card-body mt-2">
-                          <span className="why-eyebrow">Why?</span>{d.why}
-                        </p>
-                      )}
-                    </Card>
-                  ))}
-                </Cards>
+                <div className="not-prose space-y-5">
+                  {deviations.map(d => <DeviationDelta key={d.id} deviation={d} />)}
+                </div>
               </section>
             )}
 

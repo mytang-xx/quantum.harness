@@ -641,6 +641,122 @@ body:not(:has(.page:target)) #problem { display: block; }
   opacity: 0.6;
 }
 
+/* ─── Deviation delta (Results "What didn't match" cards) ───────────── */
+/* Two-column paper-vs-ours comparison replacing the flat Cards grid.
+   Outer warning frame in terracotta; per-pane block with badge + math
+   statement; <details>-revealed Why? row at the bottom. */
+
+.deviation-delta-card {
+  padding: 24px 28px;
+  border: 1px solid rgba(201,100,66,0.28);
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(201,100,66,0.04), var(--ivory) 50%);
+  box-shadow: 0 0 0 1px rgba(201,100,66,0.10), 0 6px 28px rgba(20,20,19,0.04);
+}
+.deviation-delta-head {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+.deviation-delta-head > svg {
+  width: 20px;
+  height: 20px;
+  color: var(--terracotta);
+  flex: 0 0 auto;
+  margin-top: 4px;
+}
+.deviation-delta-head .eyebrow {
+  font-size: 9.5px; font-weight: 600; letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--terracotta);
+  margin-bottom: 4px;
+}
+.deviation-delta-head h4 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--near-black);
+  line-height: 1.35;
+}
+
+.deviation-delta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.delta-pane {
+  min-width: 0;
+  padding: 16px 18px;
+  border: 1px solid var(--border-cream);
+  border-radius: 14px;
+  background: rgba(245,244,237,0.6);
+}
+.delta-pane-ours {
+  border-color: rgba(201,100,66,0.24);
+  background: rgba(201,100,66,0.045);
+}
+.delta-pane-head {
+  display: flex; align-items: center; gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.delta-pane-label {
+  font-family: var(--font-sans);
+  font-size: 9.5px; font-weight: 600; letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--olive);
+}
+.delta-pane-label.brand { color: var(--terracotta); }
+.delta-pane-body {
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--charcoal);
+}
+.delta-pane-body .math-display { margin: 0; text-align: left; }
+
+.deviation-summary {
+  margin: 14px 0 0;
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: var(--charcoal);
+}
+.deviation-why {
+  margin-top: 12px;
+}
+.deviation-why summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 6px 0;
+}
+.deviation-why summary::-webkit-details-marker { display: none; }
+.deviation-why summary::after {
+  content: ' ▾'; font-size: 9px; opacity: 0.6; margin-left: 4px;
+}
+.deviation-why[open] summary::after { content: ' ▴'; }
+.deviation-why p {
+  margin: 6px 0 0;
+  font-size: 0.92rem; line-height: 1.65;
+  color: var(--olive);
+}
+
+@media (max-width: 640px) {
+  .deviation-delta-grid { grid-template-columns: 1fr; }
+  .deviation-delta-card { padding: 20px 18px; }
+}
+
+/* Verdict key-results strip — uses .stat-chip-strip base but a bit denser */
+.verdict-key-results {
+  margin-top: 16px;
+  margin-bottom: 4px;
+}
+
+/* Chip math: KaTeX inline inside chip shouldn't blow vertical rhythm */
+.chip .math-inline { font-size: inherit; line-height: 1; }
+.chip .math-inline .katex { font-size: 0.95em; }
+
 /* ─── Verdict hero (Results sub-page payoff) ────────────────────────── */
 
 .verdict-hero {
