@@ -25,7 +25,7 @@ tools/cli/flow init results/<run> --template tools/flow/templates/reproduce-pape
 3. Use attempt kinds: `audit`, `trial`, `run`, `report`.
 4. Start a `run` attempt for the protocol authoring work, register `protocol.toml`, finish it.
 5. Spawn verifier per the audit kernel. The brief includes the exact coverage line from the parent skill.
-6. Start an `audit` attempt with the returned subagent id as the actor label.
+6. Start an `audit` attempt with a reviewer display label. Runtime identity comes from the host session and must match the sidecar `reviewer`.
 7. Finish with `--report verify/verify_protocol_<date>.md`; require the gate.
 
 The strict template requires a protocol check with `id = "protocol"` and `kind = "audit"`. It should declare `mode = "protocol"`, `target = "protocol.toml"`, `coverage = true`, and one-word `items` for source, claims, cells, routes, figures, deviations, and checks.
