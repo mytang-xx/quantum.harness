@@ -21,7 +21,7 @@ ZLP := zlp
 .PHONY: setup core core-setup skills doctor install-flow test test-flow clean help install $(addprefix install-,$(INSTALLABLE))
 .PHONY: zulip-whoami zulip-pull zulip-send zulip-topics zulip-messages zulip-config
 
-INSTALLABLE := quarto quimb quspin julia itensors xdiag jax tensorcircuit-ng netket netket-gpu sse pepskit classical-repro
+INSTALLABLE := quarto quimb quspin julia itensors xdiag jax tensorcircuit-ng netket netket-gpu sse pepskit classical-repro report-site
 
 help: ## Show available targets and installable tools
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
@@ -202,6 +202,25 @@ install-pepskit: ## Install PEPSKit.jl + TensorKit.jl CTMRG stack into julia-env
 install-classical-repro: ## Install stacks for DMRG, QMC/SSE, and CTMRG reproduction targets
 	@for tool in itensors sse pepskit; do $(MAKE) install-$$tool; done
 	@echo "Classical reproduction stacks ready."
+
+install-report-site: ## Install Node deps for /report's Fumadocs HTML builder
+	@command -v node >/dev/null 2>&1 || { \
+	  echo "node not found. Install Node 18+ via: brew install node  (or your package manager)"; \
+	  exit 1; \
+	}
+	@if ! command -v pnpm >/dev/null 2>&1; then \
+	  echo "pnpm not found — installing"; \
+	  if command -v brew >/dev/null 2>&1; then brew install pnpm; \
+	  elif command -v npm >/dev/null 2>&1; then npm install -g pnpm; \
+	  else echo "Neither brew nor npm available; install pnpm manually."; exit 1; fi; \
+	fi
+	@if [ -d tools/skills/report/site/node_modules ]; then \
+	  echo "tools/skills/report/site/node_modules already present — skipping pnpm install"; \
+	else \
+	  cd tools/skills/report/site && pnpm install --prefer-offline; \
+	fi
+	@echo "/report Fumadocs site ready. Build a report with:"
+	@echo "  node tools/skills/report/site/build.mjs <run-dir> --stage <plan|append>"
 
 render: ## Render a markdown file to HTML. Usage: make render FILE=<path.md>
 	@if [ -z "$(FILE)" ]; then echo "Usage: make render FILE=<path.md>"; exit 1; fi

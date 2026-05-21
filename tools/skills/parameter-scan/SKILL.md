@@ -1,6 +1,6 @@
 ---
 name: parameter-scan
-description: Use when the user wants to sweep one or more declared axes for a produced quantity. Generic over axes, payload schema, quantity, and implementation. For cluster execution composes with `/slurm`.
+description: Use when the user wants to vary one or more parameters and see how a quantity responds — phrases like "how does X depend on Y", "sweep U/t from 0 to 10", "scan J2/J1 across the transition", "finite-size series at L = 12, 16, 20, 24", "bond-dimension sweep chi=50 to 400", a single-axis scan, or a multi-axis grid.
 ---
 
 # parameter-scan

@@ -1,6 +1,6 @@
 ---
 name: download-ref
-description: Use when adding arXiv IDs, DOIs, or bibliography stubs to this quantum many-body harness. Stores rendered markdown under knowledge-base/literature/<method>/ and keeps raw PDFs, metadata, and extracted figures gitignored inside each method folder.
+description: Use when the user pastes an arXiv ID, a DOI, a paper title, a local PDF path, or a bibliography stub and wants it added to the harness's methodology references — phrases like "download this arXiv", "add a DMRG reference", "pull in DOI 10…", "render this PDF", "add a bibliography stub for".
 ---
 
 # download-ref

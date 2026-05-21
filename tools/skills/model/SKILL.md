@@ -1,8 +1,8 @@
 ---
 name: model
 description: |
-  MUST invoke when user wants to solve, investigate, or reproduce any
-  harness-tracked quantum lattice model. Supported (match user prose to one):
+  Use when the user names or describes a harness-tracked quantum lattice
+  model. Match user prose to one of:
   - transverse-field-ising (TFIM): quantum-critical Ising chain / 2D Wilson-Fisher
   - heisenberg: SU(2) magnet, AFM or FM by sign of J
   - j1-j2: frustrated Heisenberg, J2/J1≈0.5 spin-liquid candidate
@@ -13,10 +13,8 @@ description: |
   - multiorbital-hubbard: multi-band + Hund's J
   - spin-1-xxz: Haldane phase, AKLT
   - potts-clock: q-state, first-order / continuous / BKT by q
-  For EVERY matched model, read knowledge-base/models/<name>/MODEL.md AND
-  grep ^signal in knowledge-base/models/<name>/TACITS.toml before issuing
-  any verdict. Do this for each model you touch, not just the first one
-  matched in the session.
+  Fires for each named model the user touches in a session, not just the
+  first match.
 ---
 
 # model dispatcher

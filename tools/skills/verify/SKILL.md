@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Use after writing or modifying an important artifact (protocol TOML, run plan, reproduction script, computed result, final run report, KB card) or when a reproduction gate fails and needs independent mismatch triage.
+description: Use when an important artifact needs independent audit, or when a reproduction gate fails and needs mismatch triage — artifacts include protocol TOML, run plan, reproduction script, computed result, figure, final run report, KB card; trigger phrases like "verify this", "audit this", "review this gate", "why did the gate fail?".
 ---
 
 # verify

@@ -1,20 +1,16 @@
 ---
 name: physics
 description: |
-  MUST invoke when user asks a cross-model physics question (mechanism,
-  phase identification, diagnostic) rather than naming a specific model.
-  Supported topics:
+  Use when the user asks a phase, mechanism, or diagnostic question —
+  whether or not a specific model is named. Triggering topics:
   - criticality: second-order transitions, exponents, finite-size scaling
   - frustration: geometric or exchange-induced frustration
-  - spin-liquid: fractionalized phases, topological order, RVB
+  - spin-liquid: fractionalized phases, topological order, RVB, "is this a spin liquid"
   - mott-transition: interaction-driven metal-insulator
   - kondo-effect: local-moment screening
   - magic: non-stabilizerness, SRE, long-range magic
   - confinement: gauge-theory confinement diagnostics
-  For EVERY matched topic, read knowledge-base/physics/<topic>/PHYSICS.md
-  AND grep ^signal in knowledge-base/physics/<topic>/TACITS.toml before
-  issuing any verdict on phase, mechanism, or diagnostic. Each verdict
-  requires its own card-read + tacit-grep, not a single per-session pass.
+  Fires once per topic the user names, not once per session.
 ---
 
 # physics dispatcher

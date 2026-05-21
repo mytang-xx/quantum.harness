@@ -1,6 +1,6 @@
 ---
 name: onboard
-description: Use when the user is new to the harness, asks "where do I start", or opens with an unclear / empty problem. Sets up domain software, optionally configures the user's compute cluster, and routes to `/model` or `/physics`.
+description: Use when the user is new to the harness, asks "where do I start" / "how do I use this" / "I'm new here", opens with an empty or unclear prompt, explicitly invokes `/onboard`, or starts a first session with no configured harness environment.
 ---
 
 # Onboard
@@ -37,6 +37,12 @@ Run `make setup` silently. It installs Rust/Cargo if needed and builds core harn
 If `make setup` fails because `curl`, Rust/Cargo, or the flow build is unavailable, stop and report that setup failure. Do not continue to `/reproduce-paper`, remote orchestration, or multi-agent workflow gates without `tools/cli/flow` working.
 
 Install only the stack the user's first selected workflow needs. Do not pre-install other method stacks. Each additional stack is installed on demand when that method is first invoked.
+
+#### 1a. Node toolchain (for `/report`)
+
+`/report` renders its HTML deliverable from a Fumadocs / Next.js project at `tools/skills/report/site/`. This needs Node 18+ and `pnpm`. When the user's first selected workflow leads to a `/report` invocation — directly or via `/reproduce-paper`'s `close` gate — run `make install report-site` once. The target probes for `node` and `pnpm`, installs `pnpm` via the local package manager if missing (Homebrew on macOS, `npm i -g pnpm` otherwise), then runs `pnpm install` inside the site directory. Idempotent on re-entry: subsequent calls skip if `tools/skills/report/site/node_modules/` already exists.
+
+Do not pre-install this stack — wait until `/report` is the actual next step. Other workflows (`/solve`, `/model` calculations that don't ship a doc) don't need it.
 
 Report one line:
 - All good: "Domain stack ready."

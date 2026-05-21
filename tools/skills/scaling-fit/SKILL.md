@@ -1,6 +1,6 @@
 ---
 name: scaling-fit
-description: Use when the user has a size-indexed (and optionally parameter-indexed) data set and wants to fit a finite-size scaling form — power law, log, polynomial, or universal data-collapse — and extract exponents with uncertainty. Generic over the observable and the form.
+description: Use when the user has L-indexed or size-indexed data and wants finite-size scaling — phrases like "fit a power law", "data collapse", "extract the critical exponent", "finite-size extrapolation", "extrapolate to the thermodynamic limit", "fit log L", "polynomial fit in 1/L", or "collapse these curves".
 ---
 
 # scaling-fit

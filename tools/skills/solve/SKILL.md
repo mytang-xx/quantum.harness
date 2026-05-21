@@ -1,6 +1,6 @@
 ---
 name: solve
-description: Use when the user brings a concrete quantum many-body problem to solve. Drives the interactive problem-solving loop: intake → act → report → next-steps → loop until done.
+description: Use when the user brings a concrete quantum many-body research problem — phrases like "ground state of Heisenberg N = 20", "is kagome a spin liquid", "Hubbard at U/t = 8", "compute the gap for TFIM at h = 1", "what does VMC give for J1-J2 at 0.5". Also fires when `/onboard` routes here or when the user pivots to a new problem mid-session.
 ---
 
 # Solve

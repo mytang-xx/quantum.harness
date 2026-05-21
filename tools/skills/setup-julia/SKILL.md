@@ -1,6 +1,6 @@
 ---
 name: setup-julia
-description: Use when a workflow needs Julia installed and configured — fresh laptop, fresh cluster account, package-mirror change, or Julia-version bump. Generic over target (local laptop or remote cluster via ssh) and over region (mirror auto-defaulted from cluster profile's `region` field). Pairs with `/slurm` (cluster Julia setup) and with `make install julia` (local).
+description: Use when Julia is missing, wrong-version, uninstantiated, or mirror-misconfigured — symptoms like `julia: command not found`, missing `julia-env/Manifest.toml`, package downloads timing out, fresh cluster account, fresh laptop, package-mirror change, or Julia-version bump.
 ---
 
 # setup-julia

@@ -1,6 +1,6 @@
 ---
 name: slurm
-description: Use when the agent needs to ship code, submit a Slurm job (single or array), monitor it, and fetch results — all from the local laptop via Bash + ssh + rsync. Generic over what is submitted; reads cluster specifics from `tools/cluster/<active>.md`. Pure mechanism — for parameter sweeps compose with `/parameter-scan`.
+description: Use when a computation needs to run on a remote Slurm cluster (CPU- or GPU-heavy beyond laptop budget), when a multi-cell array job is ready to submit, when a submitted job needs status / monitoring / cancel / log-tail, or when only a few cells failed and the user wants to resume — phrases like "send this to the cluster", "sbatch this", "submit on HPC2", "check job status", "resubmit failed cells".
 ---
 
 # slurm

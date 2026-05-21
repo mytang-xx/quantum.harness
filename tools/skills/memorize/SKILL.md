@@ -1,6 +1,6 @@
 ---
 name: memorize
-description: User-invoked at session end. Walk back through the session, distill the lessons that actually surfaced (user pushback, wasted compute, stack failures, caption misreads), and write them as TACITS.toml entries or AGENTS.md invariants so the harness remembers next time. The discipline that turns one wasted hour into a paragraph that saves the next hundred sessions.
+description: Use when the user explicitly invokes `/memorize` at session end, or asks to capture lessons from this session — especially after user pushback ("no, that's wrong"), wasted compute, stack failures, caption misreads, cluster queue issues, repeated retries, or "we should remember this next time". Never agent-invoked.
 ---
 
 # memorize
