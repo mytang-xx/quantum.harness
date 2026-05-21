@@ -57,10 +57,25 @@ install-flow: ## Build the generic workflow gate ledger CLI
 	@set -e; \
 	. "$$HOME/.cargo/env" 2>/dev/null || true; \
 	if ! cargo --version >/dev/null 2>&1; then \
+	  if command -v cargo >/dev/null 2>&1; then \
+	    echo "ERROR: cargo binary at $$(command -v cargo) is present but not runnable."; \
+	    echo "Your rustup default toolchain's cargo component is incomplete."; \
+	    echo "(rustup-init will not fix this — it respects the existing ~/.rustup/settings.toml.)"; \
+	    echo "Recovery:  rustup toolchain uninstall stable && rustup toolchain install stable"; \
+	    echo "Then rerun: make setup"; \
+	    exit 1; \
+	  fi; \
 	  command -v curl >/dev/null 2>&1 || { echo "curl not found. Install Rust/Cargo, then rerun: make setup"; exit 1; }; \
-	  echo "Cargo not usable. Installing Rust/Cargo via rustup."; \
+	  echo "Cargo not found. Installing Rust/Cargo via rustup."; \
 	  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y; \
 	  . "$$HOME/.cargo/env"; \
+	  cargo --version >/dev/null 2>&1 || { \
+	    echo "ERROR: rustup-init completed but cargo still does not run."; \
+	    echo "Likely cause: stale ~/.rustup/settings.toml pointing at a corrupted default toolchain."; \
+	    echo "Recovery:  rustup toolchain uninstall stable && rustup toolchain install stable"; \
+	    echo "Then rerun: make setup"; \
+	    exit 1; \
+	  }; \
 	fi; \
 	cargo build --release --manifest-path tools/flow/Cargo.toml; \
 	tools/cli/flow help >/dev/null; \

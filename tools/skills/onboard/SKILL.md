@@ -34,7 +34,7 @@ The user is on first touch — they may not know the harness vocabulary (skill, 
 
 Run `make setup` silently. It installs Rust/Cargo if needed and builds core harness CLIs, including `tools/cli/flow`. Run `make skills` only when skill sync is actually needed.
 
-If `make setup` fails because `curl`, Rust/Cargo, or the flow build is unavailable, stop and report that setup failure. Do not continue to `/reproduce-paper`, remote orchestration, or multi-agent workflow gates without `tools/cli/flow` working.
+If `make setup` fails, run `make doctor` and surface its output verbatim — it labels each core tool `ok` / `broken` / `missing` so the user sees the precise failure (e.g., `cargo broken` means the binary exists but the toolchain's cargo component is corrupted; rustup-init will not fix that — the user needs `rustup toolchain uninstall stable && rustup toolchain install stable`). Report the recovery command printed by `make setup` and stop. Do **not** work around a broken toolchain by overriding `RUSTUP_TOOLCHAIN` or building against a non-default toolchain — that hides the breakage and leaves the user with a half-broken environment. Do not continue to `/reproduce-paper`, remote orchestration, or multi-agent workflow gates without `tools/cli/flow` working.
 
 Install only the stack the user's first selected workflow needs. Do not pre-install other method stacks. Each additional stack is installed on demand when that method is first invoked.
 
