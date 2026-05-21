@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>ED Expert Interview — quantum.harness</title>
+<title>Exact diagonalization — expert interview</title>
 <style>
   :root {
     --bg: #fbfaf6;
@@ -122,7 +122,7 @@
   .capture-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; margin-top: 8px; padding: 10px 12px; background: #fafaf3; border: 1px solid var(--line); border-radius: 4px; }
   .capture-grid .capture-field { display: flex; flex-direction: column; }
   .capture-grid .capture-field.wide { grid-column: 1 / -1; }
-  .capture-grid .capture-field label { font-size: 11px; color: var(--muted); margin-bottom: 2px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; }
+  .capture-grid .capture-field label { font-size: 11.5px; color: var(--muted); margin-bottom: 2px; font-weight: 600; letter-spacing: 0.01em; }
   .capture-grid .capture-field input { font-size: 13px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 3px; background: #fff; color: var(--ink); }
   .capture-grid .capture-field input:focus { outline: none; border-color: var(--accent); }
 
@@ -175,11 +175,11 @@
 <main>
 
 <header class="hero">
-  <div class="tag">Interview script · quantum.harness</div>
-  <h1 contenteditable="true" data-title>ED Expert Interview</h1>
-  <p class="lede" contenteditable="true" data-subtitle>Cues are prompts, not answer choices. The useful answer is usually: what signal did you notice, what did it mean, and what did you do next?</p>
+  <div class="tag">Interview script · quantum many-body methods</div>
+  <h1 contenteditable="true" data-title>Exact diagonalization — expert interview</h1>
+  <p class="lede" contenteditable="true" data-subtitle>An interview script for talking to a working exact diagonalization (ED) practitioner. Cues are prompts, not answer choices. The useful answer is usually: what signal did you notice, what did it mean, and what did you do next?</p>
   <div class="rhythm">
-    <strong>Interview rhythm.</strong> Ask the question, let the expert answer freely, then use cues only if the answer stalls. Tick cues the expert touched on; capture the signal → understanding → action triplet whenever the answer is shaped like one.
+    <strong>Interview rhythm.</strong> Ask the question, let the expert answer freely, then use cues only if the answer stalls. Tick cues the expert touched on. When an answer is shaped like a lesson, capture it as <em>signal</em> (what they noticed) → <em>understanding</em> (what it meant) → <em>action</em> (what to do), plus <em>scope</em> (where the lesson applies) and <em>exception</em> (where it breaks).
   </div>
 
   <div class="meta-grid">
@@ -205,8 +205,8 @@
 <div id="sections"></div>
 
 <div class="footer">
-  <p>Edits live in your browser under <code>localStorage</code> key <code>quantum-harness/ed-interview-v1</code>. The bake-and-download path makes a new file with your edits embedded as the bootstrap state — reopen it to continue.</p>
-  <p>Single file, no external assets, no network requests. Works offline. Use the print stylesheet to make a PDF transcript.</p>
+  <p>Your edits autosave to this browser. <em>Save filled HTML</em> writes a new file with your edits already in it — reopen that file later (anywhere, no internet) to continue. <em>Export JSON</em> writes only the edits, smaller and easy to share. Works offline. Print to make a PDF transcript.</p>
+  <p style="font-size:11px;opacity:0.7;margin-top:4px;">(Browser storage key: <code>quantum-harness/ed-interview-v1</code>.)</p>
 </div>
 
 </main>
@@ -227,8 +227,8 @@
   }
 
   const seed = {
-    title: "ED Expert Interview",
-    subtitle: "Cues are prompts, not answer choices. The useful answer is usually: what signal did you notice, what did it mean, and what did you do next?",
+    title: "Exact diagonalization — expert interview",
+    subtitle: "An interview script for talking to a working exact diagonalization (ED) practitioner. Cues are prompts, not answer choices. The useful answer is usually: what signal did you notice, what did it mean, and what did you do next?",
     meta: { expert: "", interviewer: "", date: "", context: "" },
     sections: [
       {
@@ -239,7 +239,7 @@
             cues: ["Hilbert-space size", "conserved quantities", "boundary conditions", "known limits", "whether ED is meaningful"],
             checked: [], answer: "", capture: blankCapture() },
           { text: "What makes this feel like a good ED problem?",
-            cues: ["small-cluster benchmark", "full spectrum", "symmetry-resolved data", "level statistics", "validating DMRG/VMC/QMC"],
+            cues: ["small-cluster benchmark", "full spectrum", "symmetry-resolved data", "level statistics", "validating DMRG, VMC, QMC results"],
             checked: [], answer: "", capture: blankCapture() },
           { text: "How do you make the first feasibility estimate?",
             cues: ["basis dimension", "Lanczos vector memory", "sparse matrix memory", "matrix-free matvec cost", "laptop vs cluster"],
@@ -266,13 +266,13 @@
         note: "Keep this tied to observables and finite-size artifacts.",
         questions: [
           { text: "How do you choose boundary conditions?",
-            cues: ["open", "periodic", "cylinder", "twisted flux", "match literature", "reduce shell effects"],
+            cues: ["open", "periodic", "cylinder", "twisted flux", "match literature", "reduce momentum-shell artefacts"],
             checked: [], answer: "", capture: blankCapture() },
           { text: "For 2D ED, how do you choose the cluster shape?",
             cues: ["aspect ratio", "point-group symmetry", "allowed momenta", "sublattice structure", "frustration", "largest feasible size"],
             checked: [], answer: "", capture: blankCapture() },
-          { text: "For fermions, how do you think about PBC versus APBC?",
-            cues: ["particle-number parity", "closed shells", "flux insertion", "compare both", "finite-size artifacts"],
+          { text: "For fermions, how do you think about periodic boundary conditions (PBC) versus anti-periodic (APBC)?",
+            cues: ["particle-number parity", "closed momentum shells", "flux insertion through the ring", "compare both", "finite-size artifacts"],
             checked: [], answer: "", capture: blankCapture() }
         ]
       },
@@ -284,13 +284,13 @@
             cues: ["bitstrings", "occupation integers", "explicit occupation lists", "package basis", "constrained basis", "fermionic ordering"],
             checked: [], answer: "", capture: blankCapture() },
           { text: "How do you map a state back to its index?",
-            cues: ["lookup table", "hash map", "binary search", "combinadic indexing", "package internals"],
+            cues: ["lookup table", "hash map", "binary search", "combinadic indexing", "let the package handle it"],
             checked: [], answer: "", capture: blankCapture() },
           { text: "Where do bugs most often enter the Hamiltonian?",
-            cues: ["fermion signs", "boundary terms", "factor of 2", "Pauli convention", "momentum phase", "double-counted bonds", "constant shifts"],
+            cues: ["fermion signs", "boundary terms", "factor of 2 in coupling normalization", "Pauli convention", "momentum phase", "double-counted bonds", "constant shifts"],
             checked: [], answer: "", capture: blankCapture() },
           { text: "In symmetry-projected or momentum bases, what details are dangerous?",
-            cues: ["representative choice", "orbit length", "phase convention", "zero-norm states", "empty sectors", "Hermiticity"],
+            cues: ["representative choice", "symmetry-orbit length", "phase convention", "zero-norm representatives", "empty symmetry sectors", "Hermiticity"],
             checked: [], answer: "", capture: blankCapture() }
         ]
       },
@@ -320,7 +320,7 @@
             cues: ["non-Hermitian matrix", "complex eigenvalues", "impossible energy", "wrong degeneracy", "sector dimension mismatch", "memory far above estimate"],
             checked: [], answer: "", capture: blankCapture() },
           { text: "Have you had a run look converged but still be wrong?",
-            cues: ["wrong observable", "wrong sector", "bad cluster", "normalization error", "misleading finite-size trend", "package default"],
+            cues: ["wrong observable", "wrong sector", "bad cluster", "normalization error", "misleading finite-size trend", "trust package defaults"],
             checked: [], answer: "", capture: blankCapture() }
         ]
       },
@@ -335,7 +335,7 @@
             cues: ["symmetry sectors", "matrix-free matvec", "state indexing", "memory layout", "avoiding allocations", "threading", "cluster use"],
             checked: [], answer: "", capture: blankCapture() },
           { text: "What optimization is usually not worth the complexity?",
-            cues: ["too many symmetries", "hand-coded micro-optimizations", "dense shortcuts", "special cases", "premature parallelism"],
+            cues: ["too many symmetries", "hand-coded micro-optimizations", "dense shortcuts", "Hamiltonian-specific shortcuts", "premature parallelism"],
             checked: [], answer: "", capture: blankCapture() }
         ]
       },
@@ -359,16 +359,16 @@
         note: "Use only if the expert naturally goes there.",
         questions: [
           { text: "When do anti-unitary symmetries matter practically?",
-            cues: ["real Hamiltonian", "time reversal", "PT", "memory factor", "bookkeeping cost"],
+            cues: ["real Hamiltonian", "time reversal", "parity × time-reversal (PT)", "real-basis memory halving", "bookkeeping cost"],
             checked: [], answer: "", capture: blankCapture() },
           { text: "Do you ever use SU(2) explicitly, or mostly as a check?",
             cues: ["block reduction", "multiplet structure", "implementation burden", "degeneracy check"],
             checked: [], answer: "", capture: blankCapture() },
           { text: "Where do people trip up with twisted boundary conditions?",
-            cues: ["Berry phase", "Chern number", "flux insertion", "phase convention", "gauge choice"],
+            cues: ["Berry phase", "Chern number", "flux insertion through the ring", "phase convention", "gauge choice"],
             checked: [], answer: "", capture: blankCapture() },
           { text: "Have duality or non-invertible symmetries been practically useful in ED?",
-            cues: ["basis reduction", "diagnostic only", "theory structure", "not worth implementing"],
+            cues: ["basis reduction", "diagnostic only", "theory-level clarification only", "not worth implementing"],
             checked: [], answer: "", capture: blankCapture() }
         ]
       }
@@ -529,24 +529,24 @@
         </div>
         <textarea class="notes" data-answer placeholder="What did the expert actually say? Verbatim phrases beat paraphrase.">${esc(q.answer || "")}</textarea>
         <details class="capture">
-          <summary>Capture as signal → understanding → action</summary>
+          <summary>Capture as signal → understanding → action (with scope · exception)</summary>
           <div class="capture-grid">
-            ${captureField("signal", "Signal", q.capture.signal)}
-            ${captureField("understanding", "Understanding", q.capture.understanding)}
-            ${captureField("action", "Action", q.capture.action)}
-            ${captureField("scope", "Scope", q.capture.scope)}
-            ${captureField("exception", "Exception", q.capture.exception, true)}
+            ${captureField("signal",        "Signal — what was observed",     q.capture.signal,        false, "e.g. 'energy off by exactly 2×'")}
+            ${captureField("understanding", "Understanding — what it meant",  q.capture.understanding, false, "e.g. 'sum double-counts NN bonds'")}
+            ${captureField("action",        "Action — what to do",            q.capture.action,        false, "e.g. 'divide coupling by 2 in code'")}
+            ${captureField("scope",         "Scope — where the lesson applies", q.capture.scope,       false, "e.g. 'all Heisenberg lattices'")}
+            ${captureField("exception",     "Exception — where it breaks",    q.capture.exception,     true,  "e.g. 'fails for biased boundary terms'")}
           </div>
         </details>
       </article>
     `;
   }
 
-  function captureField(key, label, value, wide = false) {
+  function captureField(key, label, value, wide = false, placeholder = "") {
     return `
       <div class="capture-field ${wide ? "wide" : ""}">
         <label>${label}</label>
-        <input data-capture="${key}" type="text" value="${escAttr(value || "")}" />
+        <input data-capture="${key}" type="text" value="${escAttr(value || "")}" placeholder="${escAttr(placeholder)}" />
       </div>
     `;
   }
