@@ -166,6 +166,7 @@ export interface Meta {
   venue: string;
   url: string | null;
   stage: 'plan' | 'append';
+  mode: 'full' | 'onboard';
   toc: { title: string; url: string; depth: number }[];
 }
 
