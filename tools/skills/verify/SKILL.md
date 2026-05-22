@@ -52,7 +52,7 @@ The caller MUST put the literal reference filenames in the subagent audit prompt
 - Any composing-skill contract files that govern the gate, such as `tools/skills/reproduce-paper/SKILL.md`
 - Any required project anchors, such as `AGENTS.md#audit-dispatch` and `AGENTS.md#pre-compute-figure-reading-checklist`
 
-Every verifier brief also includes a `Required tacit sweep` block whenever the artifact or current protocol declares method or model values. The prompt names the declared method/model values, not hardcoded `TACITS.toml` paths; the subagent locates matching co-located tacit files under `knowledge-base/`.
+Every verifier brief also includes a `Required tacit sweep` block whenever the artifact or current protocol declares method or model values. The prompt names the declared method/model values, not hardcoded `TACITS.toml` paths; the subagent locates matching co-located tacit files under `.knowledge/`.
 
 If a required reference filename is absent from the subagent audit prompt, the dispatch is invalid. If a method/model is declared and the tacit sweep block is absent, the dispatch is invalid. If a required reference file is unavailable to the subagent, or a matching tacit signal applies and is ignored, the verdict is `fail`.
 
@@ -92,7 +92,7 @@ appearing in the audit prompt.
 
 Required tacit sweep before verdict:
 - Declared methods/models under audit: <method/model values from artifact or protocol>
-- Locate matching co-located TACITS.toml files under knowledge-base/.
+- Locate matching co-located TACITS.toml files under .knowledge/.
 - Search '^signal' in each TACITS.toml before loading full blocks.
 - Load matching [[tacit]] blocks only; state when no matching TACITS.toml or signal exists.
 - A matching tacit ignored by the artifact is a fail finding, not optional context.

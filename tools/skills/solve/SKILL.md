@@ -42,8 +42,8 @@ Infer defaults from the user prompt and model/physics cards. Ask one narrow ques
 
 Consult:
 
-- `knowledge-base/models/<name>/MODEL.md`
-- relevant `knowledge-base/physics/<topic>/PHYSICS.md`
+- `.knowledge/models/<name>/MODEL.md`
+- relevant `.knowledge/physics/<topic>/PHYSICS.md`
 - the selected method card and stack contract
 
 If a card redirects to dynamics, finite-T, or another stub, follow the redirect immediately.

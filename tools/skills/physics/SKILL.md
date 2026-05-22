@@ -32,13 +32,13 @@ mechanism questions, not for "solve <model>" (that's `/model`).
 ## Workflow
 
 1. **Match.** Resolve to one canonical topic name.
-2. **Read the card.** `knowledge-base/physics/<topic>/PHYSICS.md` is
+2. **Read the card.** `.knowledge/physics/<topic>/PHYSICS.md` is
    authoritative. Work through the following checklist before any compute:
 
    <checklist name="card-read">
    - Evidence rubric (which observables, which sectors, which limits) noted
    - Cross-checks (independent methods or diagnostics) noted
-   - Model hooks (which `knowledge-base/models/<model>/MODEL.md` files to consult) noted
+   - Model hooks (which `.knowledge/models/<model>/MODEL.md` files to consult) noted
    </checklist>
 
 3. **Grep tacits.** Before compute, grep `^signal` in the matched card's `TACITS.toml` (see [AGENTS.md → Tacit knowledge usage](../../../AGENTS.md#tacit-knowledge-usage), rules 1–3).

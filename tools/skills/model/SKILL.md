@@ -36,7 +36,7 @@ producer). Every user-facing line is anchored to this audience.
 
 1. **Match.** Resolve user's prose to one canonical model name. Handle
    aliases (TFIM → transverse-field-ising, SIAM → anderson-impurity, …).
-2. **Read the card.** `knowledge-base/models/<name>/MODEL.md` is
+2. **Read the card.** `.knowledge/models/<name>/MODEL.md` is
    authoritative; agent memory is not. Work through the following checklist
    before any compute:
 
@@ -75,5 +75,5 @@ producer). Every user-facing line is anchored to this audience.
 </example>
 
 <example name="memory-substitution good">
-"Re-reading knowledge-base/models/heisenberg/MODEL.md before naming phases. The card declares [list from card]; observables [list from card]."
+"Re-reading .knowledge/models/heisenberg/MODEL.md before naming phases. The card declares [list from card]; observables [list from card]."
 </example>

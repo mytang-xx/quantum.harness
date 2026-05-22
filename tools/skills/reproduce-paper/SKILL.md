@@ -209,7 +209,7 @@ figures = ["fig1a"]
 method = "ed"
 stack = "xdiag"
 route = "canonical"  # paper | canonical | fallback | deviation
-source = "knowledge-base/methods/ed/METHOD.md"
+source = ".knowledge/methods/ed/METHOD.md"
 check = "julia --project=julia-env -e 'using XDiag'"
 state = "passed"     # passed | failed | skipped | pending
 scope = "full"       # full | partial | sketch

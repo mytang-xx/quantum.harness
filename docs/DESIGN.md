@@ -695,7 +695,7 @@ JS: on `mouseenter` of a `.legend-item`, add `.dim` to all `.curve, .pt, .errbar
 
 The interactive figure in the right-side `panel-card` is an inline `<svg>` element directly embedded in the HTML body, **not** a static image and **not** a third-party charting library (no Plotly, D3, or Chart.js — they violate the standalone-deliverable size budget and the warm-only Claude palette). The SVG renders interactively via DOM events (`mouseenter`, `click`, `mouseleave`) on its child elements; CSS class toggles (`.curve.dim`, `.pt.focus`, etc.) drive the focus / dim / hover-callout effects with native browser transitions.
 
-This section locks the structural and class-name conventions so every report renders consistently. The renderer (`tools/skills/report/scripts/render.py`) generates the SVG markup from `figs/<id>.json`; CSS lives here so the visual stays identical across reports.
+This section locks the structural and class-name conventions so every report renders consistently. The renderer (`tools/skills/report/helpers/render.py`) generates the SVG markup from `figs/<id>.json`; CSS lives here so the visual stays identical across reports.
 
 **Required SVG structure** (background overlays first, then grid, then data on top):
 

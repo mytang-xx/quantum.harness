@@ -5,7 +5,7 @@ description: Use when the user pastes an arXiv ID, a DOI, a paper title, a local
 
 # download-ref
 
-Renders methodology PDFs into Markdown under `knowledge-base/literature/<method>/`
+Renders methodology PDFs into Markdown under `.knowledge/literature/<method>/`
 and indexes them. Raw PDFs and extracted figures stay local (gitignored). The
 workflow MUST be run via the bundled scripts — manual editing of `INDEX.md` or
 rendered Markdown is not the intended path.
@@ -25,29 +25,39 @@ DOI 10...", "render this PDF I have", "add a bibliography stub for ...".
 
 This is the repo-local adaptation of the `zlp-harness` download workflow. The
 upstream workflow assumes a `.knowledge/` root; this harness uses
-`knowledge-base/` and organizes methodology references by method.
+`.knowledge/` and organizes methodology references by method.
 
 ## Layout
 
-For method slug `<method>`:
-
 ```text
-knowledge-base/literature/<method>/
-  INDEX.md
-  <rendered-reference>.md
-  .raw/      # metadata + PDFs, gitignored
-  .figures/  # extracted PDF images, gitignored
+.knowledge/literature/
+  ref.bib                           # source of truth (committed)
+  <method>/
+    INDEX.md
+    <rendered-reference>.md
+    .raw/                           # metadata + PDFs, gitignored
+    .figures/                       # extracted PDF images, gitignored
 ```
 
 | Path | Committed? |
 |---|---|
-| `INDEX.md` | YES |
+| `ref.bib` (combined library) | YES |
+| `INDEX.md` (per-method) | YES |
 | `<rendered-reference>.md` | YES |
 | `.raw/` | NO (gitignored) |
 | `.figures/` | NO (gitignored) |
 
+`ref.bib` is the human-edited source of truth. Each entry's `keywords`
+field carries one or more method slugs (`keywords = {dmrg, tebd}` for a
+paper relevant to both). Per-method JSON manifests are derived from
+ref.bib via `bibtex_to_manifest.py`.
+
+This layout matches sci-brain's KB conventions closely enough that
+sci-brain tools (`download-ref`, `ideas`, `survey`) can operate on any
+single method dir by passing `--kb .knowledge/literature/<method>`.
+
 Method slugs MUST match an existing method card slug under
-`knowledge-base/methods/<method>` when one exists. Use these canonical slugs:
+`.knowledge/methods/<method>` when one exists. Use these canonical slugs:
 
 ```text
 dmrg
@@ -69,7 +79,7 @@ methodology.
 The helper scripts are bundled with this skill:
 
 ```sh
-SCRIPTS="$(pwd)/tools/skills/download-ref/scripts"
+HELPERS="$(pwd)/tools/skills/download-ref/helpers"
 ```
 
 They are idempotent. Re-running a manifest skips existing metadata/PDFs and
@@ -77,71 +87,68 @@ overwrites rendered markdown from raw sources.
 
 ## Workflow
 
-Run all six steps in order for a new manifest. Steps 3–5 (fetch / render /
-index) are idempotent and safe to re-run; step 2 (manifest authoring) is your
-edit. Step 6 (verify) is REQUIRED before reporting.
+Run all six steps in order. Step 2 (bib edit) is your authored input; steps
+3–6 (derive manifest / fetch / render / index) are idempotent and safe to
+re-run. Step 7 (verify) is REQUIRED before reporting.
 
-### 1. Prepare a method folder
+### 1. Resolve paths
 
 ```sh
 METHOD=dmrg
-KB="$(pwd)/knowledge-base/literature/$METHOD"
+KB="$(pwd)/.knowledge/literature/$METHOD"
+BIB="$(pwd)/.knowledge/literature/ref.bib"
 mkdir -p "$KB"
 ```
 
-### 2. Build a manifest
+### 2. Add (or edit) the entry in `ref.bib`
 
-Every `arxiv` / `doi` entry is an object with at minimum an `id`. Use arXiv IDs
-without `arXiv:` and without version suffixes (old-style `cond-mat/0701105` is
-fine); DOIs verbatim. Stubs are for books or closed references that should be
-indexed but cannot be downloaded.
+Open `.knowledge/literature/ref.bib` and add an entry. For an arXiv preprint:
 
-Optional fields pin per-paper overrides on top of Semantic Scholar. The
-renderer is mechanical — the only way to correct a wrong S2 field is to
-override it here. When `venue` is overridden, the body **Citation:** line
-uses it verbatim (no splicing of volume/pages).
-
-| Field | When to set |
-|---|---|
-| `title` | S2 returns wrong or empty title |
-| `authors` | S2 drops diacritics or carries a typo |
-| `year` | S2 reports arXiv submission year, not publication year |
-| `venue` | S2 stores subject category; use for verbatim citation |
-| `note` | Free-form annotation surfaced in INDEX.md |
-
-```json
-{
-  "arxiv": [
-    {"id": "1008.3477"},
-    {
-      "id": "1610.03042",
-      "year": 2017,
-      "venue": "SciPost Physics 2, 003 (2017)"
-    }
-  ],
-  "doi": [
-    {
-      "id": "10.1007/BFb0106062",
-      "authors": "Alexander Weiße, Holger Fehske",
-      "venue": "Lecture Notes in Physics 739, Springer (2008)"
-    }
-  ],
-  "stub": [
-    {
-      "slug": "hewson-1993-kondo-problem",
-      "title": "The Kondo Problem to Heavy Fermions",
-      "authors": "A. C. Hewson",
-      "year": "1993",
-      "note": "Canonical book reference; publisher access required."
-    }
-  ]
+```bibtex
+@article{schollwoeck_2010_density,
+  author = {U. Schollwoeck},
+  title = {The density-matrix renormalization group in the age of matrix product states},
+  year = {2010},
+  journal = {Annals of Physics},
+  eprint = {1008.3477},
+  archivePrefix = {arXiv},
+  doi = {10.1016/j.aop.2010.09.012},
+  keywords = {dmrg, tebd}
 }
 ```
 
-### 3. Fetch metadata and PDFs
+Patterns by entry type:
+
+| Source | BibTeX type | Required fields |
+|---|---|---|
+| arXiv preprint (with venue) | `@article` | `eprint`, `archivePrefix = {arXiv}`, optional `doi`, `journal` |
+| DOI-only journal article | `@article` | `doi`, `journal` |
+| Book, lecture notes, closed source | `@book` or `@misc` | `title`, `author`, `year`, `note` |
+
+`keywords = {<method>, ...}` is mandatory — it pins the entry to one or more
+method dirs. Fields like `year`, `author`, `journal` act as overrides on top
+of Semantic Scholar; the renderer uses them verbatim. Stub entries (no
+arxiv / no doi) become local-only references with no fetch step.
+
+Cite key convention: `lastname_year_firstword` (lowercase, ASCII, stop-words
+dropped). `md_to_bibtex.py` propose-mode and sci-brain's `append_bibtex.py`
+both follow this rule.
+
+### 3. Derive the per-method manifest
 
 ```sh
-python3 "$SCRIPTS/fetch_metadata.py" \
+MANIFEST="/tmp/manifest-$METHOD.json"
+python3 "$HELPERS/bibtex_to_manifest.py" "$BIB" --method "$METHOD" > "$MANIFEST"
+```
+
+The output is the legacy JSON manifest that `fetch_metadata.py` and
+`render.py` already consume — derived, not committed. Re-run after every
+bib edit.
+
+### 4. Fetch metadata and PDFs
+
+```sh
+python3 "$HELPERS/fetch_metadata.py" \
   --kb "$KB" \
   --manifest "$MANIFEST" \
   --download-arxiv-pdfs
@@ -150,7 +157,7 @@ python3 "$SCRIPTS/fetch_metadata.py" \
 The helper writes to `$KB/.raw/`. For DOI references, it tries Semantic Scholar
 metadata and uses an arXiv preprint when one is available.
 
-### 4. Render markdown
+### 5. Render markdown
 
 Rendering uses `pymupdf4llm` when installed, then falls back to `markitdown` or
 `pdftotext`. If `pymupdf4llm` is missing, full text can still render but figures
@@ -158,14 +165,14 @@ may be absent.
 
 | Use case | Command |
 |---|---|
-| Standard render (manifest) | `python3 "$SCRIPTS/render.py" --kb "$KB" --manifest "$MANIFEST"` |
-| Single PDF in hand | `python3 "$SCRIPTS/render.py" --pdf sources/paper.pdf --out sources/paper.md` |
+| Standard render (manifest) | `python3 "$HELPERS/render.py" --kb "$KB" --manifest "$MANIFEST"` |
+| Single PDF in hand | `python3 "$HELPERS/render.py" --pdf sources/paper.pdf --out sources/paper.md` |
 | Long book/lecture notes | add `--text-only` |
 
-### 5. Regenerate the method index
+### 6. Regenerate the method index
 
 ```sh
-python3 "$SCRIPTS/index.py" \
+python3 "$HELPERS/index.py" \
   --kb "$KB" \
   --title "$METHOD methodology references" \
   --source-note "Methodology references for the quantum many-body physics harness. Raw PDFs and extracted figures are local-only and gitignored."
@@ -173,7 +180,7 @@ python3 "$SCRIPTS/index.py" \
 
 Keep the title/source-note stable for repeat runs in the same method folder.
 
-### 6. Verify
+### 7. Verify
 
 ```sh
 git check-ignore "$KB/.raw/" "$KB/.figures/" || true
@@ -186,13 +193,30 @@ find "$KB" -maxdepth 1 -name '*.md' -print
 - `INDEX.md` exists at the method root
 - Each manifest entry has a corresponding `.md` file at the method root
 - Each entry's `INDEX.md` row marks `full_text: yes / no / stub` correctly
+- The new entry appears in `ref.bib` with a `keywords =` field
 </checklist>
 
 Report the rendered files, which entries have `full_text: yes`, and which are
 metadata-only or stubs.
 
+## Bootstrap: rebuilding `ref.bib` from rendered markdown
+
+If `ref.bib` is missing or drifts from the rendered `.md` corpus:
+
+```sh
+python3 "$HELPERS/md_to_bibtex.py"      # writes .knowledge/literature/ref.bib
+```
+
+The script walks `.knowledge/literature/<method>/*.md`, parses YAML
+frontmatter, and emits one entry per unique canonical reference (merging
+papers shared across methods into a single entry with multi-method
+`keywords`). Re-running overwrites the file — review the diff before
+committing.
+
 ## Notes
 
 - DO NOT commit `.raw/` or `.figures/`.
+- DO NOT hand-edit the derived per-method JSON manifest — change `ref.bib`.
 - DO NOT put multiple methods in one folder; one method folder per methodology.
-- For paywalled books, create a stub entry — DO NOT fabricate a PDF.
+- For paywalled books, add a `@book` / `@misc` entry to `ref.bib` (no `eprint`,
+  no `doi`) — the manifest derivation will route it as a stub.

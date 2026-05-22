@@ -23,6 +23,6 @@ where = "login"
 command = ".venv/bin/python -c 'import quspin; print(quspin.__version__)'"
 
 [docs]
-kb = "knowledge-base/literature/ed/1610.03042_quspin-a-python-package-for-dynamics-and-exact-diagonalisati.md"
+kb = ".knowledge/literature/ed/1610.03042_quspin-a-python-package-for-dynamics-and-exact-diagonalisati.md"
 official = "https://quspin.github.io/QuSpin/"
-paper = "knowledge-base/literature/ed/1610.03042_quspin-a-python-package-for-dynamics-and-exact-diagonalisati.md"
+paper = ".knowledge/literature/ed/1610.03042_quspin-a-python-package-for-dynamics-and-exact-diagonalisati.md"

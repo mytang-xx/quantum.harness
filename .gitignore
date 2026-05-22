@@ -8,8 +8,12 @@ raw/
 julia-env/Manifest.toml
 julia-env/.CondaPkg/
 .julia/
-knowledge-base/literature/**/.raw/
-knowledge-base/literature/**/.figures/
+.knowledge/literature/**/.raw/
+.knowledge/literature/**/.figures/
+
+# Per-method JSON manifests are derived from .knowledge/literature/ref.bib
+# via tools/skills/download-ref/helpers/bibtex_to_manifest.py — don't sync.
+.knowledge/literature/manifests/
 
 # Managed by ion
 tools/skills/ion-cli

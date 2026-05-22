@@ -28,7 +28,7 @@ ion-cli = { type = "local" }
 onboard = { type = "local" }
 solve = { type = "local" }
 
-# Problem dispatchers (auto-triggered; read cards under knowledge-base/{models,physics}/<name>/)
+# Problem dispatchers (auto-triggered; read cards under .knowledge/{models,physics}/<name>/)
 model = { type = "local" }
 physics = { type = "local" }
 

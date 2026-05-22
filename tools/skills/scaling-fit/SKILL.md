@@ -19,7 +19,7 @@ This skill MUST NEVER name the physical exponent (ν, γ, c, etc.) or identify a
 
 - User has a `(L, observable)` or `(L, parameter, observable)` table and wants exponents.
 - `/parameter-scan` flagged a critical-like / extremum / crossing label and exponents are wanted.
-- A physics card needs an exponent to compare against universality-class expectations (`knowledge-base/physics/criticality/PHYSICS.md`, `knowledge-base/physics/magic/PHYSICS.md`, `knowledge-base/physics/confinement/PHYSICS.md`).
+- A physics card needs an exponent to compare against universality-class expectations (`.knowledge/physics/criticality/PHYSICS.md`, `.knowledge/physics/magic/PHYSICS.md`, `.knowledge/physics/confinement/PHYSICS.md`).
 
 ## Inputs
 
@@ -65,14 +65,14 @@ This skill MUST NEVER name the physical exponent (ν, γ, c, etc.) or identify a
 - After this skill runs, common follow-ups (offered via `AskUserQuestion`):
   - `/cross-method-check` — verify the fitted exponent against an independent method or observable on the same data (Recommended whenever the exponent will leave this session — run report, paper figure, declared entry, or message to the user).
   - Extend the scan range — when the fit is poor at the boundary of the swept range.
-  - Compare to a literature *range* — through `knowledge-base/physics/criticality/PHYSICS.md` (or the calling physics card).
+  - Compare to a literature *range* — through `.knowledge/physics/criticality/PHYSICS.md` (or the calling physics card).
   - Done.
 
 ## Notes
 
 **Binding.** This skill MUST NOT label the fitted parameter with a physics name (ν, γ, c, etc.). The calling skill provides labels.
 
-**Explanatory.** Universality-class comparison happens in the calling skill, citing `knowledge-base/benchmark-numbers.md` or `knowledge-base/magic-benchmarks.md`. For contested universality classes the result should be presented as a range with the harness's value sitting inside the literature range, not as a definitive identification. The calling skill enforces this; this primitive just produces the fit.
+**Explanatory.** Universality-class comparison happens in the calling skill, citing `.knowledge/benchmark-numbers.md` or `.knowledge/magic-benchmarks.md`. For contested universality classes the result should be presented as a range with the harness's value sitting inside the literature range, not as a definitive identification. The calling skill enforces this; this primitive just produces the fit.
 
 ## Anti-patterns (auto-reject)
 
