@@ -44,7 +44,7 @@ End-to-end reproduction of *"Weak ergodicity breaking from quantum many-body sca
 
 | Paper (Turner 2018) | This run |
 |:---:|:---:|
-| <img src=".figs/turner_2018/paper-fig3.png" alt="Turner 2018 Figure 3 — paper" /> | <img src=".figs/turner_2018/ours-fig3a.png" alt="Reproduction of Fig 3a at L=28" /> |
+| <img src="docs/figs/turner_2018/paper-fig3.png" alt="Turner 2018 Figure 3 — paper" /> | <img src="docs/figs/turner_2018/ours-fig3a.png" alt="Reproduction of Fig 3a at L=28" /> |
 | **Paper Fig 3.** (a) $\log\lvert\langle Z_2 \vert \psi\rangle\rvert^2$ for every eigenstate in the $(k=0,\,I=+1)$ sector at $L=32$; the forward-scattering approximation (FSA, red ×) marks the scar states on the upper envelope. (b, c) two of those special eigenstates decomposed in the FSA basis. (d) participation ratio $\langle PR_2 \rangle$ vs $L$. | **Our reproduction of panel (a)** at $L=28$, $(k=0,\,I=+1)$ sector, $D = 13{,}201$. The $L+1=29$ FSA states (red ×) sit cleanly above the thermal cloud — the scar tower. Panels (b), (c), (d) in the drop-down. |
 
 <details>
@@ -52,10 +52,10 @@ End-to-end reproduction of *"Weak ergodicity breaking from quantum many-body sca
 
 | (b) ground special state | (c) special state adjacent to $E=0$ |
 |:---:|:---:|
-| <img src=".figs/turner_2018/ours-fig3b.png" alt="ours-fig3b" /> | <img src=".figs/turner_2018/ours-fig3c.png" alt="ours-fig3c" /> |
+| <img src="docs/figs/turner_2018/ours-fig3b.png" alt="ours-fig3b" /> | <img src="docs/figs/turner_2018/ours-fig3c.png" alt="ours-fig3c" /> |
 | Lowest scar eigenstate decomposed in the FSA basis. Exact (black) and FSA (red) overlap to within ~1%. | Lowest $\lvert E\rvert > 0$ scar eigenstate. Exact and FSA share the alternating-amplitude pattern but diverge in magnitude — where the FSA picture begins to break. |
 
-<p align="center"><img src=".figs/turner_2018/ours-fig3d.png" alt="ours-fig3d" width="55%" /><br><sub><b>(d)</b> $\langle PR_2 \rangle$ vs $L$. The special band (blue) stays roughly $L$-independent; the bulk (orange) thermalizes as $1/D_{0+}$ (dashed). $L = 12 \to 30$.</sub></p>
+<p align="center"><img src="docs/figs/turner_2018/ours-fig3d.png" alt="ours-fig3d" width="55%" /><br><sub><b>(d)</b> $\langle PR_2 \rangle$ vs $L$. The special band (blue) stays roughly $L$-independent; the bulk (orange) thermalizes as $1/D_{0+}$ (dashed). $L = 12 \to 30$.</sub></p>
 
 </details>
 
@@ -63,7 +63,7 @@ End-to-end reproduction of *"Weak ergodicity breaking from quantum many-body sca
 
 | Paper (Turner 2018) | This run |
 |:---:|:---:|
-| <img src=".figs/turner_2018/paper-fig4.png" alt="Turner 2018 Figure 4 — paper" /> | <img src=".figs/turner_2018/ours-fig4.png" alt="Reproduction of Fig 4 at L=28/30" /> |
+| <img src="docs/figs/turner_2018/paper-fig4.png" alt="Turner 2018 Figure 4 — paper" /> | <img src="docs/figs/turner_2018/ours-fig4.png" alt="Reproduction of Fig 4 at L=28/30" /> |
 | **Paper Fig 4.** Level-spacing distribution $P(s)$ in the $(k=0,\,I=+1)$ sector at $L = 28, 30, 32$, against Poisson (P), semi-Poisson (SP), and Wigner-Dyson (WD). Inset: density of states $\rho(E)$ at $L=32$, dominated by a Gaussian bulk and a sharp $E=0$ spike from the Fibonacci-counted zero modes. | **Our reproduction** at $L=28$ and $L=30$ ($L=32$ pending). $P(s)$ falls on Wigner-Dyson, ruling out integrability. Inset: $\rho(E)$ at $L=30$ with the $E=0$ spike intact. The Hamiltonian is non-integrable; the scar tower is a genuine ETH anomaly. |
 
 A few things the harness caught during this run, recorded as tacits or deviations:
