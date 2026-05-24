@@ -17,11 +17,11 @@ Manifest schema:
   }
 
 Every `arxiv` / `doi` entry is an object. `id` is the only required field.
-Any of `title`, `authors`, `year`, `venue`, `note` override S2 — the escape
-hatch when S2's record is wrong (dropped diacritics, author typos, journal
-venue stored as arXiv category, arXiv submission year vs publication year).
-When `venue` is overridden, the body **Citation:** line uses it verbatim
-instead of splicing volume/pages from the (often wrong) S2 journal block.
+Optional override fields: `title`, `authors`, `year`, `venue`, `volume`,
+`pages`, `note`, plus a verbatim `citation` (full Citation line — bypasses
+the merge below). All other overrides merge with S2: the override replaces
+its specific token, but vol/pages still flow from the S2 journal block
+unless overridden separately. `citation` is the only short-circuit.
 For an arXiv preprint with no overrides, write `{"id": "<id>"}`.
 
 Usage:

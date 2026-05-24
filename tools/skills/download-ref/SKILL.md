@@ -60,15 +60,15 @@ Method slugs MUST match an existing method card slug under
 `.knowledge/methods/<method>` when one exists. Use these canonical slugs:
 
 ```text
-dmrg
-tebd
+mps-based-algorithm
+peps-based-algorithm
+quantum-monte-carlo
+variational-monte-carlo-neural-quantum-states
+quantum-circuit-simulation
 ed
-vmc-nqs
 anderson-impurity
-spectral
-finite-t
 dmft
-qmc
+magic
 ```
 
 Introduce a new slug only when no existing method card matches the

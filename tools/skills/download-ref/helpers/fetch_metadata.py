@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
 import time
 import urllib.error
@@ -75,6 +76,23 @@ def safe_arxiv_id(arxiv_id: str) -> str:
     return arxiv_id.replace("/", "-")
 
 
+def clone_repo(repository: str, out_dir: Path) -> bool:
+    """Shallow-clone a GitHub repo into out_dir. Idempotent."""
+    if (out_dir / ".git").exists():
+        return True
+    out_dir.parent.mkdir(parents=True, exist_ok=True)
+    url = f"https://github.com/{repository}.git"
+    try:
+        r = subprocess.run(
+            ["git", "clone", "--depth=1", "--quiet", url, str(out_dir)],
+            capture_output=True, text=True, timeout=180,
+        )
+        return r.returncode == 0
+    except Exception as e:
+        print(f"  clone fail {repository}: {e}", file=sys.stderr)
+        return False
+
+
 def save(path: Path, data: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False))
@@ -98,19 +116,25 @@ def main() -> int:
                    help="JSON file with {arxiv: [ids], doi: [dois]}")
     p.add_argument("--download-arxiv-pdfs", action="store_true",
                    help="Also fetch arXiv preprint PDFs (incl. preprints of paywalled DOIs)")
+    p.add_argument("--clone-github", action="store_true",
+                   help="Shallow-clone repos from the manifest's `github` bucket into .raw/repos/")
     args = p.parse_args()
 
     raw = args.kb / ".raw"
     manifest = json.loads(args.manifest.read_text())
     arxiv_ids = [e["id"] for e in manifest.get("arxiv", [])]
     dois = [e["id"] for e in manifest.get("doi", [])]
+    github_entries = manifest.get("github", [])
 
     ids = [f"ARXIV:{a}" for a in arxiv_ids] + [f"DOI:{d}" for d in dois]
-    if not ids:
+    if not ids and not (args.clone_github and github_entries):
         print("nothing to fetch")
         return 0
-    print(f"batch fetching {len(ids)} papers via Semantic Scholar...")
-    results = post_batch(ids)
+    if not ids:
+        results: list[dict | None] = []
+    else:
+        print(f"batch fetching {len(ids)} papers via Semantic Scholar...")
+        results = post_batch(ids)
 
     # Save metadata
     for k, r in zip(arxiv_ids, results[:len(arxiv_ids)]):
@@ -150,6 +174,16 @@ def main() -> int:
             if not ok and arxiv_pre:
                 ok = fetch_pdf(f"https://arxiv.org/pdf/{arxiv_pre}.pdf", out)
             print(f"  {'ok  ' if ok else 'miss'} doi:{doi} (arxiv={arxiv_pre or '-'})")
+
+    if args.clone_github and github_entries:
+        print("\ncloning github repos...")
+        for entry in github_entries:
+            repo = (entry.get("repository") or "").strip()
+            if not repo:
+                continue
+            out = raw / "repos" / repo.replace("/", "-")
+            ok = clone_repo(repo, out)
+            print(f"  {'ok  ' if ok else 'FAIL'} github:{repo}")
 
     return 0
 
