@@ -1,6 +1,6 @@
-# VQE (Variational Quantum Eigensolver)
+# Quantum Circuit Simulation
 
-Differentiable variational-circuit simulation for estimating ground-state energies by minimizing `E(theta) = <psi(theta)|H|psi(theta)>`. In this harness, VQE means a classical simulation of a parameterized circuit with automatic differentiation, JIT compilation, and tensor-network contraction controls. It is not a hardware-execution workflow.
+Classical simulation of quantum circuits, including variational circuit optimization (VQE) and general circuit contraction. In this harness, the default route uses TensorCircuit-NG on a JAX backend with automatic differentiation, JIT compilation, and tensor-network contraction controls. It is not a hardware-execution workflow.
 
 This card is generic methodology. Paper-specific benchmarks, hardware layouts, and figure protocols belong in `/reproduce-paper` protocols or run specs, not here.
 

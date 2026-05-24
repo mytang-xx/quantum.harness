@@ -26,7 +26,7 @@ Build per `knowledge-base/conventions.md`. State which Kanamori terms are kept.
 | Regime | Method | Card |
 |---|---|---|
 | Single-site / impurity, small `M`, finite bath | ED pending refreshed references | `knowledge-base/methods/ed/METHOD.md` |
-| Multi-orbital impurity with longer bath chain | DMRG / MPS impurity solver | `knowledge-base/methods/dmrg.md` |
+| Multi-orbital impurity with longer bath chain | DMRG / MPS impurity solver | `knowledge-base/methods/mps-based-algorithm.md` |
 | Lattice multi-orbital | Out of current scope unless DMFT-embedded; flag explicitly. | — |
 | DMFT impurity solver | Out of current scope to run; note the context. | — |
 

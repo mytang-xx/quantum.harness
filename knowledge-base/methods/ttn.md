@@ -2,7 +2,7 @@
 
 Variational tensor network with a binary-tree (loopless) structure. Used here for ground-state search and as the wavefunction backbone for Pauli-string sampling, where the tree structure gives `O(χ⁴ log N)` per-update cost on Pauli flips — the key efficiency feature for many-body magic estimators (`knowledge-base/methods/pauli-markov.md`).
 
-One algorithm class per the method-card-per-algorithm rule. `methods/dmrg.md` (MPS) and this card are the two tensor-network ground-state cards.
+One algorithm class per the method-card-per-algorithm rule. `methods/mps-based-algorithm.md` (MPS) and this card are the two tensor-network ground-state cards.
 
 ## Setup
 
@@ -96,7 +96,7 @@ This stage is consumed by `methods/pauli-markov.md` Stage 1; the cost per call i
 
 | Situation | Choose | Why |
 |---|---|---|
-| 1D chain, OBC, ground-state energy + standard observables | MPS / DMRG (`methods/dmrg.md`) | Simpler, faster, sufficient. |
+| 1D chain, OBC, ground-state energy + standard observables | MPS / DMRG (`methods/mps-based-algorithm.md`) | Simpler, faster, sufficient. |
 | 1D ring (PBC) with same observables | MPS-PBC or TTN | TTN avoids the `~2× χ` PBC overhead of MPS; choose if `χ` budget matters. |
 | Pauli-string sampling at large `N` | TTN | Pauli-flip cost `O(χ⁴ log N)` vs `O(N χ³)` per MPS perfect-sampling step. Crossover when `N/log N ≳ χ`. |
 | 2D torus or `L×L` cluster, modest sizes | TTN | Native PBC; avoids long-range MPS bonds. |

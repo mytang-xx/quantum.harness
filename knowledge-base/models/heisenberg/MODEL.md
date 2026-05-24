@@ -25,11 +25,11 @@ Only surface a real choice when the prompt is genuinely ambiguous about the latt
 
 | Regime | Method | Card |
 |---|---|---|
-| 1D chain (any N), quasi-1D ladder | DMRG | `knowledge-base/methods/dmrg.md` |
+| 1D chain (any N), quasi-1D ladder | DMRG | `knowledge-base/methods/mps-based-algorithm.md` |
 | Small cluster (N ≲ 24 sites), exact spectrum, debugging | ED pending refreshed references | `knowledge-base/methods/ed/METHOD.md` |
-| Cylinder (square / triangular / kagome strips, `L_y` small) | DMRG | `knowledge-base/methods/dmrg.md` |
-| Imaginary-time route to ground state, gap probes | TEBD | `knowledge-base/methods/tebd.md` |
-| Frustrated 2D variational (VMC / NQS) | Compare ansatz energies on kagome / triangular. Requires `make install netket`. | `knowledge-base/methods/vmc-nqs.md` |
+| Cylinder (square / triangular / kagome strips, `L_y` small) | DMRG | `knowledge-base/methods/mps-based-algorithm.md` |
+| Imaginary-time route to ground state, gap probes | TEBD | `knowledge-base/methods/mps-based-algorithm.md` |
+| Frustrated 2D variational (VMC / NQS) | Compare ansatz energies on kagome / triangular. Requires `make install netket`. | `knowledge-base/methods/variational-monte-carlo-neural-quantum-states.md` |
 | Frustrated 2D thermodynamic limit | Beyond current scope for exact methods; surface uncertainty. VMC + DMRG cylinder can constrain. | — |
 
 ## Branch table

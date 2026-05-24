@@ -26,9 +26,9 @@ Build per `knowledge-base/conventions.md`: `H = -t P(c†c+h.c.)P + J Σ(S·S - 
 | Regime | Method | Card |
 |---|---|---|
 | Small cluster, exact reference | Projected ED pending refreshed references | `knowledge-base/methods/ed/METHOD.md` |
-| 1D chain, narrow cylinder | DMRG | `knowledge-base/methods/dmrg.md` |
-| Imaginary-time route | TEBD | `knowledge-base/methods/tebd.md` |
-| 2D doped variational (VMC / NQS) | VMC via NetKet for projected wavefunctions. Requires `make install netket`. | `knowledge-base/methods/vmc-nqs.md` |
+| 1D chain, narrow cylinder | DMRG | `knowledge-base/methods/mps-based-algorithm.md` |
+| Imaginary-time route | TEBD | `knowledge-base/methods/mps-based-algorithm.md` |
+| 2D doped variational (VMC / NQS) | VMC via NetKet for projected wavefunctions. Requires `make install netket`. | `knowledge-base/methods/variational-monte-carlo-neural-quantum-states.md` |
 
 ## Branch table
 

@@ -1,4 +1,4 @@
-# ED (Exact Diagonalization)
+# Exact Diagonalization
 
 Finite-Hilbert-space method that constructs a many-body basis, represents the Hamiltonian exactly in that basis or applies it matrix-free, then computes eigenvalues, eigenvectors, dynamics, or level diagnostics. Use ED as the small-system reference method and as the cross-method oracle for approximate methods.
 

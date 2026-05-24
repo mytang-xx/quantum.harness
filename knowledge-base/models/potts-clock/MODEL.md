@@ -31,11 +31,11 @@ with `X, Z` the qudit shift / clock operators (`X|k⟩ = |k+1 mod q⟩`, `Z|k⟩
 
 | Regime | Method | Card |
 |---|---|---|
-| 1D chain, any `q`, ground-state energy + standard observables | DMRG (qudit MPS) | `knowledge-base/methods/dmrg.md` |
+| 1D chain, any `q`, ground-state energy + standard observables | DMRG (qudit MPS) | `knowledge-base/methods/mps-based-algorithm.md` |
 | 1D chain at large `N` with magic / Pauli-string sampling | TTN | `knowledge-base/methods/ttn.md` |
 | Tiny cluster (`N ≲ 16` for `q = 3`), exact spectrum | ED pending refreshed references | `knowledge-base/methods/ed/METHOD.md` |
-| 2D square (small clusters / cylinders) | DMRG cylinder; TTN if PBC torus is needed | `knowledge-base/methods/dmrg.md`, `knowledge-base/methods/ttn.md` |
-| Imaginary-time route to ground state | TEBD | `knowledge-base/methods/tebd.md` |
+| 2D square (small clusters / cylinders) | DMRG cylinder; TTN if PBC torus is needed | `knowledge-base/methods/mps-based-algorithm.md`, `knowledge-base/methods/ttn.md` |
+| Imaginary-time route to ground state | TEBD | `knowledge-base/methods/mps-based-algorithm.md` |
 
 ## Branch table
 

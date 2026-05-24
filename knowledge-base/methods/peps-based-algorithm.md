@@ -1,9 +1,6 @@
-# CTMRG (Corner Transfer Matrix Renormalization Group)
+# PEPS Based Algorithm
 
-Tensor-network contraction method for infinite or large two-dimensional
-networks. In this harness, the default CTMRG route is PEPSKit.jl for classical
-partition functions and PEPS environments. PEPS optimization is adjacent but is
-not the core scope of this card.
+Projected Entangled Pair States and associated contraction methods (CTMRG, simple/full update, variational optimization) for two-dimensional quantum and classical lattice problems. The default route in this harness is PEPSKit.jl, using Corner Transfer Matrix Renormalization Group (CTMRG) for environment contraction.
 
 ## Setup
 

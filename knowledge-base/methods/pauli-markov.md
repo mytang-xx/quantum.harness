@@ -64,7 +64,7 @@ Per AGENTS.md "multi-stage orchestration lives in method cards", stages are decl
 |---|---|
 | Hamiltonian, sizes, parameters | Tensor-network wavefunction file (`results/<run>/state.h5` or equivalent), bond-dimension log. |
 
-Driver: `knowledge-base/methods/dmrg.md` (MPS) or `knowledge-base/methods/ttn.md` (TTN). For the experimental-protocol variant, this stage is a measurement run on hardware.
+Driver: `knowledge-base/methods/mps-based-algorithm.md` (MPS) or `knowledge-base/methods/ttn.md` (TTN). For the experimental-protocol variant, this stage is a measurement run on hardware.
 
 For tensor-network wavefunctions, Pauli-Markov sampling is a **cached update** algorithm:
 

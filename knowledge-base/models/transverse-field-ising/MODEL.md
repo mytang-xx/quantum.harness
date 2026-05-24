@@ -25,10 +25,10 @@ Build per `knowledge-base/conventions.md`: `H = -J Σ σ^z_i σ^z_j - Γ Σ σ^x
 
 | Regime | Method | Card |
 |---|---|---|
-| 1D chain (any N) | DMRG | `knowledge-base/methods/dmrg.md` |
+| 1D chain (any N) | DMRG | `knowledge-base/methods/mps-based-algorithm.md` |
 | Tiny cluster (N ≲ 24), exact spectrum, debugging | ED pending refreshed references | `knowledge-base/methods/ed/METHOD.md` |
-| Cylinder (square / triangular strips) | DMRG | `knowledge-base/methods/dmrg.md` |
-| Imaginary-time approach | TEBD | `knowledge-base/methods/tebd.md` |
+| Cylinder (square / triangular strips) | DMRG | `knowledge-base/methods/mps-based-algorithm.md` |
+| Imaginary-time approach | TEBD | `knowledge-base/methods/mps-based-algorithm.md` |
 
 ## Branch table
 

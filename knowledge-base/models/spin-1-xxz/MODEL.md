@@ -31,10 +31,10 @@ with `S^a` the spin-1 operators. Default sign-of-coupling matches the methodolog
 
 | Regime | Method | Card |
 |---|---|---|
-| 1D chain, ground-state energy + correlations | DMRG | `knowledge-base/methods/dmrg.md` |
+| 1D chain, ground-state energy + correlations | DMRG | `knowledge-base/methods/mps-based-algorithm.md` |
 | Small cluster (`L ≲ 14`) for exact spectrum, gap, or cross-check | ED pending refreshed references | `knowledge-base/methods/ed/METHOD.md` |
 | 1D ring (PBC) at large `L` with Pauli-string sampling | TTN | `knowledge-base/methods/ttn.md` |
-| Imaginary-time route to ground state | TEBD | `knowledge-base/methods/tebd.md` |
+| Imaginary-time route to ground state | TEBD | `knowledge-base/methods/mps-based-algorithm.md` |
 
 ## Branch table
 

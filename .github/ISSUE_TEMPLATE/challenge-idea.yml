@@ -11,11 +11,37 @@ body:
         Include a contact email for follow-up. Issue contents are public on GitHub.
 
   - type: input
+    id: released_by
+    attributes:
+      label: Released by
+      description: Who is releasing this challenge (name and affiliation).
+      placeholder: "Jane Doe, University of X"
+    validations:
+      required: true
+
+  - type: input
     id: contact_email
     attributes:
       label: Contact email
       description: Required so organizers can follow up about the proposed challenge.
       placeholder: "name@example.edu"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: method
+    attributes:
+      label: Method
+      description: Which computational method does this challenge primarily involve?
+      options:
+        - Mean Field
+        - Exact Diagonalization
+        - MPS Based Algorithm
+        - PEPS Based Algorithm
+        - Quantum Monte Carlo
+        - Variational Monte Carlo / Neural Quantum States
+        - Quantum Circuit Simulation
+        - Other
     validations:
       required: true
 

@@ -1,4 +1,4 @@
-# QMC / SSE (Quantum Monte Carlo)
+# Quantum Monte Carlo
 
 Stochastic sampling of the finite-temperature partition function. The harness
 default is stochastic series expansion (SSE) QMC for sign-problem-free spin and

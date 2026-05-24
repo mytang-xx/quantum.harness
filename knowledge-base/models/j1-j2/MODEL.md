@@ -26,10 +26,10 @@ Build per `knowledge-base/conventions.md`: `H = J1 Σ S_i·S_j + J2 Σ S_i·S_j`
 | Regime | Method | Card |
 |---|---|---|
 | Small cluster (N ≲ 32), exact comparison | ED pending refreshed references | `knowledge-base/methods/ed/METHOD.md` |
-| Narrow cylinder (`L_y` ≲ 8) | DMRG | `knowledge-base/methods/dmrg.md` |
-| Imaginary-time route to ground state | TEBD | `knowledge-base/methods/tebd.md` |
+| Narrow cylinder (`L_y` ≲ 8) | DMRG | `knowledge-base/methods/mps-based-algorithm.md` |
+| Imaginary-time route to ground state | TEBD | `knowledge-base/methods/mps-based-algorithm.md` |
 | Wide-cylinder / 2D thermodynamic limit | Beyond current scope. Surface uncertainty; report what cylinder DMRG + ED constrain. | — |
-| Frustrated 2D variational (VMC / NQS) | VMC via NetKet; compare ansatz energies and V-scores. Requires `make install netket`. | `knowledge-base/methods/vmc-nqs.md` |
+| Frustrated 2D variational (VMC / NQS) | VMC via NetKet; compare ansatz energies and V-scores. Requires `make install netket`. | `knowledge-base/methods/variational-monte-carlo-neural-quantum-states.md` |
 
 ## Branch table
 
