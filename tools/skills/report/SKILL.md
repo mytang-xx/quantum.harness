@@ -1,11 +1,22 @@
 ---
 name: report
-description: Use when a `/reproduce-paper` run reaches the `plan` gate and the user needs to ratify the plan before heavy compute, or after the `close` gate when the user wants the shareable HTML deliverable — phrases like "render report", "publish reproduction", "share results", "make the plan doc", "ratify before run".
+description: Use when a `/reproduce-paper` run reaches the `plan` gate and the user needs to ratify the plan before heavy compute, after the `close` gate when the user wants the shareable HTML deliverable, or when a `/reproduce-paper-onboard` beginner run finishes and wants the same HTML — phrases like "render report", "publish reproduction", "share results", "make the plan doc", "ratify before run", "render the onboard run".
 ---
 
 # report
 
-Outcome: one self-contained HTML at `<run-dir>/report_<run-id>_<date>.html`. Every sentence traces to `sources/paper.md`, `protocol.toml`, a current-run manifest, or a verify report. Compute belongs upstream to `/reproduce-paper`.
+Outcome: one self-contained HTML at `<run-dir>/report_<run-id>_<date>.html`. Every sentence traces to `sources/paper.md`, `protocol.toml`, a current-run manifest, or a verify report. Compute belongs upstream to `/reproduce-paper` or `/reproduce-paper-onboard`.
+
+## Modes
+
+`/report` has two modes, selected by the `--mode` flag on `build.mjs` (default `full`):
+
+| Mode      | Source workflow              | Flow gate preflight | Audit subagent | Polish subagent |
+|-----------|------------------------------|---------------------|----------------|-----------------|
+| `full`    | `/reproduce-paper`           | required            | required       | required        |
+| `onboard` | `/reproduce-paper-onboard`   | skipped             | skipped        | optional        |
+
+The strict contract below applies to `--mode full`. `--mode onboard` follows the simplified contract in the Onboard Mode section.
 
 ## Non-Negotiables
 
@@ -67,19 +78,49 @@ Audit prompt filenames:
 
 ## When
 
-- Plan gate passed and user needs ratification: `/report <run-dir> --stage plan`.
-- Close gate passed and user wants shareable HTML: `/report <run-dir> --stage append`.
+- Plan gate passed and user needs ratification: `/report <run-dir> --stage plan` (full mode).
+- Close gate passed and user wants shareable HTML: `/report <run-dir> --stage append` (full mode).
+- Beginner onboard run finished and the user wants the polished HTML: `/report <run-dir> --stage append --mode onboard`.
+- Beginner wants to preview the plan before approve: `/report <run-dir> --stage plan --mode onboard`.
 
-## Workflow
+## Workflow (full mode)
 
 1. Gate preflight: `flow require <run-dir> plan` or `flow require <run-dir> close`; stop on failure.
 2. Check the inline Main Contract above; do not load subagent reference files into main context.
 3. Dispatch polish: start `report` attempt, spawn polish subagent with every Polish prompt filename above named in the prompt, write only `<run-dir>/editorial.json`, register as editorial artifact, finish attempt.
-4. Render: `node tools/skills/report/site/build.mjs <run-dir> --stage <stage>`.
+4. Render: `node tools/skills/report/site/build.mjs <run-dir> --stage <stage> --mode full`.
 5. Dispatch audit: start `audit` attempt, spawn audit subagent with every Audit prompt filename above named in the prompt, require `verify/verify_report_<date>.md` plus `.toml`.
 6. Close audit with `flow attempt finish ... --report verify/verify_report_<date>.md`, then require the report gate.
 7. Plan stage: present HTML with **Yes - run it**, **Revise**, **Stop**.
 8. Append stage: surface the final HTML path once the report gate passes.
+
+## Onboard Mode
+
+Onboard mode renders the HTML deliverable for `/reproduce-paper-onboard` runs, which have no flow gates and explicitly forbid spawned audit subagents. The contract is deliberately lighter so the beginner workflow stays jargon-free.
+
+Source artifacts expected in the run directory:
+
+- `plan.md` (friendly user-facing plan, written after Q5 approval in the onboard skill);
+- `protocol.toml` (paper-to-code contract, generated from the same brainstorm answers);
+- `cells/<cell_id>/manifest.json` (one per completed cell);
+- `figs/<figure_id>.{png,json}`;
+- `run-report.md`.
+
+Onboard workflow:
+
+1. No `flow require` preflight. The onboard runs have no `progress/state.toml`; gate-aware skills do not apply.
+2. Polish is optional. If the user wants polished prose, the agent may run an inline polish pass that writes `editorial.json` — no spawned subagent required. If polish is skipped, the renderer falls back to plain prose from `plan.md` and `protocol.toml`.
+3. Render: `node tools/skills/report/site/build.mjs <run-dir> --stage <stage> --mode onboard`.
+4. Do not spawn an audit subagent. Verification is the inline-check status already recorded in `run-report.md` (`self-checked`, `partial`, `failed`, or `upgrade-to-audit-recommended`).
+5. Plan stage: present HTML with **Approve and run**, **Revise**, **Stop**. This mirrors the onboard skill's Q5 approval but in HTML form.
+6. Append stage: surface the final HTML path; offer **Upgrade to full audit** as a next step (handoff to `/reproduce-paper` + `/report --mode full`).
+
+Onboard contract:
+
+- Do not invoke `flow attempt` or `flow require` in onboard mode.
+- Do not spawn audit-kind subagents in onboard mode.
+- The HTML must visibly carry the onboard provenance (e.g., a footer chip "beginner reproduction, self-checked") so a reader can tell it is not audit-grade.
+- If the user later wants audit-grade certification, the same run directory is reusable by `/report --mode full` after `/reproduce-paper` re-registers it through the flow ledger.
 
 ## Failed Checks
 

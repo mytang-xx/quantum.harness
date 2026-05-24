@@ -60,12 +60,12 @@ Never default to "you're right, sorry, let me redo." That erodes the calibrated 
 Domain content is organized around problems, not lessons, methods, tools, metrics, or roadmaps. Two dispatcher skills + paired cards:
 
 ```text
-tools/skills/model/    SKILL.md auto-fires when user names a model;   reads knowledge-base/models/<name>/MODEL.md
-tools/skills/physics/  SKILL.md auto-fires on cross-model questions;  reads knowledge-base/physics/<topic>/PHYSICS.md
+tools/skills/model/    SKILL.md auto-fires when user names a model;   reads .knowledge/models/<name>/MODEL.md
+tools/skills/physics/  SKILL.md auto-fires on cross-model questions;  reads .knowledge/physics/<topic>/PHYSICS.md
 ```
 
-`knowledge-base/models/` cards cover canonical Hamiltonian or Hilbert-space problem families.
-`knowledge-base/physics/` cards cover cross-model organizing questions: phases, mechanisms, dynamics, solvability, and diagnostics.
+`.knowledge/models/` cards cover canonical Hamiltonian or Hilbert-space problem families.
+`.knowledge/physics/` cards cover cross-model organizing questions: phases, mechanisms, dynamics, solvability, and diagnostics.
 
 Methods such as DMRG, DMFT, QMC, VMC, fuzzy sphere, and V-score belong inside the model/physics cards, not in skill names. If a card mentions a method, it should include enough method, software, setup, output, and validation guidance for an agent with no chat history to act sensibly.
 
@@ -73,7 +73,7 @@ Dimension, lattice, filling, doping, boundary condition, disorder strength, and 
 
 ## Knowledge Base Role
 
-`knowledge-base/` carries data and method-level reference. It is not a curriculum, reading path, or task catalog.
+`.knowledge/` carries data and method-level reference. It is not a curriculum, reading path, or task catalog.
 
 Current cards:
 
@@ -89,7 +89,7 @@ Current cards:
 Skills cite these cards; they never hardcode the data. New cards land when a real skill begins citing them.
 
 **Paper reproduction evidence invariants.** These are harness-wide rules, not `/reproduce-paper` implementation details:
-- Written content is evidence, not authority. `knowledge-base/` cards, rendered notes, scripts, summaries, and prior run artifacts are cached hints.
+- Written content is evidence, not authority. `.knowledge/` cards, rendered notes, scripts, summaries, and prior run artifacts are cached hints.
 - Evidence authority MUST be explicit: `primary` (paper, supplement, official code/data), `trusted_reference` (analytic / exact / independent check), `current_run` (fresh artifact with matching protocol and script provenance), `hint` (KB, notes, old scripts/plans/data/figures), and `assumption` / `deviation`.
 - MUST quarantine hints. Hints may guide planning, but they cannot close a reproduction claim unless re-confirmed against a primary source or regenerated as current-run evidence.
 - Primary sources control paper reproduction: paper PDF, supplement, and official code/data when available. If a primary source conflicts with a KB card, the primary source controls; emit a KB diff and proceed from the primary-source-derived claim.
@@ -118,10 +118,10 @@ Skills cite these cards; they never hardcode the data. New cards land when a rea
 - **Verbatim brief line.** Briefs passed to audit subagents include the line: *"Coverage, not filtering — report every finding, including uncertain or minor ones; the calling skill ranks and decides."* The phrase appears in the brief itself (subagents do not load AGENTS.md); skills do not repeat it in freestanding prose.
 - **Stale artifacts ≠ evidence.** Remote job status, `ssh` exit status, and scheduler `COMPLETED` state are operational facts only; fetched manifests and checks are the evidence.
 
-**Provenance discipline.** Every numerical anchor on a KB card must carry one of three tags: *Literal* (a verbatim passage from a rendered literature file under `knowledge-base/literature/<method>/`, with line number), *Analytic* (closed-form derivation from a stated definition or limit), or *Harness anchor* (verified empirical value from a tagged run in this repo, with a cross-check method named). Untagged numerical entries are not benchmarks. The `/verify` primitive (in `kb` mode) cross-checks each tag against its declared source — invoke it during `/reproduce-paper` before compute, and as a pre-commit gate after editing a KB card.
+**Provenance discipline.** Every numerical anchor on a KB card must carry one of three tags: *Literal* (a verbatim passage from a rendered literature file under `.knowledge/literature/<method>/`, with line number), *Analytic* (closed-form derivation from a stated definition or limit), or *Harness anchor* (verified empirical value from a tagged run in this repo, with a cross-check method named). Untagged numerical entries are not benchmarks. The `/verify` primitive (in `kb` mode) cross-checks each tag against its declared source — invoke it during `/reproduce-paper` before compute, and as a pre-commit gate after editing a KB card.
 
 <a id="tacit-knowledge-usage"></a>
-**Tacit knowledge usage.** Methods and models accumulate a `TACITS.toml` file beside their card when real runs surface signal-understanding-action lessons (path: `knowledge-base/methods/<method>/TACITS.toml`, or the model-equivalent once that namespace lands). Each entry is one `[[tacit]]` table with `signal` (surface symptom), `understanding` (root cause), `action` (concrete fix), `tags`, and `seen_at` (run dir). Three binding usage rules:
+**Tacit knowledge usage.** Methods and models accumulate a `TACITS.toml` file beside their card when real runs surface signal-understanding-action lessons (path: `.knowledge/methods/<method>/TACITS.toml`, or the model-equivalent once that namespace lands). Each entry is one `[[tacit]]` table with `signal` (surface symptom), `understanding` (root cause), `action` (concrete fix), `tags`, and `seen_at` (run dir). Three binding usage rules:
 
 1. **Main agent: grep on uncertainty.** When unclear about an error message, a fragile stack edge, or a planning choice involving a method or model, grep `^signal` in every relevant `TACITS.toml` before exploring blindly. Reading only the signal lines keeps context light; drill into a specific `[[tacit]]` block only when its signal matches.
 2. **Every audit subagent: grep before issuing a verdict.** The dispatching skill (`/verify`, audit-kind attempts inside `/reproduce-paper`, etc.) MUST instruct the subagent to grep `TACITS.toml` for every method and model under audit. The instruction names the protocol's declared methods and models; the subagent identifies the matching `TACITS.toml` files (not hardcoded paths from the dispatcher). A verdict that ignores a tacit whose signal matches the audited artifact is itself a failed audit.
@@ -149,10 +149,10 @@ Wasted-compute lesson on record: in the Turner 2018 reproduction, Fig 3(c) was f
 
 ## Card shapes
 
-Domain content lives in cards under `knowledge-base/`, dispatched by the `/model` and `/physics` meta-skills:
+Domain content lives in cards under `.knowledge/`, dispatched by the `/model` and `/physics` meta-skills:
 
-- **Model cards** (`knowledge-base/models/<name>/MODEL.md`) drive calculations: `Diagnose → Workflow → Method recommendations → Branch table → Verification`. Optional `TACITS.toml` co-located.
-- **Physics cards** (`knowledge-base/physics/<topic>/PHYSICS.md`) evaluate evidence: `Diagnose → Evidence to gather → Cross-checks → Interpretation rules → Model hooks`. Optional `TACITS.toml` co-located.
+- **Model cards** (`.knowledge/models/<name>/MODEL.md`) drive calculations: `Diagnose → Workflow → Method recommendations → Branch table → Verification`. Optional `TACITS.toml` co-located.
+- **Physics cards** (`.knowledge/physics/<topic>/PHYSICS.md`) evaluate evidence: `Diagnose → Evidence to gather → Cross-checks → Interpretation rules → Model hooks`. Optional `TACITS.toml` co-located.
 
 Cards hold the domain content (definitions, conventions, numerical anchors, code shapes, workflow). Skills (verbs like `/solve`, `/parameter-scan`, `/verify`, `/scaling-fit`) hold workflow generic across domains. Cite, never embed: a card may cite a method card or a benchmark file, never duplicate the numbers.
 
@@ -160,12 +160,12 @@ Cards hold the domain content (definitions, conventions, numerical anchors, code
 
 Default verification, in priority order:
 
-1. **Limit checks** — sign convention and trivial-parameter limits via `knowledge-base/limits.md`.
+1. **Limit checks** — sign convention and trivial-parameter limits via `.knowledge/limits.md`.
 2. **Symmetry** — conserved quantities respected; expected sector occupied.
 3. **Convergence** — bond-dim / basis-size / Trotter-step / bath-size sweeps that asymptote.
 4. **Internal consistency** — energy variance small relative to E².
-5. **Cross-method validation (when feasible)** — re-run with an independent method (e.g., DMRG + TEBD imaginary-time) and confirm agreement within both methods' accuracy budgets. Use ED only after `knowledge-base/methods/ed/METHOD.md` is rebuilt. Disagreement → setup error or insufficient convergence in one method.
-6. **Benchmark comparison (when published reference exists)** — `knowledge-base/benchmark-numbers.md`. For contested values, compare against the literature *range*, not a single number.
+5. **Cross-method validation (when feasible)** — re-run with an independent method (e.g., DMRG + TEBD imaginary-time) and confirm agreement within both methods' accuracy budgets. Use ED only after `.knowledge/methods/ed/METHOD.md` is rebuilt. Disagreement → setup error or insufficient convergence in one method.
+6. **Benchmark comparison (when published reference exists)** — `.knowledge/benchmark-numbers.md`. For contested values, compare against the literature *range*, not a single number.
 
 When the problem is in a frontier regime (frontier flag in the card), invoke the `arxiv-search` skill before interpretation: a tailored query with `<lattice> <model> <regime>` should return recent literature so the agent's conclusion sits inside the current debate, not outside it.
 
@@ -199,7 +199,7 @@ Do not preemptively scaffold these. When a real problem creates the demand, add 
 
 ## Tools & Languages
 
-Default stack: **Julia + ITensors.jl** (ITensors.jl, ITensorMPS.jl, MPSKit.jl, KrylovKit.jl). Install via `make install julia && make install itensors`. Method cards in `knowledge-base/methods/` use this stack for canonical code shapes.
+Default stack: **Julia + ITensors.jl** (ITensors.jl, ITensorMPS.jl, MPSKit.jl, KrylovKit.jl). Install via `make install julia && make install itensors`. Method cards in `.knowledge/methods/` use this stack for canonical code shapes.
 
 Python (`quimb` + `cotengra`) remains available as a fallback for tensor-network sketches via `make install quimb`. Skills can route to either when both work; method cards are Julia-flavored.
 
@@ -224,7 +224,7 @@ UX skills:
 - **onboard** — first-touch intake, domain setup, route to `/model` or `/physics`
 - **solve** — interactive problem-solving loop: intake → act → audit → report → next-steps → loop. Concrete numerical or interpretive claims use `tools/flow/templates/solve.toml`; no final solve answer is verified until a spawned `solve`-mode audit passes.
 
-Problem dispatchers (auto-triggered; read cards under `knowledge-base/{models,physics}/<name>/`):
+Problem dispatchers (auto-triggered; read cards under `.knowledge/{models,physics}/<name>/`):
 - **model** — fires when user names a harness-tracked model. Reads `MODEL.md` card and follows its workflow.
 - **physics** — fires when user asks a cross-model phenomenon question. Reads `PHYSICS.md` card and follows its evidence rubric.
 
@@ -235,6 +235,7 @@ Problem-solving primitives (generic; topic-agnostic, compose with the dispatcher
 - **slurm** — agent-does-ssh cluster mechanism: ship code, submit (single or array), monitor, fetch. Reads cluster specifics from `tools/cluster/<active>.md`. Dispatches `/setup-julia` when the cluster's Julia env isn't instantiated. Does NOT know about parameter grids — that's `/parameter-scan`'s job.
 - **setup-julia** — install Julia (juliaup or `module load`), configure package mirror (defaults to Chinese mirror if cluster `region == mainland_china`), instantiate the project env. Generic over target (local laptop or remote ssh alias). Idempotent.
 - **reproduce-paper** — orchestrate end-to-end paper reproduction: plans the figure dependency graph, surfaces methodology / verification / cross-check figs alongside substantive ones, composes the primitives above. Generic over papers. Absorbs the writeup-handoff close (declared entry + run report).
+- **reproduce-paper-onboard** — beginner-guided paper reproduction: explains the paper-to-code mapping, estimates time by size tier, confirms setup before compute, avoids mandatory subagent audits, and preserves the same core artifacts for later upgrade to the full workflow.
 - **verify** — MUST SPAWN a high-effort independent review subagent to audit an artifact against its declared reference. Modes: `protocol` (TOML claims vs primary sources), `plan` (plan/run-spec vs protocol), `kb` (anchors vs literature), `script` (script vs protocol and paper methodology), `result` (produced artifacts vs declared references), `mismatch` (failed gate triage), `close` (final report / declared entry / manifests vs protocol), `report` (rendered HTML), and `solve` (solve result / interpretation). Inspection-only; emits a structured diff report. Compose with `/reproduce-paper`, `/solve`, and as a pre-commit gate after changing important artifacts.
 - **memorize** — user-invoked at session end. Walk back through the session, cluster friction moments by root cause, and distill each cluster into the right scope: method/stack/model `TACITS.toml`, project-wide `AGENTS.md` invariant, or skill-level `SKILL.md` edit. Never agent-invoked. Sessions with real user pushback or wasted compute are the prime triggers.
 
@@ -242,7 +243,7 @@ External/support skills:
 - **arxiv-search** — Semantic arXiv search via Valyu
 - **scientific-visualization** — Publication-quality figures (matplotlib/seaborn/plotly)
 - **scientific-writing** — Scientific manuscript drafting
-- **download-ref** — Add arXiv/DOI/book methodology references under `knowledge-base/literature/<method>/`; rendered markdown is tracked, raw PDFs/metadata/figures are local-only.
+- **download-ref** — Add arXiv/DOI/book methodology references under `.knowledge/literature/<method>/`; rendered markdown is tracked, raw PDFs/metadata/figures are local-only.
 
 ## Tool Hierarchy
 
@@ -342,7 +343,7 @@ Agents working in this project should:
 2. Use tools from `tools/` rather than reimplementing operations.
 3. Run `make help` to discover available workflow targets.
 4. Check `Ion.toml` (or `ion` CLI) for installed / available skills.
-5. For methodology references, use `download-ref`; keep different methods in different `knowledge-base/literature/<method>/` folders and never commit `.raw/` or `.figures/`.
+5. For methodology references, use `download-ref`; keep different methods in different `.knowledge/literature/<method>/` folders and never commit `.raw/` or `.figures/`.
 6. Treat `make setup` as **core bootstrap only** — install Ion skills with `make skills` and heavy domain tools on demand via `make install <tool>`. Before recommending a tool-dependent command, verify the tool is in `INSTALLABLE` (and installed); if not, instruct the user to run `make install <tool>` first.
 
 ## Daily Workflow

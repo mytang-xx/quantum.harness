@@ -57,11 +57,11 @@ action = "link against openblas64 or fall back to dsyevr"
 # …and a SEPARATE entry for the figure-reading lesson, in AGENTS.md, not TACITS.
 </example>
 
-- **Specific vs generic — pick the right scope.** Method/stack-specific facts → `knowledge-base/methods/<method>/TACITS.toml`. Model-specific → `knowledge-base/models/<model>/TACITS.toml`. Project-wide invariants → `AGENTS.md`. Skill behavior → that skill's `SKILL.md`. Don't dump everything into one big global file.
+- **Specific vs generic — pick the right scope.** Method/stack-specific facts → `.knowledge/methods/<method>/TACITS.toml`. Model-specific → `.knowledge/models/<model>/TACITS.toml`. Project-wide invariants → `AGENTS.md`. Skill behavior → that skill's `SKILL.md`. Don't dump everything into one big global file.
 - **Every TACITS entry has `signal`, `understanding`, `action`, `tags`, `seen_at`.** Signal is what an agent or user sees FIRST (error message, symptom, surface keyword). Agents grep `^signal` to scan the index without reading the rest. `seen_at` is mandatory provenance.
 - **Never invent lessons.** Every entry must trace to a specific moment in the session: cite the user message, the failing artifact, or the commit/PR that fixed it. Speculative "we MIGHT see this if…" lessons are anti-knowledge.
 - **The user ratifies BEFORE write.** Render all drafts in one consolidated review block (one fenced diff or one fenced TOML/markdown block per entry). Dispatch one `AskUserQuestion` with options: Accept all, Edit selected entries, Reject some, Discard all. Write to disk only after the user picks an accept path and (if Edit) the edits are applied. Silent appends — any commit before the user picks an accept option — are forbidden.
-- **Grep before write.** For each draft entry, grep `^signal` in every relevant `TACITS.toml` (path: `knowledge-base/methods/<method>/TACITS.toml` or `knowledge-base/models/<model>/TACITS.toml`) for keywords from the draft's signal line. For `AGENTS.md` bullets, grep `AGENTS.md` for the rule's keyword. If a match exists, append the current run dir to the existing entry's `seen_at` list rather than creating a duplicate.
+- **Grep before write.** For each draft entry, grep `^signal` in every relevant `TACITS.toml` (path: `.knowledge/methods/<method>/TACITS.toml` or `.knowledge/models/<model>/TACITS.toml`) for keywords from the draft's signal line. For `AGENTS.md` bullets, grep `AGENTS.md` for the rule's keyword. If a match exists, append the current run dir to the existing entry's `seen_at` list rather than creating a duplicate.
 
 </checklist>
 
@@ -87,8 +87,8 @@ action = "link against openblas64 or fall back to dsyevr"
 2. **Cluster by root cause.** Group friction moments by what they were ACTUALLY about — not what they looked like. A "wrong y-axis label" and a "wrong state selection" both root-cause to "did not read the caption before coding"; that's one lesson, not two. Forty friction moments often distill to three lessons.
 
 3. **Classify scope** for EACH cluster. When a cluster has aspects of two scopes (e.g., a model-specific lesson that also implies a project-wide rule), SPLIT the cluster into one entry per scope rather than picking the more specific one. Hierarchy when truly identical content fits two scopes: most-specific wins (model > method > skill > project).
-   - **Method/stack-specific** (e.g., dsyevd at large N, scipy_openblas32 ILP issues, ITensors bond-dim convergence quirk) → `knowledge-base/methods/<method>/TACITS.toml` as a new `[[tacit]]`. Promote `methods/<method>.md` → `methods/<method>/METHOD.md` folder if not already.
-   - **Model-specific** (e.g., PXP 0+ basis combinatorics, J1-J2 critical-point convergence) → `knowledge-base/models/<model>/TACITS.toml`. Create the namespace when first needed.
+   - **Method/stack-specific** (e.g., dsyevd at large N, scipy_openblas32 ILP issues, ITensors bond-dim convergence quirk) → `.knowledge/methods/<method>/TACITS.toml` as a new `[[tacit]]`. Promote `methods/<method>.md` → `methods/<method>/METHOD.md` folder if not already.
+   - **Model-specific** (e.g., PXP 0+ basis combinatorics, J1-J2 critical-point convergence) → `.knowledge/models/<model>/TACITS.toml`. Create the namespace when first needed.
    - **Project-wide invariant** (e.g., "read figure captions verbatim before coding", "audit declared stack vs actual imports") → `AGENTS.md` as a new bullet in the appropriate section. Phrase as a rule, not a story.
    - **Skill behavior** (e.g., "/slurm must check PD→R transition") → that skill's `SKILL.md`. Add as a step or an explicit constraint.
 
@@ -145,7 +145,7 @@ Judgment calls — flag and reconsider:
 **(a) Post-workflow summary user sees:**
 
 > Memorized 7 lessons across 4 files:
-> - `knowledge-base/methods/ed/TACITS.toml` — 7 `[[tacit]]` entries (segfault chain + stack drift + abandon-Python heuristic).
+> - `.knowledge/methods/ed/TACITS.toml` — 7 `[[tacit]]` entries (segfault chain + stack drift + abandon-Python heuristic).
 > - `AGENTS.md` — 3 new invariant bullets (feature-gap-is-not-route-authority, audit-stack-at-protocol-time, pre-compute-figure-reading-checklist) + new "Compute resources" section.
 > - `tools/skills/slurm/SKILL.md` — layered settle-time discipline (PD→R + startup + long-run) in workflow Step 6.
 > - `tools/skills/verify/SKILL.md` — figure-reading checklist + stack-claim-match as `script` and `result` audit axes.

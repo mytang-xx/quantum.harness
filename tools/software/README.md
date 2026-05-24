@@ -46,7 +46,7 @@ where = "login"
 command = "..."
 
 [docs]
-kb = "knowledge-base/literature/<method>/<rendered-reference>.md"
+kb = ".knowledge/literature/<method>/<rendered-reference>.md"
 official = "https://official-docs.example/"
 ```
 

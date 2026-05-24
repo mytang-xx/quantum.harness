@@ -330,7 +330,7 @@ function humanizeScope(scope: string | null | undefined): string | null {
   return id.replace(/[._]/g, ' ');
 }
 
-// KB references like `knowledge-base/methods/ed/METHOD.md` → "ed (method
+// KB references like `.knowledge/methods/ed/METHOD.md` → "ed (method
 // card)" so we don't leak file paths (A2). Best-effort fallback.
 function humanizeKbRef(ref: string): string {
   const m = ref.match(/methods\/([^/]+)\//);

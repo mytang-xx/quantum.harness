@@ -2,7 +2,7 @@
   "name": "@harness/report-site",
   "version": "0.1.0",
   "private": true,
-  "description": "Fumadocs / Next.js source for /report's single-file HTML deliverable. Built per-run by scripts/build.mjs; the rendered HTML is the artifact, not this project.",
+  "description": "Fumadocs / Next.js source for /report's single-file HTML deliverable. Built per-run by build.mjs; the rendered HTML is the artifact, not this project.",
   "type": "module",
   "scripts": {
     "build": "next build",

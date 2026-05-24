@@ -16,6 +16,7 @@ cross-method-check = { type = "local" }
 slurm = { type = "local" }              # cluster mechanism (agent-does-ssh)
 setup-julia = { type = "local" }        # Julia install + mirror + project env (local or remote)
 reproduce-paper = { type = "local" }    # paper orchestrator (absorbs run-report close)
+reproduce-paper-onboard = { type = "local" } # beginner-guided reproduction
 verify = { type = "local" }
 report = { type = "local" }             # render single-page interactive HTML report from a reproduction run
 memorize = { type = "local" }           # session-end retrospective: distill lessons → TACITS.toml or AGENTS.md
@@ -28,7 +29,7 @@ ion-cli = { type = "local" }
 onboard = { type = "local" }
 solve = { type = "local" }
 
-# Problem dispatchers (auto-triggered; read cards under knowledge-base/{models,physics}/<name>/)
+# Problem dispatchers (auto-triggered; read cards under .knowledge/{models,physics}/<name>/)
 model = { type = "local" }
 physics = { type = "local" }
 

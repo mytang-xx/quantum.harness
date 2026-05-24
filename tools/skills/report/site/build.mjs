@@ -48,8 +48,10 @@ function parseArgs() {
   if (args.length < 1) usage(1);
   const runDir = resolve(args[0]);
   let stage = 'append';
+  let mode = 'full';
   for (let i = 1; i < args.length; i++) {
     if (args[i] === '--stage') stage = args[++i];
+    else if (args[i] === '--mode') mode = args[++i];
     else if (args[i] === '-h' || args[i] === '--help') usage(0);
     else { stderr.write(`build: unknown arg ${args[i]}\n`); exit(2); }
   }
@@ -57,14 +59,21 @@ function parseArgs() {
     stderr.write(`build: --stage must be 'plan' or 'append' (got: ${stage})\n`);
     exit(2);
   }
-  return { runDir, stage };
+  if (mode !== 'full' && mode !== 'onboard') {
+    stderr.write(`build: --mode must be 'full' or 'onboard' (got: ${mode})\n`);
+    exit(2);
+  }
+  return { runDir, stage, mode };
 }
 function usage(code) {
   stdout.write(
-    `Usage: node build.mjs <run-dir> --stage <plan|append>\n` +
-    `       <run-dir>  Path to a /reproduce-paper run directory.\n` +
+    `Usage: node build.mjs <run-dir> --stage <plan|append> [--mode <full|onboard>]\n` +
+    `       <run-dir>  Path to a reproduction run directory.\n` +
     `       --stage    'plan' before compute (Problem + Methodology only) or\n` +
-    `                  'append' after close (all three sections). Default: append.\n`
+    `                  'append' after close (all three sections). Default: append.\n` +
+    `       --mode     'full' for /reproduce-paper runs (flow-gated, audited) or\n` +
+    `                  'onboard' for /reproduce-paper-onboard runs (gate-free,\n` +
+    `                  no audit subagent). Default: full.\n`
   );
   exit(code);
 }
@@ -119,7 +128,7 @@ async function summarizeCells(runDir) {
 }
 
 // ─── load run ───────────────────────────────────────────────────────────────
-async function loadRun({ runDir, stage }) {
+async function loadRun({ runDir, stage, mode }) {
   const protocolPath = join(runDir, 'protocol.toml');
   if (!exists(protocolPath)) {
     stderr.write(`build: protocol.toml not found at ${protocolPath}\n`); exit(1);
@@ -269,6 +278,7 @@ async function loadRun({ runDir, stage }) {
     venue: artifact.venue ?? '',
     url,
     stage,
+    mode,
     toc: [
       { title: 'Problem',     url: '#problem',     depth: 2 },
       { title: 'Methodology', url: '#methodology', depth: 2 },
@@ -603,11 +613,11 @@ async function writeFinal(runDir, runId, today, html) {
 
 // ─── main ──────────────────────────────────────────────────────────────────
 async function main() {
-  const { runDir, stage } = parseArgs();
+  const { runDir, stage, mode } = parseArgs();
   if (!exists(runDir)) { stderr.write(`build: run-dir not found: ${runDir}\n`); exit(1); }
 
-  stdout.write(`build: loading ${runDir} (stage: ${stage})\n`);
-  const data = await loadRun({ runDir, stage });
+  stdout.write(`build: loading ${runDir} (stage: ${stage}, mode: ${mode})\n`);
+  const data = await loadRun({ runDir, stage, mode });
 
   const slug = sanitizeRunId(data.runId);
   stdout.write(`build: per-run slug: ${slug}\n`);
