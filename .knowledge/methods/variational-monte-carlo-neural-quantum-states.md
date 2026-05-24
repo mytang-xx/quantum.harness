@@ -1,4 +1,4 @@
-# VMC / NQS (Variational Monte Carlo / Neural Quantum States)
+# Variational Monte Carlo / Neural Quantum States
 
 Variational method: parameterize a wavefunction ansatz, optimize parameters by minimizing energy via stochastic sampling. Neural quantum states (NQS) use neural networks as the ansatz.
 

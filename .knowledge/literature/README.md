@@ -3,7 +3,7 @@
 Rendered methodology references for the quantum many-body physics harness.
 
 `ref.bib` is the human-edited source of truth for which references belong to
-which method (entry `keywords = {dmrg, tebd, …}`). The per-method JSON
+which method (entry `keywords = {mps-based-algorithm, …}`). The per-method JSON
 manifest consumed by `fetch_metadata.py` / `render.py` is derived via
 `tools/skills/download-ref/helpers/bibtex_to_manifest.py` and is not
 committed. The rendered Markdown entries under each method folder are the
@@ -16,14 +16,15 @@ and `.figures/` directories inside each method folder.
 
 ## Folders
 
-- `dmrg/` - DMRG and matrix-product-state references.
-- `tebd/` - TEBD and tensor-network introductions.
-- `vmc-nqs/` - variational Monte Carlo and neural quantum state references.
+- `mps-based-algorithm/` - DMRG, TEBD, and matrix-product-state references.
+- `peps-based-algorithm/` - CTMRG and PEPS-based references.
+- `quantum-monte-carlo/` - quantum Monte Carlo references.
+- `variational-monte-carlo-neural-quantum-states/` - variational Monte Carlo and neural quantum state references.
+- `quantum-circuit-simulation/` - tensor-network / VQE-style circuit simulation references.
 - `anderson-impurity/` - Anderson/Kondo impurity solver references.
-- `spectral/` - spectral-function and dynamical-correlation references.
-- `finite-t/` - finite-temperature Lanczos, METTS, and purification references.
 - `dmft/` - DMFT references mentioned as adjacent/future methodology.
-- `qmc/` - quantum Monte Carlo references mentioned as adjacent methodology.
+- `ed/` - exact diagonalization references.
+- `magic/` - non-stabilizerness / SRE references.
 
 `ref.bib` lives at this directory's root. To regenerate it from the rendered
 markdown (e.g. after a manual edit drift) run

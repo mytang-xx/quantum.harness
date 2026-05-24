@@ -28,8 +28,8 @@ Build per `.knowledge/conventions.md`: `H = -t Σ (c†c + h.c.) + V Σ n_i n_j`
 | Regime | Method | Card |
 |---|---|---|
 | Small chain or 2D cluster (N ≲ 24) | ED pending refreshed references | `.knowledge/methods/ed/METHOD.md` |
-| 1D chain (any N), ladder | DMRG | `.knowledge/methods/dmrg.md` |
-| Imaginary-time approach | TEBD | `.knowledge/methods/tebd.md` |
+| 1D chain (any N), ladder | DMRG | `.knowledge/methods/mps-based-algorithm.md` |
+| Imaginary-time approach | TEBD | `.knowledge/methods/mps-based-algorithm.md` |
 | Sign-problem-free 2D bipartite cases | QMC may be applicable; check sign condition before recommending. | — |
 
 ## Branch table

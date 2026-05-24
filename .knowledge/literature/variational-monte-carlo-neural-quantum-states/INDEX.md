@@ -1,6 +1,6 @@
-# vmc-nqs methodology references
+# variational-monte-carlo-neural-quantum-states methodology references
 
-Generated 2026-05-03. Methodology references for the quantum many-body physics harness. Raw PDFs and extracted figures are local-only and gitignored.
+Generated 2026-05-24. Methodology references for the quantum many-body physics harness. Raw PDFs and extracted figures are local-only and gitignored.
 
 Search inside this dir with `rg --hidden -g '!.raw' "term" .knowledge/` (or `rg` from inside `.knowledge/` itself). The `.raw/` subdir holds the original PDFs / clones / HTML and is gitignored.
 

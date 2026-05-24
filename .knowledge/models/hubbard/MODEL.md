@@ -26,10 +26,10 @@ Build per `.knowledge/conventions.md`: `H = -t Σ (c†c + h.c.) + U Σ n↑n↓
 | Regime | Method | Card |
 |---|---|---|
 | Small cluster (N ≲ 16 sites) | ED pending refreshed references | `.knowledge/methods/ed/METHOD.md` |
-| 1D chain, ladder, narrow cylinder | DMRG | `.knowledge/methods/dmrg.md` |
-| Imaginary-time route to ground state | TEBD | `.knowledge/methods/tebd.md` |
+| 1D chain, ladder, narrow cylinder | DMRG | `.knowledge/methods/mps-based-algorithm.md` |
+| Imaginary-time route to ground state | TEBD | `.knowledge/methods/mps-based-algorithm.md` |
 | Half-filled bipartite at moderate `U` | AFQMC may be sign-free; recommend only after checking. | — |
-| Frustrated / doped 2D variational (VMC / NQS) | Compare ansatz energies. Requires `make install netket`. | `.knowledge/methods/vmc-nqs.md` |
+| Frustrated / doped 2D variational (VMC / NQS) | Compare ansatz energies. Requires `make install netket`. | `.knowledge/methods/variational-monte-carlo-neural-quantum-states.md` |
 | Local self-energy / Mott transition framing | DMFT — out of current scope unless an install target lands; surface explicitly. | — |
 
 ## Branch table

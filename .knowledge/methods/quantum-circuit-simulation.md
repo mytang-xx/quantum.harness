@@ -1,6 +1,6 @@
-# VQE (Variational Quantum Eigensolver)
+# Quantum Circuit Simulation
 
-Differentiable variational-circuit simulation for estimating ground-state energies by minimizing `E(theta) = <psi(theta)|H|psi(theta)>`. In this harness, VQE means a classical simulation of a parameterized circuit with automatic differentiation, JIT compilation, and tensor-network contraction controls. It is not a hardware-execution workflow.
+Classical simulation of quantum circuits, including variational circuit optimization (VQE) and general circuit contraction. In this harness, the default route uses TensorCircuit-NG on a JAX backend with automatic differentiation, JIT compilation, and tensor-network contraction controls. It is not a hardware-execution workflow.
 
 This card is generic methodology. Paper-specific benchmarks, hardware layouts, and figure protocols belong in `/reproduce-paper` protocols or run specs, not here.
 
@@ -116,7 +116,7 @@ For deep repeated layers, express the layer update with JAX control flow (`jax.l
 
 ## Citations
 
-- `.knowledge/literature/vqe/tensorcircuit-tensorcircuit-ng.md` - official TensorCircuit-NG repository and documentation entry.
-- `.knowledge/literature/vqe/2602.14167_tensorcircuit-ng-a-universal-composable-and-scalable-platfor.md` - TensorCircuit-NG software reference.
-- `.knowledge/literature/vqe/2205.10091_tensorcircuit-a-quantum-software-framework-for-the-nisq-era.md` - TensorCircuit software and differentiable-circuit reference.
-- `.knowledge/literature/vqe/2002.01935_hyper-optimized-tensor-network-contraction.md` - cotengra contraction-path reference.
+- `.knowledge/literature/quantum-circuit-simulation/tensorcircuit-tensorcircuit-ng.md` - official TensorCircuit-NG repository and documentation entry.
+- `.knowledge/literature/quantum-circuit-simulation/2602.14167_tensorcircuit-ng-a-universal-composable-and-scalable-platfor.md` - TensorCircuit-NG software reference.
+- `.knowledge/literature/quantum-circuit-simulation/2205.10091_tensorcircuit-a-quantum-software-framework-for-the-nisq-era.md` - TensorCircuit software and differentiable-circuit reference.
+- `.knowledge/literature/quantum-circuit-simulation/2002.01935_hyper-optimized-tensor-network-contraction.md` - cotengra contraction-path reference.

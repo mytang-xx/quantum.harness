@@ -1,4 +1,4 @@
-# QMC / SSE (Quantum Monte Carlo)
+# Quantum Monte Carlo
 
 Stochastic sampling of the finite-temperature partition function. The harness
 default is stochastic series expansion (SSE) QMC for sign-problem-free spin and
@@ -171,9 +171,9 @@ system size or beta.
 
 ## Citations
 
-- `.knowledge/literature/qmc/1101.3281_computational-studies-of-quantum-spin-systems.md`
+- `.knowledge/literature/quantum-monte-carlo/1101.3281_computational-studies-of-quantum-spin-systems.md`
   - Sandvik, *Computational Studies of Quantum Spin Systems* (2010).
-- `.knowledge/literature/qmc/10-1017-9781316417041.md`
+- `.knowledge/literature/quantum-monte-carlo/10-1017-9781316417041.md`
   - Becca and Sorella, *Quantum Monte Carlo Approaches for Correlated Systems*
     (2017).
 - StochasticSeriesExpansion.jl documentation:

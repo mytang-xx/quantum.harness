@@ -1,4 +1,4 @@
-# ED (Exact Diagonalization)
+# Exact Diagonalization
 
 Finite-Hilbert-space method that constructs a many-body basis, represents the Hamiltonian exactly in that basis or applies it matrix-free, then computes eigenvalues, eigenvectors, dynamics, or level diagnostics. Use ED as the small-system reference method and as the cross-method oracle for approximate methods.
 
@@ -32,8 +32,8 @@ Use this card for:
 
 Do not use this card as the full recipe for:
 
-- Finite-temperature Lanczos, METTS, purification, or thermodynamic trace estimators; route those to `methods/finite-t.md`.
-- Frequency-resolved spectral functions; route those to `methods/spectral.md`.
+- Finite-temperature Lanczos, METTS, purification, or thermodynamic trace estimators — out of current scope.
+- Frequency-resolved spectral functions — out of current scope.
 - Paper-specific constrained Hilbert spaces or figure protocols.
 
 ## Notation

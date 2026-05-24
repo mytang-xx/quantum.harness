@@ -25,21 +25,21 @@ Build per `.knowledge/conventions.md`: `H = -J Σ σ^z_i σ^z_j - Γ Σ σ^x_i`.
 
 | Regime | Method | Card |
 |---|---|---|
-| 1D chain (any N) | DMRG | `.knowledge/methods/dmrg.md` |
+| 1D chain (any N) | DMRG | `.knowledge/methods/mps-based-algorithm.md` |
 | Tiny cluster (N ≲ 24), exact spectrum, debugging | ED pending refreshed references | `.knowledge/methods/ed/METHOD.md` |
-| Cylinder (square / triangular strips) | DMRG | `.knowledge/methods/dmrg.md` |
-| Imaginary-time approach | TEBD | `.knowledge/methods/tebd.md` |
+| Cylinder (square / triangular strips) | DMRG | `.knowledge/methods/mps-based-algorithm.md` |
+| Imaginary-time approach | TEBD | `.knowledge/methods/mps-based-algorithm.md` |
 
 ## Branch table
 
 | Condition | Action |
 |---|---|
 | Question is about quantum critical behavior at `Γ ≈ J` (1D) or the equivalent transition | Run the calculation here, then call `criticality`. |
-| Question is about magic / SRE / nonstabilizerness / Pauli weight (any dimension) | Run the wavefunction here; hand off to `.knowledge/physics/magic/PHYSICS.md`. For 1D, the standard partition is `L(ρ_AB)` (peaks at `h_c = 1`, log-`L` growth at criticality); for 2D, the standard estimator is `m_1` (crossing at the confinement-deconfinement transition; see `confinement` row). See `.knowledge/methods/pauli-markov.md` and `.knowledge/magic-benchmarks.md`. |
+| Question is about magic / SRE / nonstabilizerness / Pauli weight (any dimension) | Run the wavefunction here; hand off to `.knowledge/physics/magic/PHYSICS.md`. For 1D, the standard partition is `L(ρ_AB)` (peaks at `h_c = 1`, log-`L` growth at criticality); for 2D, the standard estimator is `m_1` (crossing at the confinement-deconfinement transition; see `confinement` row). See `.knowledge/magic-benchmarks.md`. |
 | Question is about confinement / deconfinement (2D `Z_2` lattice gauge theory ↔ 2D Ising via Wegner duality) | Run on the dual 2D Ising here (Wegner duality preserves SREs and the magic-crossing diagnostic — see `.knowledge/magic-conventions.md`); hand off to `.knowledge/physics/confinement/PHYSICS.md`. |
 | Long-range Ising (e.g., `1/r^α`) | Stay here; flag that bond dimension grows; document. |
-| User asks about dynamics | Route to `.knowledge/methods/spectral.md` (stub). |
-| User asks about finite-T | Route to `.knowledge/methods/finite-t.md` (stub). |
+| User asks about dynamics | Out of current scope. |
+| User asks about finite-T | Out of current scope. |
 
 ## Verification
 
