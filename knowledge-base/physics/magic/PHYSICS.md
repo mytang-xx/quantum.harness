@@ -23,7 +23,7 @@ For each item, the relevant model card drives the wavefunction calculation; this
 - **Increment / subleading term `c_N`** — `c_N = 2 M_n(N/2) − M_n(N)` in 1D, with higher-D analogues. Cancels volume-law to expose `O(log N)` or `O(1)` substructure with polynomial sample cost.
 - **Single-site / single-qudit baseline** — analytic magic of a product state of single qudits in the same basis; the difference is the genuinely many-body magic content.
 
-**Alternative monotones** (orthogonal to SRE; access via the deterministic Pauli-basis MPS lift on `knowledge-base/methods/pauli-markov.md`):
+**Alternative monotones** (orthogonal to SRE; access via the deterministic Pauli-basis MPS lift):
 
 - **Bell magic** — additive monotone defined on the Bell-pair-doubled state; vanishes on stabilizer states and is *strictly monotone* under stochastic free operations including for orders below the SRE-monotonicity threshold. Captures total nonstabilizer content with a different normalization than `M_n`. Useful when the question is monotone-rigorous (`α < 2` regimes where `M_α` is contested) or when the wavefunction is already MPS and the Pauli-basis lift is cheaper than the Markov chain.
 - **Stabilizer nullity `ν(ρ)`** — integer-valued: counts the dimension of the maximal stabilizer subgroup that fixes `|ψ⟩` minus `N`; equivalently, `2N − rank` of the Pauli expectation matrix. Vanishes iff `ρ` is stabilizer; captures a *discrete* aspect of nonstabilizerness orthogonal to the continuous `M_n` density. Useful for stabilizer-group identification (which Pauli operators stabilize the state) and for parity-style classifications across phase boundaries where `M_n` is featureless.
@@ -36,7 +36,7 @@ How they complement SRE:
 - Stabilizer nullity gives a hard "is this state a stabilizer?" yes/no when the SRE is small but uncertain.
 - Mutual magic is the natural critical diagnostic in 1D where full-state magic fails (spin-1 XXZ Haldane transitions are the canonical case).
 
-How to compute each: see the relevant model card and the algorithm card `knowledge-base/methods/pauli-markov.md` (Markov-chain protocol for `M_n` / `L(ρ_AB)` / increment construction; deterministic Pauli-basis MPS lift variant for Bell magic / stabilizer nullity / mutual magic). Use `knowledge-base/methods/ttn.md` as the wavefunction backbone for large `N` or 2D PBC; see its TTN-vs-MPS break-even table when choosing.
+How to compute each: see the relevant model card. Use Pauli-Markov sampling (Markov-chain protocol for `M_n` / `L(ρ_AB)` / increment construction) or the deterministic Pauli-basis MPS lift variant for Bell magic / stabilizer nullity / mutual magic. For large `N` or 2D PBC, a tree tensor network wavefunction backbone is preferred over MPS.
 
 ## Cross-checks
 
@@ -47,9 +47,9 @@ How to compute each: see the relevant model card and the algorithm card `knowled
 | `L(ρ_AB)` value is a sampling fluctuation | Verify with reblocked errors and a second chain (different seed); confirm `τ_int` is not blowing up at the parameter point. |
 | Wegner-duality-equivalent target was confused with the original | If the model is `Z_2` lattice gauge in 2D, the actual computation runs on the dual 2D Ising (SREs preserved) — confirm the dual is built correctly. |
 | Volume-law `M_n>1` swamping a sub-leading scaling signature | Switch to the increment estimator (1D) or the higher-D subsystem-difference linear combination (topological-entanglement-entropy family). |
-| `M_α` is in the contested `α < 2` regime where strict monotonicity is not guaranteed | Cross-check with Bell magic (strict monotone for any `α`) via the Pauli-basis MPS lift (`knowledge-base/methods/pauli-markov.md`); agreement gates the SRE-density-level conclusion. |
+| `M_α` is in the contested `α < 2` regime where strict monotonicity is not guaranteed | Cross-check with Bell magic (strict monotone for any `α`) via the Pauli-basis MPS lift; agreement gates the SRE-density-level conclusion. |
 | State *looks* like a near-stabilizer state but `m_n` reports small-but-nonzero | Compute stabilizer nullity `ν(ρ)` via the Pauli-basis MPS lift; integer-valued, gives a hard yes/no on stabilizer status that the continuous `M_n` cannot. |
-| Sampling chain is biased by symmetry-restricted Pauli proposals | Re-run with the deterministic Pauli-basis MPS lift (no Markov chain); independent error budget. See `knowledge-base/methods/pauli-markov.md` deterministic-lift variant. |
+| Sampling chain is biased by symmetry-restricted Pauli proposals | Re-run with the deterministic Pauli-basis MPS lift (no Markov chain); independent error budget. |
 
 ## Interpretation rules
 
@@ -58,7 +58,7 @@ How to compute each: see the relevant model card and the algorithm card `knowled
 - For 2D confinement-deconfinement transitions, magic exhibits a *crossing* (Binder-cumulant-like), not a peak; the deconfined and confined phases are both volume-law in magic. Hand off to `confinement` for the broader cross-check toolkit.
 - `M_α` is a strict monotone only for `α ≥ 2`. When using `M_α` with `α < 2` (including `M_1`) to draw a monotonicity-style conclusion, flag this — `M_1` is still the standard density-level diagnostic and remains useful.
 - Negative extrema of `L(ρ_AB)` are physical: SRE is not subadditive. Do not flip signs to make `L ≥ 0`.
-- The deterministic Pauli-basis MPS lift (`methods/pauli-markov.md` runtime variant) gives access to additional monotones (Bell magic, stabilizer nullity). Route there when those are the question and the wavefunction is MPS.
+- The deterministic Pauli-basis MPS lift gives access to additional monotones (Bell magic, stabilizer nullity). Use it when those are the question and the wavefunction is MPS.
 
 ## Verification
 
@@ -72,7 +72,7 @@ Standard magic-skill verification, auto-run as part of any magic calculation. Fa
   - These two endpoints constrain the `m_n(h)` curve to vanish at both extremes; the *crossing* lives between them. Disagreement at either endpoint indicates a sign-convention or Pauli-basis bookkeeping error.
 - **`χ`-convergence** — `m_n(χ)` asymptotes; this is the Fig-13-class diagnostic. Auto-emitted alongside the standard `E(χ)` curve when a magic calculation runs.
 - **`N_S`-convergence** — reblocked error `~ 1/√N_S` once the chain is past `~10 × τ_int`.
-- **Cross-method between estimators** — when the calculation is critical or in a frontier regime, auto-pair Pauli-Markov with the deterministic Pauli-basis MPS lift (`methods/pauli-markov.md` variant). Disagreement → setup error or insufficient convergence in one. This is the canonical magic-internal cross-check; the `magic` ↔ `Binder` cross-check (for confinement-deconfinement) is the cross-diagnostic case handled by `knowledge-base/physics/confinement/PHYSICS.md`.
+- **Cross-method between estimators** — when the calculation is critical or in a frontier regime, auto-pair Pauli-Markov with the deterministic Pauli-basis MPS lift. Disagreement → setup error or insufficient convergence in one. This is the canonical magic-internal cross-check; the `magic` ↔ `Binder` cross-check (for confinement-deconfinement) is the cross-diagnostic case handled by `knowledge-base/physics/confinement/PHYSICS.md`.
 - **Benchmark range** — compare against the relevant row in `knowledge-base/magic-benchmarks.md`; report the literature *range*, never a trophy number.
 
 When 2D limit checks fail (the `m_n → 0` endpoint test does not hold), do not interpret the crossing — the failure mode is upstream and must be fixed before the magic crossing is meaningful.
@@ -99,7 +99,7 @@ Default routing (skill picks; user ratifies):
 | Where is the critical point? (1D) | `L(ρ_AB)` | Disjoint bipartite (default `A = {1..L/4}`, `B = {L/2+1..3L/4}` on a ring; lattice analogues otherwise) |
 | Recover `M_2` cheaply against volume-law | Increment-trick on `M_2` | Halving increment + recursion |
 | Where is the confinement-deconfinement transition? (2D) | `m_1` | Full state (cross with `knowledge-base/physics/confinement/PHYSICS.md`) |
-| Bell magic / stabilizer nullity / stabilizer-group identification | Deterministic Pauli-basis MPS lift (variant on `methods/pauli-markov.md`) | Full state |
+| Bell magic / stabilizer nullity / stabilizer-group identification | Deterministic Pauli-basis MPS lift | Full state |
 | Experimental shot-budget question | Markov chain in finite-shot mode | Full state; sweep `(N_M, N_S)` jointly |
 
 ## Model hooks

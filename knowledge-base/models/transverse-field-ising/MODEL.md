@@ -35,11 +35,11 @@ Build per `knowledge-base/conventions.md`: `H = -J Σ σ^z_i σ^z_j - Γ Σ σ^x
 | Condition | Action |
 |---|---|
 | Question is about quantum critical behavior at `Γ ≈ J` (1D) or the equivalent transition | Run the calculation here, then call `criticality`. |
-| Question is about magic / SRE / nonstabilizerness / Pauli weight (any dimension) | Run the wavefunction here; hand off to `knowledge-base/physics/magic/PHYSICS.md`. For 1D, the standard partition is `L(ρ_AB)` (peaks at `h_c = 1`, log-`L` growth at criticality); for 2D, the standard estimator is `m_1` (crossing at the confinement-deconfinement transition; see `confinement` row). See `knowledge-base/methods/pauli-markov.md` and `knowledge-base/magic-benchmarks.md`. |
+| Question is about magic / SRE / nonstabilizerness / Pauli weight (any dimension) | Run the wavefunction here; hand off to `knowledge-base/physics/magic/PHYSICS.md`. For 1D, the standard partition is `L(ρ_AB)` (peaks at `h_c = 1`, log-`L` growth at criticality); for 2D, the standard estimator is `m_1` (crossing at the confinement-deconfinement transition; see `confinement` row). See `knowledge-base/magic-benchmarks.md`. |
 | Question is about confinement / deconfinement (2D `Z_2` lattice gauge theory ↔ 2D Ising via Wegner duality) | Run on the dual 2D Ising here (Wegner duality preserves SREs and the magic-crossing diagnostic — see `knowledge-base/magic-conventions.md`); hand off to `knowledge-base/physics/confinement/PHYSICS.md`. |
 | Long-range Ising (e.g., `1/r^α`) | Stay here; flag that bond dimension grows; document. |
-| User asks about dynamics | Route to `knowledge-base/methods/spectral.md` (stub). |
-| User asks about finite-T | Route to `knowledge-base/methods/finite-t.md` (stub). |
+| User asks about dynamics | Out of current scope. |
+| User asks about finite-T | Out of current scope. |
 
 ## Verification
 

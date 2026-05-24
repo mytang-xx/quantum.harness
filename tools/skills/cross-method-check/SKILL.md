@@ -32,7 +32,7 @@ This primitive MUST stay generic over: which methods are compared, which observa
   | DMRG / MPS at small `L` | TEBD imaginary-time on the same `L` | Independent ground-state projector; agreement gates DMRG truncation. |
   | TTN sampling | DMRG-MPS perfect-sampling on the same wavefunction (different proposal class) | Independent sampler; agreement gates Markov-chain bias. |
   | DMRG-MPS at moderate `L` | TEBD imaginary-time on the same `L` | Independent ground-state projector. |
-  | Pauli-Markov sampling for magic | Deterministic Pauli-basis MPS lift (`methods/pauli-markov.md` runtime variant) | Sampling vs deterministic; orthogonal error budgets. |
+  | Pauli-Markov sampling for magic | Deterministic Pauli-basis MPS lift | Sampling vs deterministic; orthogonal error budgets. |
   | Magic crossing as critical detector | Binder cumulant on the dual order parameter | Independent diagnostic on the same wavefunction; the canonical "magic-vs-Binder" cross-check at fixed `χ`. |
   | DMRG cylinder geometry | Different cylinder width at same `L_x` | Independent geometry; agreement gates cylinder bias on frustrated 2D. |
 

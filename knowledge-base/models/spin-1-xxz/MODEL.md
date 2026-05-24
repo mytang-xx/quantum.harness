@@ -33,7 +33,7 @@ with `S^a` the spin-1 operators. Default sign-of-coupling matches the methodolog
 |---|---|---|
 | 1D chain, ground-state energy + correlations | DMRG | `knowledge-base/methods/mps-based-algorithm.md` |
 | Small cluster (`L ≲ 14`) for exact spectrum, gap, or cross-check | ED pending refreshed references | `knowledge-base/methods/ed/METHOD.md` |
-| 1D ring (PBC) at large `L` with Pauli-string sampling | TTN | `knowledge-base/methods/ttn.md` |
+| 1D ring (PBC) at large `L` with Pauli-string sampling | MPS Based Algorithm | `knowledge-base/methods/mps-based-algorithm.md` |
 | Imaginary-time route to ground state | TEBD | `knowledge-base/methods/mps-based-algorithm.md` |
 
 ## Branch table
@@ -44,7 +44,7 @@ with `S^a` the spin-1 operators. Default sign-of-coupling matches the methodolog
 | Question is about the Néel-Haldane (Ising) or Haldane–large-`D` (Gaussian) transition | Run the calculation here, then call `criticality`. Reference transition values: `D ≈ −0.3` (Néel-Haldane Ising), `D ≈ 0.97` (Haldane–large-`D` Gaussian) at `Δ = 1`. |
 | Question is about Haldane phase identification | Compute string order parameter and entanglement spectrum (degeneracy on a cut); document. SPT-phase identification is a runtime computation, not a separate skill. |
 | User asks about spin-1/2 (`S = 1/2`) Heisenberg | Switch to `heisenberg`. |
-| User asks about dynamics or finite-T | Route to `knowledge-base/methods/spectral.md` (stub) / `finite-t.md` (stub). |
+| User asks about dynamics or finite-T | Out of current scope. |
 
 ## Verification
 
@@ -74,7 +74,7 @@ Before interpreting evidence in a frontier symmetry-broken regime, invoke `arxiv
 
 | Diagnostic | Action |
 |---|---|
-| `magic` | Hand off to `knowledge-base/physics/magic/PHYSICS.md`. Default estimator: `L(ρ_AB)` because full-state `m_n` does not distinguish the Haldane transitions. Two-site Pauli updates preserve `S^z_total` (U(1)) and the lattice symmetry; see `knowledge-base/methods/pauli-markov.md`. The Haldane-phase plateau saturates near the single-qutrit-product upper bound `(2/3) log 4 ≈ 0.92` — see `knowledge-base/magic-benchmarks.md`. |
+| `magic` | Hand off to `knowledge-base/physics/magic/PHYSICS.md`. Default estimator: `L(ρ_AB)` because full-state `m_n` does not distinguish the Haldane transitions. Two-site Pauli updates preserve `S^z_total` (U(1)) and the lattice symmetry. The Haldane-phase plateau saturates near the single-qutrit-product upper bound `(2/3) log 4 ≈ 0.92` — see `knowledge-base/magic-benchmarks.md`. |
 | `criticality` | Standard finite-size scaling at the two transitions (Ising at `D ≈ −0.3`, Gaussian at `D ≈ 0.97`). |
 | `frustration` | Not the canonical framing here unless the user has added next-nearest neighbor coupling that creates competition. |
 

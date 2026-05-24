@@ -32,9 +32,9 @@ with `X, Z` the qudit shift / clock operators (`X|k⟩ = |k+1 mod q⟩`, `Z|k⟩
 | Regime | Method | Card |
 |---|---|---|
 | 1D chain, any `q`, ground-state energy + standard observables | DMRG (qudit MPS) | `knowledge-base/methods/mps-based-algorithm.md` |
-| 1D chain at large `N` with magic / Pauli-string sampling | TTN | `knowledge-base/methods/ttn.md` |
+| 1D chain at large `N` with magic / Pauli-string sampling | MPS Based Algorithm | `knowledge-base/methods/mps-based-algorithm.md` |
 | Tiny cluster (`N ≲ 16` for `q = 3`), exact spectrum | ED pending refreshed references | `knowledge-base/methods/ed/METHOD.md` |
-| 2D square (small clusters / cylinders) | DMRG cylinder; TTN if PBC torus is needed | `knowledge-base/methods/mps-based-algorithm.md`, `knowledge-base/methods/ttn.md` |
+| 2D square (small clusters / cylinders) | DMRG cylinder | `knowledge-base/methods/mps-based-algorithm.md` |
 | Imaginary-time route to ground state | TEBD | `knowledge-base/methods/mps-based-algorithm.md` |
 
 ## Branch table
@@ -43,7 +43,7 @@ with `X, Z` the qudit shift / clock operators (`X|k⟩ = |k+1 mod q⟩`, `Z|k⟩
 |---|---|
 | `q = 2` | Switch to `transverse-field-ising` — same physics, simpler stack. |
 | Question is about the FM/PM critical point (universality class, exponents) | Run the calculation here, then call `criticality`. The 1D `q = 3` critical point is `Z_3` parafermion CFT, `c = 4/5`, `ν_Potts = 5/6` (limit anchor). |
-| Question is about magic / SRE / nonstabilizerness | Run the wavefunction here; hand off to `magic`. Two-site Pauli-flip updates required to preserve `Z_q` symmetry — see `knowledge-base/methods/pauli-markov.md`. |
+| Question is about magic / SRE / nonstabilizerness | Run the wavefunction here; hand off to `magic`. Two-site Pauli-flip updates required to preserve `Z_q` symmetry. |
 | 2D square, large `q`, exotic phase content | Beyond current scope for systematic ground-state work; surface uncertainty. |
 | Lattice is non-square (triangular Potts, etc.) | Stay here; flag that the universality class differs from the 1D Clock case. Call `frustration` if relevant. |
 
@@ -69,7 +69,7 @@ Optional check:
 
 | Diagnostic | Action |
 |---|---|
-| `magic` | Hand off to `knowledge-base/physics/magic/PHYSICS.md`. Two-site Pauli-flip updates preserve `Z_q` symmetry; `L(ρ_AB)` is the recommended critical diagnostic via `methods/pauli-markov.md` and `methods/ttn.md`. Benchmark anchor: `ν_Potts = 5/6` from `knowledge-base/magic-benchmarks.md`. |
+| `magic` | Hand off to `knowledge-base/physics/magic/PHYSICS.md`. Two-site Pauli-flip updates preserve `Z_q` symmetry; `L(ρ_AB)` is the recommended critical diagnostic. Benchmark anchor: `ν_Potts = 5/6` from `knowledge-base/magic-benchmarks.md`. |
 | `criticality` | Standard finite-size scaling on the order parameter, gap, or magic. The 1D `q = 3` critical point is `c = 4/5` parafermion CFT. |
 | `confinement` | Not the canonical framing for Potts/Clock at the FM/PM transition (no gauge interpretation); skip unless the user is in an extended-coupling regime that genuinely raises a confinement question. |
 
