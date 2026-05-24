@@ -48,9 +48,9 @@ upstream workflow assumes a `.knowledge/` root; this harness uses
 | `.figures/` | NO (gitignored) |
 
 `ref.bib` is the human-edited source of truth. Each entry's `keywords`
-field carries one or more method slugs (`keywords = {dmrg, tebd}` for a
-paper relevant to both). Per-method JSON manifests are derived from
-ref.bib via `bibtex_to_manifest.py`.
+field carries one or more method slugs (`keywords = {mps-based-algorithm}`,
+or multiple comma-separated slugs for a paper relevant to several methods).
+Per-method JSON manifests are derived from ref.bib via `bibtex_to_manifest.py`.
 
 This layout matches sci-brain's KB conventions closely enough that
 sci-brain tools (`download-ref`, `ideas`, `survey`) can operate on any
@@ -94,7 +94,7 @@ re-run. Step 7 (verify) is REQUIRED before reporting.
 ### 1. Resolve paths
 
 ```sh
-METHOD=dmrg
+METHOD=mps-based-algorithm
 KB="$(pwd)/.knowledge/literature/$METHOD"
 BIB="$(pwd)/.knowledge/literature/ref.bib"
 mkdir -p "$KB"
@@ -113,7 +113,7 @@ Open `.knowledge/literature/ref.bib` and add an entry. For an arXiv preprint:
   eprint = {1008.3477},
   archivePrefix = {arXiv},
   doi = {10.1016/j.aop.2010.09.012},
-  keywords = {dmrg, tebd}
+  keywords = {mps-based-algorithm}
 }
 ```
 
