@@ -71,15 +71,24 @@ def authors_str(s2: dict) -> str:
 
 
 def citation_line(s2: dict, ov: dict) -> str:
-    if "venue" in ov:
-        return ov["venue"]
-    venue = s2.get("venue") or (s2.get("journal") or {}).get("name") or "preprint"
+    """Merge granular overrides with S2 journal block.
+
+    `ov["citation"]` (verbatim full line) wins outright; otherwise venue /
+    volume / pages / year are taken from overrides if present, falling back
+    to S2's journal block. A venue override no longer truncates the line —
+    it just substitutes the venue token; vol/pages still flow from S2.
+    """
+    if ov.get("citation"):
+        return ov["citation"]
     j = s2.get("journal") or {}
+    venue = ov.get("venue") or s2.get("venue") or j.get("name") or "preprint"
     parts = [venue]
-    if j.get("volume"):
-        parts.append(f"vol. {j['volume']}")
-    if j.get("pages"):
-        parts.append(f"pp. {j['pages']}")
+    volume = ov.get("volume") or j.get("volume")
+    if volume:
+        parts.append(f"vol. {volume}")
+    pages = ov.get("pages") or j.get("pages")
+    if pages:
+        parts.append(f"pp. {pages}")
     parts.append(str(ov.get("year") or s2.get("year", "?")))
     return ", ".join(parts)
 

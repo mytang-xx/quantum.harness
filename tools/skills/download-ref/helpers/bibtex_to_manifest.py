@@ -83,7 +83,15 @@ def extract_doi(fields: dict[str, str]) -> str | None:
 
 
 def override_fields(fields: dict[str, str]) -> dict[str, str | int]:
-    """Pull author/year/venue/note from a bib entry to use as S2 overrides."""
+    """Pull author/year/title/note from a bib entry, plus explicit harness_*
+    overrides, to use as render.py overrides.
+
+    Plain BibTeX `journal`/`booktitle` is NOT auto-emitted as `venue` —
+    render.py uses Semantic Scholar's venue + volume/pages by default.
+    To force a venue (S2 wrong), add `harness_venue = {...}` to the bib
+    entry. Granular overrides: harness_volume, harness_pages,
+    harness_citation (full citation line, bypasses merge).
+    """
     out: dict[str, str | int] = {}
     if "author" in fields:
         # BibTeX joins with ' and '; render.py expects comma-separated for display.
@@ -95,13 +103,18 @@ def override_fields(fields: dict[str, str]) -> dict[str, str | int]:
             out["year"] = int(fields["year"])
         except ValueError:
             out["year"] = fields["year"]
-    venue = fields.get("journal") or fields.get("booktitle") or fields.get("howpublished")
-    if venue:
-        out["venue"] = venue
     if "title" in fields:
         out["title"] = fields["title"]
     if "note" in fields:
         out["note"] = fields["note"]
+    for bib_key, manifest_key in (
+        ("harness_venue", "venue"),
+        ("harness_volume", "volume"),
+        ("harness_pages", "pages"),
+        ("harness_citation", "citation"),
+    ):
+        if fields.get(bib_key):
+            out[manifest_key] = fields[bib_key]
     return out
 
 
@@ -120,8 +133,10 @@ def main(argv: list[str] | None = None) -> int:
     arxiv: list[dict] = []
     doi: list[dict] = []
     stub: list[dict] = []
+    github: list[dict] = []
     n_total = 0
     n_kept = 0
+    PASSTHROUGH = ("year", "venue", "volume", "pages", "citation", "authors", "note")
 
     for etype, key, fields in parse_bib(args.bib.read_text()):
         n_total += 1
@@ -134,22 +149,44 @@ def main(argv: list[str] | None = None) -> int:
         overrides = override_fields(fields)
         arxiv_id = extract_arxiv_id(fields)
         doi_id = extract_doi(fields)
+        repository = (fields.get("repository") or "").strip()
+        prefer = (fields.get("harness_primary") or "").strip().lower()
 
-        if arxiv_id:
-            entry: dict = {"id": arxiv_id}
-            # Drop title — render.py prefers S2 unless explicitly overridden.
-            for k in ("year", "venue", "authors", "note"):
+        if repository:
+            entry: dict = {"slug": key, "repository": repository}
+            for k in ("year", "authors", "note"):
+                if k in overrides:
+                    entry[k] = overrides[k]
+            if overrides.get("title"):
+                entry["title"] = overrides["title"]
+            github.append(entry)
+            continue
+
+        # Slug-source choice when both an arXiv ID and a DOI exist. Default is
+        # arXiv (preprint as canonical artifact). `harness_primary = {doi}` in
+        # the bib forces DOI; `harness_primary = {arxiv}` forces arXiv even if
+        # only DOI is well-formed.
+        if prefer == "doi" and doi_id:
+            use_doi = True
+        elif prefer == "arxiv" and arxiv_id:
+            use_doi = False
+        else:
+            use_doi = bool(doi_id) and not arxiv_id
+
+        if not use_doi and arxiv_id:
+            entry = {"id": arxiv_id}
+            for k in PASSTHROUGH:
                 if k in overrides:
                     entry[k] = overrides[k]
             arxiv.append(entry)
         elif doi_id:
             entry = {"id": doi_id}
-            for k in ("year", "venue", "authors", "note"):
+            for k in PASSTHROUGH:
                 if k in overrides:
                     entry[k] = overrides[k]
             doi.append(entry)
         else:
-            # @book / @misc with no DOI/arXiv → stub.
+            # @book / @misc with no DOI/arXiv/repository → stub.
             stub.append({
                 "slug": key,
                 "title": overrides.get("title", ""),
@@ -158,15 +195,18 @@ def main(argv: list[str] | None = None) -> int:
                 "note": overrides.get("note", ""),
             })
 
-    out = {"arxiv": arxiv, "doi": doi}
+    out: dict = {"arxiv": arxiv, "doi": doi}
     if stub:
         out["stub"] = stub
+    if github:
+        out["github"] = github
 
     json.dump(out, sys.stdout, indent=2, ensure_ascii=False)
     sys.stdout.write("\n")
     scope = f"method='{args.method}'" if args.method else "all entries"
     print(f"{n_kept}/{n_total} entries kept ({scope}): "
-          f"{len(arxiv)} arxiv, {len(doi)} doi, {len(stub)} stub",
+          f"{len(arxiv)} arxiv, {len(doi)} doi, {len(stub)} stub, "
+          f"{len(github)} github",
           file=sys.stderr)
     return 0
 

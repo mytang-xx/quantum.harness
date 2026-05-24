@@ -138,7 +138,7 @@ def render_entry(fm: dict[str, str], methods: list[str]) -> str:
     if rtype == "stub":
         entry_type = "book" if "book" in (fm.get("note") or "").lower() else "misc"
     elif rtype == "github":
-        entry_type = "misc"
+        entry_type = "software"
     elif has_venue and (has_arxiv or has_doi):
         entry_type = "article"
     elif has_arxiv:
@@ -163,6 +163,10 @@ def render_entry(fm: dict[str, str], methods: list[str]) -> str:
         ]
     if has_doi:
         fields.append(("doi", fm["doi"]))
+    if rtype == "github" and canonical:
+        # Preserve the owner/repo identity so bibtex_to_manifest.py can route
+        # the entry back to the github bucket on re-derivation.
+        fields.append(("repository", canonical))
     src = fm.get("source") or ""
     if src and not src.startswith("(none") and not has_arxiv and not has_doi:
         fields.append(("url", src))
