@@ -19,6 +19,16 @@ report = { type = "local" }             # render report.json into a self-contain
 # Skill tooling
 ion-cli = { type = "local" }
 
+# Computational software stacks
+xdiag = { type = "local" }
+quspin = { type = "local" }
+itensors = { type = "local" }
+netket = { type = "local" }
+jax = { type = "local" }
+tensorcircuit-ng = { type = "local" }
+pepskit = { type = "local" }
+sse = { type = "local" }
+
 # UX
 onboard = { type = "local" }
 solve = { type = "local" }

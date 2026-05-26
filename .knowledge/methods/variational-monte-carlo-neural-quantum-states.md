@@ -4,7 +4,7 @@ Variational method: parameterize a wavefunction ansatz, optimize parameters by m
 
 ## Setup
 
-Canonical stack: `netket` (`tools/software/stacks/netket.toml`).
+Canonical stack: `netket` (`tools/skills/netket/stack.toml`).
 
 ```
 make install netket

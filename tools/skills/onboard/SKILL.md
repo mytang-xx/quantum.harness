@@ -27,7 +27,7 @@ The user is on first touch — they may not know the harness vocabulary (skill, 
 <checklist name="setup">
 
 - Install domain stacks on demand via `make install <tool>`, after confirming `<tool>` appears in the Makefile's `INSTALLABLE` list.
-- Read the per-stack contract at `tools/software/stacks/<stack>.toml` for install commands, smoke tests, and upstream docs.
+- Read the per-stack contract at `tools/skills/<stack>/stack.toml` for install commands, smoke tests, and upstream docs.
 
 </checklist>
 
@@ -153,7 +153,7 @@ If nothing fits: *"That's outside current scope (ground-state lattice problems).
 - Walk through a tutorial.
 - Ask the user to read docs.
 - Show a menu of 13 skills.
-- Hardcode package-level install instructions (the stack contracts in `tools/software/stacks/*.toml` name install commands, smoke tests, and upstream docs; the Makefile and setup scripts execute them).
+- Hardcode package-level install instructions (the stack contracts in `tools/skills/<stack>/stack.toml` name install commands, smoke tests, and upstream docs; the Makefile and setup scripts execute them).
 - Bootstrap Julia on the cluster (that's `/setup-julia`, dispatched by `/slurm` on first cluster Julia run).
 - Pile questions on the user — every gate is one question with a clear *why* and an escape hatch.
 

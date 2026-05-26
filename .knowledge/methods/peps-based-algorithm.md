@@ -4,7 +4,7 @@ Projected Entangled Pair States and associated contraction methods (CTMRG, simpl
 
 ## Setup
 
-Canonical stack: `pepskit` (`tools/software/stacks/pepskit.toml`).
+Canonical stack: `pepskit` (`tools/skills/pepskit/stack.toml`).
 
 ```
 make install julia
@@ -129,7 +129,7 @@ progress after each temperature or `chi_env` point.
 ## Verification
 
 - **Install smoke**: run the `pepskit` stack smoke command from
-  `tools/software/stacks/pepskit.toml`.
+  `tools/skills/pepskit/stack.toml`.
 - **Residual convergence**: record CTMRG residual and iteration count for every
   grid point.
 - **Chi convergence**: repeat the curve for at least two `chi_env` values; near

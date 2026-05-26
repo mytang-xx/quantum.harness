@@ -201,6 +201,7 @@ External/support skills:
 
 - CLI tools: `tools/cli/` — atomic shell scripts
 - Skills: `tools/skills/` — conversational workflows (managed by Ion)
+- Software stack skills: `tools/skills/<stack>/SKILL.md` with machine-readable setup in `tools/skills/<stack>/stack.toml`.
 - Cluster profiles: `tools/cluster/` — per-cluster defaults (partitions, sbatch idioms, modules) consulted by cluster-aware skills via `tools/cluster/active.md` symlink or `HARNESS_CLUSTER_PROFILE=<name>` env var. Skills stay cluster-agnostic; cluster specifics live in profile cards.
 
 ## Ion skill management

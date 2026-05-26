@@ -7,7 +7,7 @@ method family and is not covered by this card.
 
 ## Setup
 
-Canonical stack: `sse` (`tools/software/stacks/sse.toml`).
+Canonical stack: `sse` (`tools/skills/sse/stack.toml`).
 
 ```
 make install julia
@@ -154,7 +154,7 @@ system size or beta.
 ## Verification
 
 - **Install smoke**: run the `sse` stack smoke command from
-  `tools/software/stacks/sse.toml`.
+  `tools/skills/sse/stack.toml`.
 - **Sign check**: report the average sign when available; sign-free targets
   should not show a decaying sign.
 - **Thermalization and binning**: compare means after dropping early bins and

@@ -24,7 +24,7 @@ For parameter grids, compose with `/parameter-scan`. `/parameter-scan` owns cell
 
 - *Script* — sbatch script or compute script plus the active cluster profile's array template.
 - *Cluster profile* — `tools/cluster/active.md` or `HARNESS_CLUSTER_PROFILE=<name>`, providing ssh alias, remote repo path, scheduler idioms, partitions, modules, queue commands.
-- *Software stack* — optional stack id/profile from `tools/software/stacks/*.toml`.
+- *Software stack* — optional stack id/profile from `tools/skills/<stack>/stack.toml`.
 - *Cell map* — optional `results/<run>/run_spec.json`.
 - *Ship strategy* — `git` or `rsync`.
 
@@ -83,7 +83,7 @@ partition.
 Run only when needed:
 
 - Test whether `<repo_path_remote>` exists. If absent, clone or stage according to the profile.
-- Inspect the selected stack contract in `tools/software/stacks/*.toml`.
+- Inspect the selected stack contract in `tools/skills/<stack>/stack.toml`.
 - For `language = "julia"`, ensure Julia is usable first; call `/setup-julia --target remote:<alias>` only when needed.
 - Run the stack smoke test in the declared place. `where = "login"` can run by ssh; `where = "compute"` needs a scheduler allocation.
 - Apply cluster `bootstrap_one_time` snippets once and write a `~/.harness-bootstrapped` marker.

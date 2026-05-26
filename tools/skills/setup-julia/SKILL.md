@@ -23,7 +23,7 @@ Idempotence is enforced, not aspirational:
 
 This skill is for *Julia-specific configuration*. Cluster-side conventions (ssh, scheduler, partitions) live in `tools/cluster/<active>.md` and are read here for `region` defaults and (when target is remote) the ssh alias and `repo_path_remote`.
 
-Julia package stacks are declared separately in `tools/software/stacks/*.toml`.
+Julia package stacks are declared separately in `tools/skills/<stack>/stack.toml`.
 This skill only makes Julia itself and `julia-env/` usable locally or remotely;
 after that, the selected stack's install command (for example `make install itensors`,
 `make install sse`, or `make install pepskit`) installs method packages.
@@ -102,7 +102,7 @@ This skill follows the Jinguo-group recipe verbatim (https://book.jinguo-group.s
 
 **Downstream** (what runs after `/setup-julia`):
 
-- Any `language = "julia"` stack contract in `tools/software/stacks/*.toml` — `/setup-julia` precedes the stack's install command.
+- Any `language = "julia"` stack contract in `tools/skills/<stack>/stack.toml` — `/setup-julia` precedes the stack's install command.
 
 **Data dependencies** (what `/setup-julia` reads):
 
