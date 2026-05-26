@@ -32,7 +32,7 @@ checksum = "sha256:e21044ae7496fc285f1df9ff3fb518a3a20bea6f5216c1f59f4987e12c769
 name = "download-ref"
 source = ""
 kind = "local"
-checksum = "sha256:03c005611dcb49173d90736b56de3a32141a55933b2c40a5370a58b7483bd820"
+checksum = "sha256:d34b5aa1bdb8d0a460aa769f03b362c89ab3710b9fb04848c962482e2e9f6ff3"
 
 [[skill]]
 name = "executing-plans"
@@ -54,7 +54,61 @@ checksum = "sha256:932d23af11a3eb2b758f5b1d9aec7b6d28ddd26658328414f87f34dff7179
 name = "ion-cli"
 source = ""
 kind = "local"
-checksum = "sha256:bd5d3a00554413b17ddca6c53aa2f639a7a0c5bdfd8d300126ea6a471d5d669c"
+checksum = "sha256:4207f3d4f43e93120acd5fdc26c60badab389e59d1a2caab74724ab0776a49ff"
+
+[[skill]]
+name = "itensors"
+source = ""
+kind = "local"
+checksum = "sha256:e46579b6de17328bb5ae5e37fb97ebc94b1ef6f1eb7f4bd41019cd19ead46f9e"
+
+[[skill]]
+name = "jax"
+source = ""
+kind = "local"
+checksum = "sha256:dda5e950eb31199b1822b5ee4aaa8e6a7edf66f347fb4eb493e4fda66247287c"
+
+[[skill]]
+name = "method-ed"
+source = ""
+kind = "local"
+checksum = "sha256:a183aabc60d2b0a310e748f995b5ae0acdd886df2a59b39294f796c169eb01f9"
+
+[[skill]]
+name = "method-mf"
+source = ""
+kind = "local"
+checksum = "sha256:3fea24b2f516cbe526761756b62ee3f7cc65aa186ea49e3cf1a6cfcd454c2af7"
+
+[[skill]]
+name = "method-mps"
+source = ""
+kind = "local"
+checksum = "sha256:6e880d99fc248eda2dcd39ea51cea6e98431507a95d7fd7daf7a2ec16afcd1cb"
+
+[[skill]]
+name = "method-peps"
+source = ""
+kind = "local"
+checksum = "sha256:c087916cc5e65895b153a741ce0eb234573232feda3b022a1c5067691fdea12b"
+
+[[skill]]
+name = "method-qcs"
+source = ""
+kind = "local"
+checksum = "sha256:fd4e71e275049519aff21d4fb10d2a85fc750c359751c2b103f2f3afc7006f5d"
+
+[[skill]]
+name = "method-qmc"
+source = ""
+kind = "local"
+checksum = "sha256:d636a9134821d08f197738575fc3f3bd7465f22c119f01b63231d71d0ba75f8e"
+
+[[skill]]
+name = "method-vmc"
+source = ""
+kind = "local"
+checksum = "sha256:24262ae52b00db658a9064620a8e79e27a8151783b238110664061ccc4896231"
 
 [[skill]]
 name = "model"
@@ -63,10 +117,16 @@ kind = "local"
 checksum = "sha256:42b6fdc4c5f1593a6d47eae9ad2edf274aac22e7b936b57e4c3f7785c58389ed"
 
 [[skill]]
+name = "netket"
+source = ""
+kind = "local"
+checksum = "sha256:8ee7bbbfe81e7751dbaa98b9a64542e9ca2d3baba9ad7b2d01ae60668dc69255"
+
+[[skill]]
 name = "onboard"
 source = ""
 kind = "local"
-checksum = "sha256:02039821ab1c8c2bcb69cc2a7ad43722dc1dfa3162760f3ee9238d12b2c45a81"
+checksum = "sha256:0f606eb3250fbc65a05fefd8ae4b8ee5165374a8e22a0c16cf87df8e7d54ee5c"
 
 [[skill]]
 name = "parameter-scan"
@@ -75,10 +135,22 @@ kind = "local"
 checksum = "sha256:fbd622a06ee46ecc8d9e3c1193524d177a258a3379b24252e5ffba7105421022"
 
 [[skill]]
+name = "pepskit"
+source = ""
+kind = "local"
+checksum = "sha256:ee8bfc517d8ebdb17407b2ab135ca73bd3f848846cc6dd0cac5f6d3bbfda47a9"
+
+[[skill]]
 name = "physics"
 source = ""
 kind = "local"
 checksum = "sha256:d3f42e2df34f64f2bec303e8d9ae97279f94d83da8f33d33c2295fe2b104d349"
+
+[[skill]]
+name = "quspin"
+source = ""
+kind = "local"
+checksum = "sha256:dd6890ad4f82fccbe71d298b2b3b4b269ee04ffba1a474a4a385f20a8e22347a"
 
 [[skill]]
 name = "receiving-code-review"
@@ -92,13 +164,13 @@ checksum = "sha256:2760c85d4f4117b0006e7ba755f4bbd61f8f4c185f347999763c97f507274
 name = "report"
 source = ""
 kind = "local"
-checksum = "sha256:4e854dbc8c7f2830e092675e047d823c55a48a36c3be04e714bc098a1845b19e"
+checksum = "sha256:bb38ddd5dbcdefa0126c284dcde39a8878209edae3cd7557381e27375f008188"
 
 [[skill]]
 name = "reproduce-paper"
 source = ""
 kind = "local"
-checksum = "sha256:c5f9309ecae0946a71730976aad2db6fac5f19646946c360c05b8aed46ff1a17"
+checksum = "sha256:17060b22ec36d14bf0c7a7eb122d8b1af4a3013730141730f7fc211d943b199b"
 
 [[skill]]
 name = "requesting-code-review"
@@ -119,26 +191,32 @@ name = "scientific-visualization"
 source = "https://github.com/HughYau/AcademicForge.git"
 kind = "git"
 path = "scientific-visualization"
-commit = "410d5b29ab28a96cbb5915114df872b2cbe7d2d3"
+commit = "6cbb818a4a822a5e1e856b18919da7484ff58dd4"
 checksum = "sha256:dfe730f72015268b902a22d2e5f389cfaf5478463749e26fb865f4dff390bc74"
 
 [[skill]]
 name = "setup-julia"
 source = ""
 kind = "local"
-checksum = "sha256:81e56d1ae27360d0eb804b9974ad249f72e2f58c60e56cb4cdefdcf784f6f461"
+checksum = "sha256:5f1908a4339a66fdbede024a512be39c32d85562ebd3a7f54303e9662728524e"
 
 [[skill]]
 name = "slurm"
 source = ""
 kind = "local"
-checksum = "sha256:e9b732d8411ed3e93e35e0d41f23c74ebaf5e16c04bcd3bfb008cf03fa76341e"
+checksum = "sha256:57d64322491b189d268ab55d590104794ddae95616fced08df0750d0672f2ecb"
 
 [[skill]]
 name = "solve"
 source = ""
 kind = "local"
 checksum = "sha256:a140a3ebd8025ae634b207460843351c8cde5aee00a3abd9134e7aac4916ee1f"
+
+[[skill]]
+name = "sse"
+source = ""
+kind = "local"
+checksum = "sha256:0cdb268defdb248a82e6e27ef1585f64f3eef9566498b1fc341633c6495e0350"
 
 [[skill]]
 name = "subagent-driven-development"
@@ -165,12 +243,24 @@ commit = "f2cbfbefebbfef77321e4c9abc9e949826bea9d7"
 checksum = "sha256:ebdc9e15e5745a87d6342b6ebbc90d1ac2766b95f2334a9450fc696842815e4d"
 
 [[skill]]
+name = "tensorcircuit-ng"
+source = ""
+kind = "local"
+checksum = "sha256:11a0e91a8d18ca11de67bcd53b49c638206cb88840f91c6eecb0a42b4a26b7e3"
+
+[[skill]]
 name = "test-driven-development"
 source = "https://github.com/obra/superpowers.git"
 kind = "git"
 path = "skills/test-driven-development"
 commit = "f2cbfbefebbfef77321e4c9abc9e949826bea9d7"
 checksum = "sha256:126f1ebf6ccd414f42544f6e83d8cc5adb089e1108eaffb7c400701e37eecd9f"
+
+[[skill]]
+name = "track-starter"
+source = ""
+kind = "local"
+checksum = "sha256:57a330410ace15696658e5d7216cb1ee7c8b33aca2828023254c8ee2e5e1e429"
 
 [[skill]]
 name = "using-git-worktrees"
@@ -211,3 +301,9 @@ kind = "git"
 path = "skills/writing-skills"
 commit = "f2cbfbefebbfef77321e4c9abc9e949826bea9d7"
 checksum = "sha256:272ccd701f41b94e1119aaa99455a52cdb8e07283cb6a6aab32a7722d96bef45"
+
+[[skill]]
+name = "xdiag"
+source = ""
+kind = "local"
+checksum = "sha256:4529b74f2a1c42fd361375e099c103e550a9795a6a170f563d6bf26bd4e7cec1"

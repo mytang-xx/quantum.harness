@@ -1,5 +1,5 @@
 [options]
-skills-dir = "tools/skills"
+skills-dir = "skills"
 
 [skills]
 # Research workflow
@@ -14,10 +14,30 @@ cross-method-check = { type = "local" }
 slurm = { type = "local" }              # cluster mechanism (agent-does-ssh)
 setup-julia = { type = "local" }        # Julia install + mirror + project env (local or remote)
 reproduce-paper = { type = "local" }    # beginner-facing paper reproduction (brainstorm-first)
+track-starter = { type = "local" }      # choose a challenge-track paper, then hand off to reproduce-paper
 report = { type = "local" }             # render report.json into a self-contained HTML report (stdlib only)
 
 # Skill tooling
 ion-cli = { type = "local" }
+
+# Computational software stacks
+xdiag = { type = "local" }
+quspin = { type = "local" }
+itensors = { type = "local" }
+netket = { type = "local" }
+jax = { type = "local" }
+tensorcircuit-ng = { type = "local" }
+pepskit = { type = "local" }
+sse = { type = "local" }
+
+# Method-level guidance
+method-ed = { type = "local" }
+method-mps = { type = "local" }
+method-peps = { type = "local" }
+method-qmc = { type = "local" }
+method-vmc = { type = "local" }
+method-qcs = { type = "local" }
+method-mf = { type = "local" }
 
 # UX
 onboard = { type = "local" }

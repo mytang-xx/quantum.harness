@@ -8,8 +8,8 @@ This card is generic methodology. Paper-specific Hamiltonian reductions, constra
 
 Recommended stack order:
 
-1. `xdiag` (`tools/software/stacks/xdiag.toml`) — canonical ED stack.
-2. `quspin` (`tools/software/stacks/quspin.toml`) — Python fallback stack.
+1. `xdiag` (`skills/xdiag/stack.toml`) — canonical ED stack.
+2. `quspin` (`skills/quspin/stack.toml`) — Python fallback stack.
 
 ```
 make install julia

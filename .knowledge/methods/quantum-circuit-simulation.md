@@ -6,7 +6,7 @@ This card is generic methodology. Paper-specific benchmarks, hardware layouts, a
 
 ## Setup
 
-Canonical stack: `tensorcircuit-ng` with a JAX backend (`tools/software/stacks/tensorcircuit-ng.toml`).
+Canonical stack: `tensorcircuit-ng` with a JAX backend (`skills/tensorcircuit-ng/stack.toml`).
 
 TensorCircuit-NG requires JAX first.
 
