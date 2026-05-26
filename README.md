@@ -23,23 +23,25 @@ Per-track briefs live under [`tracks/<abbrev>/README.md`](tracks/).
 Outside the event, this repo is a general QMB research harness.
 
 - Method cards under [`.knowledge/methods/`](.knowledge/methods/).
-- Skills under [`tools/skills/`](tools/skills/), managed by [Ion](https://github.com/Roger-luo/Ion).
-- Software stack contracts live beside stack skills as `tools/skills/<stack>/stack.toml`.
-- Cluster mechanism via `/slurm`; per-cluster defaults under [`tools/cluster/`](tools/cluster/).
+- Skills under [`skills/`](skills/), managed by [Ion](https://github.com/Roger-luo/Ion).
+- Shell helpers and generated runnable calculations under [`scripts/`](scripts/).
+- Software stack contracts live beside stack skills as `skills/<stack>/stack.toml`.
+- Cluster mechanism via `/slurm`; per-cluster defaults under [`skills/slurm/profiles/`](skills/slurm/profiles/).
 - Default stack: Julia (ITensors.jl, ITensorMPS.jl, KrylovKit.jl, MPSKit.jl, PEPSKit.jl, XDiag.jl) and Python (NetKet on JAX, QuSpin, TensorCircuit-NG, quimb).
-- Common skills: `/solve` (single calculation), `/reproduce-paper` (paper end-to-end), `/slurm` (ship + submit on cluster).
+- Common skills: `/solve` (single calculation), `/track-starter` (choose a challenge-track target), `/reproduce-paper` (paper end-to-end), `/slurm` (ship + submit on cluster).
 
 Open an agent session in the repo and invoke `/onboard` for a first-touch setup.
 
 ## Key Skills
 
-Skills are agent-invocable workflows under `tools/skills/`. Invoke them with `/<name>` in a Claude Code session.
+Skills are agent-invocable workflows under `skills/`. Invoke them with `/<name>` in a Claude Code session.
 
 ### Research Workflow
 
 | Skill | Purpose |
 |---|---|
 | `/solve` | Run a single QMB calculation — ground state, gap, correlations |
+| `/track-starter` | Pick a challenge-track paper/task before handing off to `/reproduce-paper` |
 | `/reproduce-paper` | End-to-end reproduction of a paper's figure or main result |
 | `/survey` | Survey a research topic via web search, build a focused knowledge base with BibTeX |
 | `/download-ref` | Add an arXiv/DOI paper to `.knowledge/` with metadata and rendered markdown |

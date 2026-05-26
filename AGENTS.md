@@ -56,8 +56,8 @@ Never default to "you're right, sorry, let me redo." That erodes the calibrated 
 Domain content is organized around problems, not lessons, methods, tools, metrics, or roadmaps. Two dispatcher skills + paired cards:
 
 ```text
-tools/skills/model/    SKILL.md auto-fires when user names a model;   reads .knowledge/models/<name>/MODEL.md
-tools/skills/physics/  SKILL.md auto-fires on cross-model questions;  reads .knowledge/physics/<topic>/PHYSICS.md
+skills/model/    SKILL.md auto-fires when user names a model;   reads .knowledge/models/<name>/MODEL.md
+skills/physics/  SKILL.md auto-fires on cross-model questions;  reads .knowledge/physics/<topic>/PHYSICS.md
 ```
 
 `.knowledge/models/` cards cover canonical Hamiltonian or Hilbert-space problem families.
@@ -163,7 +163,7 @@ Python (`quimb` + `cotengra`) remains available as a fallback for tensor-network
 
 ## Compute resources
 
-The harness has a remote cluster (`tools/cluster/active.md` → currently `hpc2.md`) for any task larger than a few minutes of local compute. **Compute feasibility is decided BEFORE the first run**, not discovered after watching a local process for an hour.
+The harness can use a remote cluster profile at `skills/slurm/profiles/active.md` for any task larger than a few minutes of local compute. **Compute feasibility is decided BEFORE the first run**, not discovered after watching a local process for an hour.
 
 Before launching any non-trivial computation:
 
@@ -171,7 +171,7 @@ Before launching any non-trivial computation:
 2. **Pick local vs remote with a clear threshold:**
    - Local: < 10 min wall, < 16 GB resident, fits within normal use of one CPU node.
    - Remote sbatch: everything else.
-3. **Read the cluster card BEFORE picking a partition.** `tools/cluster/<active>.md` lists partition memory / core / wall caps and recent usage notes. The default partition is a hint, not authority — an idle partition that matches needs beats a contested default. Concrete example: the Turner 2018 reproduction had L=30 dense ED take ~50 min locally vs ~10 min on a 64-core cluster node, and L=32 was infeasible locally entirely. That asymmetry should be caught BEFORE the first local run.
+3. **Read the cluster card BEFORE picking a partition.** `skills/slurm/profiles/<active>.md` lists partition memory / core / wall caps and recent usage notes. The default partition is a hint, not authority — an idle partition that matches needs beats a contested default. Concrete example: the Turner 2018 reproduction had L=30 dense ED take ~50 min locally vs ~10 min on a 64-core cluster node, and L=32 was infeasible locally entirely. That asymmetry should be caught BEFORE the first local run.
 4. **Compose with `/slurm`** (single-job or array) and `/parameter-scan` (multi-axis grids). The cluster mechanism handles ship-code → submit → monitor → fetch end-to-end.
 
 NEVER run a multi-hour calculation locally because the agent forgot the cluster exists. The cluster IS the default for non-trivial compute; declare a deviation if local-only is actually justified.
@@ -180,6 +180,7 @@ NEVER run a multi-hour calculation locally because the agent forgot the cluster 
 
 UX skills:
 - **onboard** — first-touch intake, domain setup, route to `/model` or `/physics`
+- **track-starter** — reads `tracks/*/README.md`, summarizes student track tasks, lets the student choose a concrete track paper / figure, then hands off to `/reproduce-paper`.
 - **solve** — interactive problem-solving loop: intake → act → report → next-steps → loop.
 
 Problem dispatchers (auto-triggered; read cards under `.knowledge/{models,physics}/<name>/`):
@@ -190,11 +191,11 @@ Problem-solving primitives (generic; topic-agnostic, compose with the dispatcher
 - **parameter-scan** — sweep one or more declared axes for any produced quantity. Composes with `/slurm` for cluster execution.
 - **scaling-fit** — finite-size collapse, exponent extraction with uncertainty.
 - **cross-method-check** — verify the same observable with an independent method or diagnostic.
-- **slurm** — agent-does-ssh cluster mechanism: ship code, submit (single or array), monitor, fetch. Reads cluster specifics from `tools/cluster/<active>.md`. Dispatches `/setup-julia` when the cluster's Julia env isn't instantiated. Does NOT know about parameter grids — that's `/parameter-scan`'s job.
+- **slurm** — agent-does-ssh cluster mechanism: ship code, submit (single or array), monitor, fetch. Reads cluster specifics from `skills/slurm/profiles/<active>.md`. Dispatches `/setup-julia` when the cluster's Julia env isn't instantiated. Does NOT know about parameter grids — that's `/parameter-scan`'s job.
 - **setup-julia** — install Julia (juliaup or `module load`), configure package mirror (defaults to Chinese mirror if cluster `region == mainland_china`), instantiate the project env. Generic over target (local laptop or remote ssh alias). Idempotent.
 - **reproduce-paper** — beginner-facing paper reproduction with a brainstorm-first surface. Walks the user through paper-to-code mapping one question at a time in plain English, estimates time by size, confirms setup before compute, then executes the approved plan and renders a self-contained HTML report — proposal before compute, results (figure, key numbers, an honest verdict) after.
 
-Method-level guidance (used by `/reproduce-paper` after a track is chosen; these choose tool skills, not paper facts):
+Method-level guidance (used by `/reproduce-paper` after a target is chosen; these choose tool skills, not paper facts):
 - **method-ed** — exact diagonalization route selection; composes with `/xdiag` or `/quspin`.
 - **method-mps** — DMRG / TEBD / MPS route selection; composes with `/itensors`.
 - **method-peps** — PEPS / CTMRG route selection; composes with `/pepskit`.
@@ -208,24 +209,24 @@ External/support skills:
 - **scientific-visualization** — Publication-quality figures (matplotlib/seaborn/plotly)
 - **download-ref** — Add arXiv/DOI/book methodology references under `.knowledge/literature/<method>/`; rendered markdown is tracked, raw PDFs/metadata/figures are local-only.
 
-## Tool Hierarchy
+## Repository Layout
 
-- CLI tools: `tools/cli/` — atomic shell scripts
-- Skills: `tools/skills/` — conversational workflows (managed by Ion)
-- Method-level skills: `tools/skills/method-*/SKILL.md` — method insight and tool-skill selection for challenge tracks.
-- Software stack skills: `tools/skills/<stack>/SKILL.md` with machine-readable setup in `tools/skills/<stack>/stack.toml`.
-- Cluster profiles: `tools/cluster/` — per-cluster defaults (partitions, sbatch idioms, modules) consulted by cluster-aware skills via `tools/cluster/active.md` symlink or `HARNESS_CLUSTER_PROFILE=<name>` env var. Skills stay cluster-agnostic; cluster specifics live in profile cards.
+- Scripts: `scripts/` — atomic shell helpers and generated runnable calculations
+- Skills: `skills/` — conversational workflows (managed by Ion)
+- Method-level skills: `skills/method-*/SKILL.md` — method insight and tool-skill selection for challenge tracks.
+- Software stack skills: `skills/<stack>/SKILL.md` with machine-readable setup in `skills/<stack>/stack.toml`.
+- Cluster profiles: `skills/slurm/profiles/` — per-cluster defaults (partitions, sbatch idioms, modules) consulted by cluster-aware skills via `skills/slurm/profiles/active.md` symlink or `HARNESS_CLUSTER_PROFILE=<name>` env var. Skills stay cluster-agnostic; cluster specifics live in profile cards.
 
 ## Ion skill management
 
 Ion (`Roger-luo/Ion`, installed at `~/.local/bin/ion`) is the skill manager.
-All skills live under `tools/skills/` (Ion's `skills-dir`): local skills are
+All skills live under `skills/` (Ion's `skills-dir`): local skills are
 committed real directories; remote skills are fetched there by `ion add` as
 symlinks into Ion's cache (gitignored; pinned in `Ion.lock`). Claude Code reads
-them through the committed `.claude/skills → ../tools/skills` symlink, so
-`tools/skills/` is the single source of truth. Do **not** add an
+them through the committed `.claude/skills → ../skills` symlink, so
+`skills/` is the single source of truth. Do **not** add an
 `[options.targets]` stanza pointing Ion at `.claude/skills`: that path is itself
-a symlink back into `tools/skills/`, so Ion would write its per-skill target
+a symlink back into `skills/`, so Ion would write its per-skill target
 links into the source dir and clobber every skill with self-referential,
 dangling links. Reload Claude Code after any `ion add` / `ion remove` so the
 session picks up changes.
@@ -251,8 +252,8 @@ ion search -i                            # Interactive TUI search
 **Authoring local skills:**
 
 ```bash
-ion skill new <name>                     # Scaffold tools/skills/<name>/SKILL.md
-ion skill validate tools/skills/<name>   # Lint before committing
+ion skill new <name>                     # Scaffold skills/<name>/SKILL.md
+ion skill validate skills/<name>         # Lint before committing
 ```
 
 **Project / meta:**
@@ -286,11 +287,11 @@ ion self --help                          # Manage the Ion install
 - **Never dump checklists, verification details, convention notes, or method-card content** unless the user explicitly asks. The agent runs verification internally; the user sees the result, not the process.
 - **Lead with the answer, qualify only if asked.** "quantity = value, converged, matches declared reference" — not "I checked 5 things and here they are."
 - **Auto-save scripts and results.** Every calculation produces a script saved to `scripts/<model>_<brief>.jl` and results (data + plot) saved to `results/`. Show the one-line run command: `julia --project=julia-env scripts/<name>.jl`. Never make the user ask for the script.
-- **Flush stdout after each progress line in any long-running script.** Block-buffered stdout (the default when redirected to a file, a slurm log, or any non-TTY sink) hides progress until the process exits — looks like a hang. Julia: `flush(stdout)` after each `println` / `@printf`. Python: `print(..., flush=True)` or `python -u`. Pair with per-cell incremental writes (manifest after each cell) so a kill or sleep loses at most one cell. Sbatch-side helpers (`srun --unbuffered`, `stdbuf -oL`) belong in cluster profiles (`tools/cluster/<name>.md`), not in scripts.
+- **Flush stdout after each progress line in any long-running script.** Block-buffered stdout (the default when redirected to a file, a slurm log, or any non-TTY sink) hides progress until the process exits — looks like a hang. Julia: `flush(stdout)` after each `println` / `@printf`. Python: `print(..., flush=True)` or `python -u`. Pair with per-cell incremental writes (manifest after each cell) so a kill or sleep loses at most one cell. Sbatch-side helpers (`srun --unbuffered`, `stdbuf -oL`) belong in cluster profiles (`skills/slurm/profiles/<name>.md`), not in scripts.
 - **Long iterative computes must emit intermediate estimates, not just final values.** A multi-hour run without progress output is a blind spot: the user cannot sanity-check whether the running estimate, error proxy, acceptance/progress counters, or convergence diagnostics are stabilizing. Print a partial estimate every K steps, where K is chosen so the user sees roughly 10-50 updates over the run. The script's standard runner enforces this via a `progress_every` knob; method cards declare a sensible default.
 - **Monitor before declaring success — don't fire-and-forget remote actions.** A "RUNNING" status / a 0 exit code from `ssh` is not success; only verified output is. After any non-trivial remote action, stay engaged through a *settle-time* before reporting "✓ done":
   - **Lightweight tasks** (env setup, install, instantiate, single ssh command): tail output in real-time. If silent for >30 sec on a non-precompile command, suspect (PATH issue, hung lock, missing prereq).
-  - **Cluster jobs**: cluster-specific settle-time discipline (partition selection from queue card, `PD → R` transition check, first-cell log tail, multi-hour periodic checks) lives in `tools/skills/slurm/SKILL.md`. Compose with `/slurm` instead of inlining the rules here.
+  - **Cluster jobs**: cluster-specific settle-time discipline (partition selection from queue card, `PD → R` transition check, first-cell log tail, multi-hour periodic checks) lives in `skills/slurm/SKILL.md`. Compose with `/slurm` instead of inlining the rules here.
   - **Multi-hour local jobs**: periodic log checks every 30–60 min. Surface progress via short status lines, not silence.
   Settle-time scales with how far the job has to go before producing meaningful output. The cost of an extra 1–3 min of monitoring is much less than the cost of returning hours later to find 28 cells silently failed in the first minute — or that all 28 cells are still queued.
 - **Caveat-after, not caveat-first.** For contested regimes, state the consensus framing first, then qualify the unresolved point. Never open with the hedge.
@@ -307,7 +308,7 @@ ion self --help                          # Manage the Ion install
 
 Agents working in this project should:
 1. Treat the core harness philosophy and problem-driven skill design above as the controlling design contract.
-2. Use tools from `tools/` rather than reimplementing operations.
+2. Use existing `skills/`, `scripts/`, Makefile targets, and `.knowledge/` cards rather than reimplementing operations.
 3. Run `make help` to discover available workflow targets.
 4. Check `Ion.toml` (or `ion` CLI) for installed / available skills.
 5. For methodology references, use `download-ref`; keep different methods in different `.knowledge/literature/<method>/` folders and never commit `.raw/` or `.figures/`.
