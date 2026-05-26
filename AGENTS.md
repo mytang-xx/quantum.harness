@@ -63,7 +63,9 @@ tools/skills/physics/  SKILL.md auto-fires on cross-model questions;  reads .kno
 `.knowledge/models/` cards cover canonical Hamiltonian or Hilbert-space problem families.
 `.knowledge/physics/` cards cover cross-model organizing questions: phases, mechanisms, dynamics, solvability, and diagnostics.
 
-Methods such as DMRG, DMFT, QMC, VMC, fuzzy sphere, and V-score belong inside the model/physics cards, not in skill names. If a card mentions a method, it should include enough method, software, setup, output, and validation guidance for an agent with no chat history to act sensibly.
+Methods such as DMRG, DMFT, QMC, VMC, fuzzy sphere, and V-score belong inside the model/physics cards, not in problem-dispatcher skill names. If a card mentions a method, it should include enough method, software, setup, output, and validation guidance for an agent with no chat history to act sensibly.
+
+Method-level skills are the narrow exception for beginner reproduction and challenge-track onboarding: `method-ed`, `method-mps`, `method-peps`, `method-qmc`, `method-vmc`, `method-qcs`, and `method-mf`. They carry generic method insight and choose the right tool-using skill; they do not replace model/physics cards and do not own paper facts.
 
 Dimension, lattice, filling, doping, boundary condition, disorder strength, and coupling regime are runtime choices unless they define a truly distinct canonical problem.
 
@@ -192,6 +194,15 @@ Problem-solving primitives (generic; topic-agnostic, compose with the dispatcher
 - **setup-julia** — install Julia (juliaup or `module load`), configure package mirror (defaults to Chinese mirror if cluster `region == mainland_china`), instantiate the project env. Generic over target (local laptop or remote ssh alias). Idempotent.
 - **reproduce-paper** — beginner-facing paper reproduction with a brainstorm-first surface. Walks the user through paper-to-code mapping one question at a time in plain English, estimates time by size, confirms setup before compute, then executes the approved plan and renders a self-contained HTML report — proposal before compute, results (figure, key numbers, an honest verdict) after.
 
+Method-level guidance (used by `/reproduce-paper` after a track is chosen; these choose tool skills, not paper facts):
+- **method-ed** — exact diagonalization route selection; composes with `/xdiag` or `/quspin`.
+- **method-mps** — DMRG / TEBD / MPS route selection; composes with `/itensors`.
+- **method-peps** — PEPS / CTMRG route selection; composes with `/pepskit`.
+- **method-qmc** — sign-free SSE / QMC route selection; composes with `/sse`.
+- **method-vmc** — VMC / NQS route selection; composes with `/netket` and `/jax`.
+- **method-qcs** — circuit-simulation route selection; composes with `/tensorcircuit-ng` and `/jax`.
+- **method-mf** — mean-field / SCF route selection; uses the mean-field method card until a dedicated tool skill exists.
+
 External/support skills:
 - **arxiv-search** — Semantic arXiv search via Valyu
 - **scientific-visualization** — Publication-quality figures (matplotlib/seaborn/plotly)
@@ -201,6 +212,7 @@ External/support skills:
 
 - CLI tools: `tools/cli/` — atomic shell scripts
 - Skills: `tools/skills/` — conversational workflows (managed by Ion)
+- Method-level skills: `tools/skills/method-*/SKILL.md` — method insight and tool-skill selection for challenge tracks.
 - Software stack skills: `tools/skills/<stack>/SKILL.md` with machine-readable setup in `tools/skills/<stack>/stack.toml`.
 - Cluster profiles: `tools/cluster/` — per-cluster defaults (partitions, sbatch idioms, modules) consulted by cluster-aware skills via `tools/cluster/active.md` symlink or `HARNESS_CLUSTER_PROFILE=<name>` env var. Skills stay cluster-agnostic; cluster specifics live in profile cards.
 

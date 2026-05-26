@@ -60,13 +60,55 @@ checksum = "sha256:4207f3d4f43e93120acd5fdc26c60badab389e59d1a2caab74724ab0776a4
 name = "itensors"
 source = ""
 kind = "local"
-checksum = "sha256:ce19cd5279bab146de6c2de3002c7080d5c1198ee3895f31c7eb2094568d951e"
+checksum = "sha256:bac263338ca18382df16b4d03498dffdde682374a42c7a7b27ca3cf2a1af08c2"
 
 [[skill]]
 name = "jax"
 source = ""
 kind = "local"
-checksum = "sha256:1afd5e0da3236ba8b6e3fd8602564362442ab84fa5a526ad6cc3d3bcdb4b0274"
+checksum = "sha256:cadc77e89a2097d2bfe0f69873f97326128bf138110810b1d00b5d84600260ea"
+
+[[skill]]
+name = "method-ed"
+source = ""
+kind = "local"
+checksum = "sha256:a183aabc60d2b0a310e748f995b5ae0acdd886df2a59b39294f796c169eb01f9"
+
+[[skill]]
+name = "method-mf"
+source = ""
+kind = "local"
+checksum = "sha256:3fea24b2f516cbe526761756b62ee3f7cc65aa186ea49e3cf1a6cfcd454c2af7"
+
+[[skill]]
+name = "method-mps"
+source = ""
+kind = "local"
+checksum = "sha256:6e880d99fc248eda2dcd39ea51cea6e98431507a95d7fd7daf7a2ec16afcd1cb"
+
+[[skill]]
+name = "method-peps"
+source = ""
+kind = "local"
+checksum = "sha256:c087916cc5e65895b153a741ce0eb234573232feda3b022a1c5067691fdea12b"
+
+[[skill]]
+name = "method-qcs"
+source = ""
+kind = "local"
+checksum = "sha256:fd4e71e275049519aff21d4fb10d2a85fc750c359751c2b103f2f3afc7006f5d"
+
+[[skill]]
+name = "method-qmc"
+source = ""
+kind = "local"
+checksum = "sha256:d636a9134821d08f197738575fc3f3bd7465f22c119f01b63231d71d0ba75f8e"
+
+[[skill]]
+name = "method-vmc"
+source = ""
+kind = "local"
+checksum = "sha256:24262ae52b00db658a9064620a8e79e27a8151783b238110664061ccc4896231"
 
 [[skill]]
 name = "model"
@@ -78,7 +120,7 @@ checksum = "sha256:42b6fdc4c5f1593a6d47eae9ad2edf274aac22e7b936b57e4c3f7785c5838
 name = "netket"
 source = ""
 kind = "local"
-checksum = "sha256:05e07576df9f64789e50143995d564f28d7ac8fce50c4f8f4f277e27b2ba7473"
+checksum = "sha256:8052f392cce060b0626455de2b5b7bfe17ca1dd6767e8f7ee7f40cfbfc833543"
 
 [[skill]]
 name = "onboard"
@@ -96,7 +138,7 @@ checksum = "sha256:fbd622a06ee46ecc8d9e3c1193524d177a258a3379b24252e5ffba7105421
 name = "pepskit"
 source = ""
 kind = "local"
-checksum = "sha256:bbe1577892695a49dbc15e4f6f4c27b87695eab5be10563389c6d9a5a7d84943"
+checksum = "sha256:a802caa2ab7b12d6cd4b6503128a8f56ba5471752fc05f62a691cab944697443"
 
 [[skill]]
 name = "physics"
@@ -108,7 +150,7 @@ checksum = "sha256:d3f42e2df34f64f2bec303e8d9ae97279f94d83da8f33d33c2295fe2b104d
 name = "quspin"
 source = ""
 kind = "local"
-checksum = "sha256:3c6d2496ec6ffa73062b788c987c2ad02ccf1eae278c25ed4fffc75f8098392b"
+checksum = "sha256:702b093871ef9fb180b9652b11eb6f29998bb84b6ab306d448993674564bab91"
 
 [[skill]]
 name = "receiving-code-review"
@@ -128,7 +170,7 @@ checksum = "sha256:9ff99d5df86af72f75a5e23c9dc0583a01d43f22467b7e75f78e146237acf
 name = "reproduce-paper"
 source = ""
 kind = "local"
-checksum = "sha256:e6a50194c47feeb4a1a4f2f5feafe75e31a0e091dc7b28d55cbaf1c77aa532ef"
+checksum = "sha256:6d2da2ac061d06a25990ef2e5e20e43a84170d22dc1d9d736f09dfce65a6fa6b"
 
 [[skill]]
 name = "requesting-code-review"
@@ -174,7 +216,7 @@ checksum = "sha256:a140a3ebd8025ae634b207460843351c8cde5aee00a3abd9134e7aac4916e
 name = "sse"
 source = ""
 kind = "local"
-checksum = "sha256:73ad78d2d6036171e559f602a281d3e0be536726fcd07140529fb97c2213b522"
+checksum = "sha256:175be9fc4c289f301ddc741e1d5e65e4eea0978bbca8f289aadbe2e631ef20a5"
 
 [[skill]]
 name = "subagent-driven-development"
@@ -204,7 +246,7 @@ checksum = "sha256:ebdc9e15e5745a87d6342b6ebbc90d1ac2766b95f2334a9450fc696842815
 name = "tensorcircuit-ng"
 source = ""
 kind = "local"
-checksum = "sha256:14b9cbec21450c15d6aeb7e45a5a34edc68a196b539c2aaaaedbef558ec9f6c7"
+checksum = "sha256:9e2290b783c7a24467abd279ca00c269873ac51036bdf83b8b1f6fd2f26c298e"
 
 [[skill]]
 name = "test-driven-development"
@@ -258,4 +300,4 @@ checksum = "sha256:272ccd701f41b94e1119aaa99455a52cdb8e07283cb6a6aab32a7722d96be
 name = "xdiag"
 source = ""
 kind = "local"
-checksum = "sha256:5e18250e3c7c4be42de9af3d2d098f1db178fa16f3b313e3ffe78ad572264b24"
+checksum = "sha256:57930da370f185a8e78cf8c40234d04b9030faf767116df89848273ecdcbb1cb"

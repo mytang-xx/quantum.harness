@@ -29,6 +29,15 @@ tensorcircuit-ng = { type = "local" }
 pepskit = { type = "local" }
 sse = { type = "local" }
 
+# Method-level guidance
+method-ed = { type = "local" }
+method-mps = { type = "local" }
+method-peps = { type = "local" }
+method-qmc = { type = "local" }
+method-vmc = { type = "local" }
+method-qcs = { type = "local" }
+method-mf = { type = "local" }
+
 # UX
 onboard = { type = "local" }
 solve = { type = "local" }

@@ -30,3 +30,68 @@ Outside the event, this repo is a general QMB research harness.
 - Common skills: `/solve` (single calculation), `/reproduce-paper` (paper end-to-end), `/slurm` (ship + submit on cluster).
 
 Open an agent session in the repo and invoke `/onboard` for a first-touch setup.
+
+## Key Skills
+
+Skills are agent-invocable workflows under `tools/skills/`. Invoke them with `/<name>` in a Claude Code session.
+
+### Research Workflow
+
+| Skill | Purpose |
+|---|---|
+| `/solve` | Run a single QMB calculation — ground state, gap, correlations |
+| `/reproduce-paper` | End-to-end reproduction of a paper's figure or main result |
+| `/survey` | Survey a research topic via web search, build a focused knowledge base with BibTeX |
+| `/download-ref` | Add an arXiv/DOI paper to `.knowledge/` with metadata and rendered markdown |
+| `/arxiv-search` | Semantic search over arXiv preprints (physics, math, CS) |
+
+### Computation & Analysis
+
+| Skill | Purpose |
+|---|---|
+| `/parameter-scan` | Sweep one or more parameters (e.g. `J2/J1`, bond dimension, system size) |
+| `/scaling-fit` | Finite-size scaling, data collapse, critical-exponent extraction |
+| `/cross-method-check` | Verify a result with an independent method or diagnostic |
+| `/scientific-visualization` | Publication-quality figures — journal styles, colorblind-safe palettes, multi-panel layouts |
+| `/report` | Render an HTML report for a run (proposal before compute, results after) |
+
+### Stack (Software Libraries)
+
+| Skill | Stack | Language |
+|---|---|---|
+| `/itensors` | ITensors.jl / ITensorMPS.jl — DMRG, TEBD, MPS | Julia |
+| `/pepskit` | PEPSKit.jl / TensorKit.jl — PEPS, CTMRG | Julia |
+| `/xdiag` | XDiag.jl — exact diagonalization, Lanczos | Julia |
+| `/sse` | StochasticSeriesExpansion.jl / Carlo.jl — sign-free QMC | Julia |
+| `/netket` | NetKet — VMC, neural quantum states | Python (JAX) |
+| `/quspin` | QuSpin — exact diagonalization | Python |
+| `/tensorcircuit-ng` | TensorCircuit-NG — differentiable quantum circuits, VQE | Python (JAX) |
+| `/jax` | JAX backend setup for NetKet / TensorCircuit-NG | Python |
+
+### Method Guidance
+
+| Skill | Purpose |
+|---|---|
+| `/method-ed` | Exact diagonalization route selection; invokes `/xdiag` or `/quspin` |
+| `/method-mps` | DMRG / TEBD / MPS route selection; invokes `/itensors` |
+| `/method-peps` | PEPS / CTMRG route selection; invokes `/pepskit` |
+| `/method-qmc` | Sign-free QMC / SSE route selection; invokes `/sse` |
+| `/method-vmc` | VMC / NQS route selection; invokes `/netket` and `/jax` |
+| `/method-qcs` | Circuit simulation route selection; invokes `/tensorcircuit-ng` and `/jax` |
+| `/method-mf` | Mean-field / SCF route selection; uses the mean-field method card |
+
+### Infrastructure
+
+| Skill | Purpose |
+|---|---|
+| `/onboard` | First-touch setup and orientation for new users |
+| `/setup-julia` | Bootstrap Julia environment with project dependencies |
+| `/slurm` | Ship computation to a remote Slurm cluster, monitor jobs, resume failures |
+| `/ion-cli` | Skill lifecycle management (create, install, remove, search) |
+
+### Knowledge
+
+| Skill | Purpose |
+|---|---|
+| `/physics` | Physics background for QMB models and phenomena |
+| `/model` | Model definitions (Hamiltonians, lattices, symmetries) |
