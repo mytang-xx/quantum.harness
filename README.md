@@ -1,99 +1,102 @@
-# Harnessing Quantum 2026
+# quantum.harness
 
-This repo hosts the **Harnessing Quantum 2026** (智御量子 2026) summer school and an ongoing quantum many-body research harness.
+A student-facing quantum many-body research harness. It helps an AI agent choose a method, write runnable code, run the calculation, and verify the result.
 
-Participants: read the [submission guide](https://giggleliu.github.io/summer-school-2026/zh/guide).
+Each method track is curated by world-leading experts in that computational approach, so the guidance reflects real research practice: what to compute, which checks matter, and where common failures happen.
+
+If you are here for **Harnessing Quantum 2026**, start from the [submission guide](https://giggleliu.github.io/summer-school-2026/zh/guide), then use this repo to choose a track and produce a reproducible calculation.
+
+## Start Here
+
+Paste this into Claude Code, Codex, or OpenCode:
+
+```text
+Clone https://github.com/QuantumBFS/quantum.harness,
+run `make skills` to install the harness skills,
+then run /onboard. I am a student; help me choose a track and complete a reproducible quantum many-body calculation.
+```
+
+Then ask:
+
+```text
+/track-starter
+```
+
+## Student Workflow
+
+1. Pick a method track.
+2. Install only the software stack that track needs.
+3. Reproduce a target result or run a small model calculation.
+4. Verify the result with limits, convergence checks, and benchmarks when available.
+5. Submit a runnable script plus a short report.
 
 ## Tracks
 
-| Abbrev | Method | Background |
+Each track folder contains the method-specific starting point for students, including the target problem, recommended stack, and verification expectations.
+
+| Track | Contributor | Folder |
 |---|---|---|
-| `mf` | Mean Field | [`.knowledge/methods/mean-field.md`](.knowledge/methods/mean-field.md) |
-| `ed` | Exact Diagonalization | [`.knowledge/methods/ed/METHOD.md`](.knowledge/methods/ed/METHOD.md) |
-| `mps` | MPS | [`.knowledge/methods/mps-based-algorithm.md`](.knowledge/methods/mps-based-algorithm.md) |
-| `peps` | PEPS | [`.knowledge/methods/peps-based-algorithm.md`](.knowledge/methods/peps-based-algorithm.md) |
-| `qmc` | Quantum Monte Carlo | [`.knowledge/methods/quantum-monte-carlo.md`](.knowledge/methods/quantum-monte-carlo.md) |
-| `vmc` | Variational Monte Carlo / NQS | [`.knowledge/methods/variational-monte-carlo-neural-quantum-states.md`](.knowledge/methods/variational-monte-carlo-neural-quantum-states.md) |
-| `qcs` | Quantum Circuit Simulation | [`.knowledge/methods/quantum-circuit-simulation.md`](.knowledge/methods/quantum-circuit-simulation.md) |
+| Exact diagonalization | [Chen Cheng (程晨)](https://scholar.google.com/citations?user=LZpS-T0AAAAJ) | [`tracks/ed/`](tracks/ed/) |
+| MPS / DMRG / TEBD | [Wei Li (李伟)](https://scholar.google.com/citations?user=7wiebe8AAAAJ) | [`tracks/mps/`](tracks/mps/) |
+| PEPS / CTMRG | [Hai-Jun Liao (廖海军)](https://scholar.google.com/citations?user=_8KbQtEAAAAJ) | [`tracks/peps/`](tracks/peps/) |
+| Quantum Monte Carlo | [Ming-Pu Qin (秦明普)](https://scholar.google.com/citations?user=ikqa-0IAAAAJ), [Kun Chen (陈锟)](https://scholar.google.com/citations?user=YItDGoIAAAAJ) | [`tracks/qmc/`](tracks/qmc/) |
+| VMC / neural quantum states | [Yan-Tao Wu (武琰涛)](https://scholar.google.com/citations?user=D8sgaMwAAAAJ) | [`tracks/vmc/`](tracks/vmc/) |
+| Quantum circuit simulation | [Shi-Xin Zhang (张士欣)](https://scholar.google.com/citations?user=Ut8nVqIAAAAJ), [Jin-Guo Liu (刘金国)](https://scholar.google.com/citations?user=4edw228AAAAJ) | [`tracks/qcs/`](tracks/qcs/) |
 
-Per-track briefs live under [`tracks/<abbrev>/README.md`](tracks/).
+## Expert Curators
 
-## Harness
+The method tracks and verification practices are shaped by active researchers who review the harness's method cards, benchmark values, and computational judgment.
 
-Outside the event, this repo is a general QMB research harness.
-
-- Method cards under [`.knowledge/methods/`](.knowledge/methods/).
-- Skills under [`skills/`](skills/), managed by [Ion](https://github.com/Roger-luo/Ion).
-- Shell helpers and generated runnable calculations under [`scripts/`](scripts/).
-- Software stack contracts live beside stack skills as `skills/<stack>/stack.toml`.
-- Cluster mechanism via `/using-slurm`; per-cluster defaults under [`skills/using-slurm/profiles/`](skills/using-slurm/profiles/).
-- Default stack: Julia (ITensors.jl, ITensorMPS.jl, KrylovKit.jl, MPSKit.jl, PEPSKit.jl, XDiag.jl) and Python (NetKet on JAX, QuSpin, TensorCircuit-NG, quimb).
-- Common skills: `/solve` (single calculation), `/track-starter` (choose a challenge-track target), `/reproduce-paper` (paper end-to-end), `/using-slurm` (ship + submit on cluster).
-
-Open an agent session in the repo and invoke `/onboard` for a first-touch setup.
-
-## Key Skills
-
-Skills are agent-invocable workflows under `skills/`. Invoke them with `/<name>` in a Claude Code session.
-
-### Research Workflow
-
-| Skill | Purpose |
+| Name | Affiliation |
 |---|---|
-| `/solve` | Run a single QMB calculation — ground state, gap, correlations |
-| `/track-starter` | Pick a challenge-track paper/task before handing off to `/reproduce-paper` |
-| `/reproduce-paper` | End-to-end reproduction of a paper's figure or main result |
-| `/survey` | Survey a research topic via web search, build a focused knowledge base with BibTeX |
-| `/download-ref` | Add an arXiv/DOI paper to `.knowledge/` with metadata and rendered markdown |
-| `/arxiv-search` | Semantic search over arXiv preprints (physics, math, CS) |
+| [Chen Cheng (程晨)](https://scholar.google.com/citations?user=LZpS-T0AAAAJ) | Lanzhou University |
+| [Hai-Jun Liao (廖海军)](https://scholar.google.com/citations?user=_8KbQtEAAAAJ) | Institute of Physics, CAS |
+| [Kun Chen (陈锟)](https://scholar.google.com/citations?user=YItDGoIAAAAJ) | Institute of Theoretical Physics, CAS |
+| [Ming-Pu Qin (秦明普)](https://scholar.google.com/citations?user=ikqa-0IAAAAJ) | Shanghai Jiao Tong University |
+| [Shi-Xin Zhang (张士欣)](https://scholar.google.com/citations?user=Ut8nVqIAAAAJ) | Institute of Physics, CAS |
+| [Wei Li (李伟)](https://scholar.google.com/citations?user=7wiebe8AAAAJ) | Beihang University |
+| [Yan-Tao Wu (武琰涛)](https://scholar.google.com/citations?user=D8sgaMwAAAAJ) | Institute of Physics, CAS |
+| [Jin-Guo Liu (刘金国)](https://scholar.google.com/citations?user=4edw228AAAAJ) | Hong Kong University of Science and Technology (Guangzhou) |
 
-### Computation & Analysis
+## Terminal Setup
 
-| Skill | Purpose |
-|---|---|
-| `/parameter-scan` | Sweep one or more parameters (e.g. `J2/J1`, bond dimension, system size) |
-| `/scaling-fit` | Finite-size scaling, data collapse, critical-exponent extraction |
-| `/cross-method-check` | Verify a result with an independent method or diagnostic |
-| `/scientific-visualization` | Publication-quality figures — journal styles, colorblind-safe palettes, multi-panel layouts |
-| `/report` | Render an HTML report for a run (proposal before compute, results after) |
+```bash
+git clone https://github.com/QuantumBFS/quantum.harness.git
+cd quantum.harness
+make skills
+make help
+```
 
-### Stack (Software Libraries)
+Install a stack after you choose a track, for example:
 
-| Skill | Stack | Language |
-|---|---|---|
-| `/using-itensors` | ITensors.jl / ITensorMPS.jl — DMRG, TEBD, MPS | Julia |
-| `/using-pepskit` | PEPSKit.jl / TensorKit.jl — PEPS, CTMRG | Julia |
-| `/using-xdiag` | XDiag.jl — exact diagonalization, Lanczos | Julia |
-| `/using-sse` | StochasticSeriesExpansion.jl / Carlo.jl — sign-free QMC | Julia |
-| `/using-netket` | NetKet — VMC, neural quantum states | Python (JAX) |
-| `/using-quspin` | QuSpin — exact diagonalization | Python |
-| `/using-tensorcircuit-ng` | TensorCircuit-NG — differentiable quantum circuits, VQE | Python (JAX) |
-| `/using-jax` | JAX backend setup for NetKet / TensorCircuit-NG | Python |
+```bash
+make install julia
+```
 
-### Method Guidance
+## Example Prompts
 
-| Skill | Purpose |
-|---|---|
-| `/method-ed` | Exact diagonalization route selection; invokes `/using-xdiag` or `/using-quspin` |
-| `/method-mps` | DMRG / TEBD / MPS route selection; invokes `/using-itensors` |
-| `/method-peps` | PEPS / CTMRG route selection; invokes `/using-pepskit` |
-| `/method-qmc` | Sign-free QMC / SSE route selection; invokes `/using-sse` |
-| `/method-vmc` | VMC / NQS route selection; invokes `/using-netket` and `/using-jax` |
-| `/method-qcs` | Circuit simulation route selection; invokes `/using-tensorcircuit-ng` and `/using-jax` |
+```text
+I want to reproduce Figure 2 of arXiv:1711.03528, the PXP quantum many-body scars paper. Use /reproduce-paper to guide me.
+```
 
+```text
+/solve ground state of the J1-J2 Heisenberg model on a 6x6 square lattice at J2/J1=0.5
+```
 
-### Infrastructure
+```text
+Survey recent work on neural quantum states for frustrated magnets. Use /survey to build a reference library.
+```
 
-| Skill | Purpose |
-|---|---|
-| `/onboard` | First-touch setup and orientation for new users |
-| `/setup-julia` | Bootstrap Julia environment with project dependencies |
-| `/using-slurm` | Ship computation to a remote Slurm cluster, monitor jobs, resume failures |
-| `/ion-cli` | Skill lifecycle management (create, install, remove, search) |
+## What The Harness Provides
 
-### Knowledge
+- Model and physics cards with Hamiltonians, conventions, phases, and known limits.
+- Method cards with algorithm choices, setup guidance, and verification checks.
+- Skills such as `/onboard`, `/track-starter`, `/reproduce-paper`, `/solve`, `/parameter-scan`, and `/survey`.
+- Generated scripts under `scripts/` and outputs under `results/`.
+- Cluster support for calculations too large for a laptop.
 
-| Skill | Purpose |
-|---|---|
-| `/physics` | Physics background for QMB models and phenomena |
-| `/model` | Model definitions (Hamiltonians, lattices, symmetries) |
+## More
+
+- [`.knowledge/`](.knowledge/) - model, physics, method, benchmark, and literature cards.
+- [`skills/`](skills/) - agent workflows invoked as `/name`.
+- [`AGENTS.md`](AGENTS.md) - full harness operating instructions.
