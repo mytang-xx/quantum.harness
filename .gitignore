@@ -10,6 +10,9 @@ julia-env/.CondaPkg/
 .julia/
 .knowledge/literature/**/.raw/
 .knowledge/literature/**/.figures/
+tracks/**/.raw/
+tracks/**/.figures/
+tracks/**/results/
 
 # Per-method JSON manifests are derived from .knowledge/literature/ref.bib
 # via skills/download-ref/helpers/bibtex_to_manifest.py — don't sync.

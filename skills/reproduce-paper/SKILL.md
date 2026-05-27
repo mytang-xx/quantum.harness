@@ -47,7 +47,7 @@ Required card rows:
 | Model parameters | Couplings, lattice, boundary, size, sector, initial/state selection, and observable fixed by the paper. |
 | Method | Plain-English method introduction, exact vs approximate status, and recommended tool-using skill when known. |
 
-After the card, enter the configuration step. Do not invent choices for source-fixed facts; use `1. Confirm`, `2. Show source`, `3. Override/correct` only when a confirmation is still needed.
+After the card, **pause and confirm the setup with the user** before entering the configuration step. Present the card and ask `1. Confirm`, `2. Show source`, `3. Override/correct`. Do not proceed to tool selection or parameter questions until the user confirms the setup card.
 
 ## Configuration step
 
@@ -69,7 +69,9 @@ Finish with a compact summary table containing `Parameter`, `Value`, and `Source
 
 ## One source of data: `run.json`
 
-During questioning, do not create a run directory, `run.json`, report, script, plot, or paper-panel image. Keep a compact pending plan in the conversation only until all planning questions are answered. Then write the complete plan once to a timestamped run directory: `results/YYYYMMDD-HHMMSS-<paper-or-model>-<brief>/run.json`. Use local time for the timestamp, keep the suffix short and slug-safe, and never reuse a prior run directory. Re-read `run.json` before building the report, before running, and before reporting. **Never** reconstruct a parameter from conversation memory after `run.json` exists — context is not a safe store.
+During questioning, do not create a run directory, `run.json`, report, script, plot, or paper-panel image. Keep a compact pending plan in the conversation only until all planning questions are answered. Then write the complete plan once to a timestamped run directory: `tracks/<track>/results/YYYYMMDD-HHMMSS-<paper-or-model>-<brief>/run.json`. Use local time for the timestamp, keep the suffix short and slug-safe, and never reuse a prior run directory. Re-read `run.json` before building the report, before running, and before reporting. **Never** reconstruct a parameter from conversation memory after `run.json` exists — context is not a safe store.
+
+Scripts go to `tracks/<track>/solutions/<script>.{jl|py}` — committed code that can be re-run. Generated data and figures go to `tracks/<track>/results/` — gitignored, not committed.
 
 After the planning questions are complete, `run.json` is the *only* data source. The report is built one-way from it — `run.json` → a generic `report.json` (the render input) → `report.html` — and never read back. `report.json` and the HTML are *derived* views, regenerated from `run.json`; they are never edited or treated as a second source. A run is **one computation** (model + method + sizes → one spectrum/dataset) and a list of **figures**, each a single view of it — so several figures from the same data share one run, never copied across files. Representative shape (each figure's `results` block fills in after the run):
 
@@ -95,7 +97,7 @@ After the planning questions are complete, `run.json` is the *only* data source.
 
 ## The report: built from `run.json`, rendered by `/report`
 
-Two stdlib-only, offline steps. First `python3 skills/reproduce-paper/build_report.py <run-dir>` maps `run.json` → a generic `report.json`, laying the reproduction out as **Model / Method / Figures**. Then `/report` renders that into one self-contained `results/<run>/report.html` (`python3 skills/report/render_report.py <run-dir>`). This skill owns the *plan, the data in `run.json`, and that layout* (`build_report.py`); `/report` owns only generic rendering and the LaTeX→MathML conversion. Write math as LaTeX in `run.json` — `model.H` as a display equation, any other string carrying `$…$` inline, moduli and bra-kets as `\left|\langle Z_2|\psi\rangle\right|^2` so the exponent sits on the whole `|…|` — and it flows through to MathML.
+Two stdlib-only, offline steps. First `python3 skills/reproduce-paper/build_report.py <run-dir>` maps `run.json` → a generic `report.json`, laying the reproduction out as **Model / Method / Figures**. Then `/report` renders that into one self-contained `tracks/<track>/results/<run>/report.html` (`python3 skills/report/render_report.py <run-dir>`). This skill owns the *plan, the data in `run.json`, and that layout* (`build_report.py`); `/report` owns only generic rendering and the LaTeX→MathML conversion. Write math as LaTeX in `run.json` — `model.H` as a display equation, any other string carrying `$…$` inline, moduli and bra-kets as `\left|\langle Z_2|\psi\rangle\right|^2` so the exponent sits on the whole `|…|` — and it flows through to MathML.
 
 Two moments, same file, per figure:
 
@@ -110,7 +112,7 @@ Two moments, same file, per figure:
 4. **Estimate carefully.** Use the scaling rules below to fill the cost table — it drives the user's scope and where-to-run choices. For any scale question, estimate the paper-size run and the largest local-PC-in-15-min run before asking the user to choose. Flag finicky or custom parts up front so they're anticipated, but don't over-plan.
 5. **Materialize the proposal** — after all planning questions are answered, create the timestamped run directory, write `run.json`, capture the paper's target panel as `paper_image`, run `build_report.py`, then render via `/report`; give its path and, on a laptop, offer to open it.
 6. **Approve / Change / Discuss** — one question once the proposal is built. *Approve* (recommended) locks the plan and runs; *Change <which>* jumps back to that one choice; *Discuss* opens it up. This is the run's only approval.
-7. **Run** the approved plan. The script lands at `scripts/<model>_<brief>.{jl|py}` and saves its figure under `results/<run>/`. Fix ordinary code breakage quietly and rerun; interrupt the user only when a real choice is needed (e.g., the chosen tool genuinely can't express this target).
+7. **Run** the approved plan. The script lands at `tracks/<track>/solutions/<model>_<brief>.{jl|py}` and saves its output (figures, data) under `tracks/<track>/results/<run>/`. Fix ordinary code breakage quietly and rerun; interrupt the user only when a real choice is needed (e.g., the chosen tool genuinely can't express this target).
 8. **Append results** — fill each figure's `results` block in `run.json`, re-run `build_report.py`, and re-render via `/report`. Then offer a couple of next steps drawn from the outcome (e.g., a larger scope, another figure from the same data, or stop).
 
 Rendering composes with `/report`; a cluster run composes with `/slurm` (ship / submit / monitor / fetch); installs compose with `/setup-julia`. This skill does not duplicate those.
@@ -132,6 +134,8 @@ Read the selected method skill to determine which tool skill applies. Then read 
 ## Picking the tool
 
 Recommend the right method skill first, then the tool-using skill it selects. Method skills carry generic method insight and tool-selection rules; tool skills carry software-specific setup and estimates. For each candidate stack, consult its skill folder and `stack.toml` (for example `/xdiag` with `skills/xdiag/stack.toml`, `/netket` with `skills/netket/stack.toml`, `/tensorcircuit-ng`, `/pepskit`, `/itensors`, `/quspin`, `/sse`, or `/jax`). The executable source of truth for installs remains `Makefile` / setup scripts; `stack.toml` names install commands, smoke tests, docs, official URLs, and setup constraints. Method cards may narrow the stack order only after the method skill has selected the method route.
+
+**Tool introduction is mandatory.** When presenting the recommended tool, include a plain-English introduction: what the package is, who maintains it, what it does, and what makes it suited to this specific problem. Give solid, concrete reasons for the recommendation — not just "it supports X" but why X matters for this paper's reproduction. Do the same (shorter) for alternatives so the user can compare.
 
 Tool and setup questions are recommendation-first. Present the recommended route as "Use /<tool-skill>" with a concrete reason, then 1-2 real alternatives. One option must be `Search web for official paper code / setup` unless the user has forbidden web access or the current turn has already verified official code from a primary source. Do not search the web silently; offer it as a selectable option or state that the user already asked for it. Each option shows setup state (`ready`, `needs install`, `needs web check`, `official code unavailable`) and a one-line consequence. Don't recommend a tool just because it is installed, and don't silently switch tools on an install error — say so and let the user choose.
 
