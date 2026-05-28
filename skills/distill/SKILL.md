@@ -26,11 +26,14 @@ No frequency gate: a trick used in a single paper still counts if it passes the 
 
 Sweep each paper through these concerns; only populated ones reach the output.
 
-- **Scope / tooling / cost** — what the method does · typical cases (concrete problems + sizes reached) · best-fit scenario · boundary (what it can't do) · software & tools · implementation difficulty (lines of code + hardest parts) · compute-cost estimate (CPU core-hours) · improvement directions.
+- **Scope / tooling / cost** — what the method does · typical cases (concrete problems + sizes reached) · best-fit scenario · boundary (what it can't do) · software & tools · implementation difficulty (lines of code + hardest parts) · compute-cost estimate (CPU core-hours).
 - **Method-usage** — setup & parameters · success / validation · failure modes · taking the limit · systematic bias.
 - **Scientific** — problem framing & mappings · observable design · model / regime choice.
+- **Open problems (gaps)** — research-relevant open problems the *paper itself* flags, in its statements or its own data (e.g. a regime where its own figure shows accuracy breaking down) · the directions that would close them.
 
-**Method-focused, not problem-focused.** Every concern is about *this method* (and the contributor's own codes), never a menu of alternative methods for the same problem — e.g. *software & tools* lists what implements this method, not what else could solve the problem. The method's own lineage (its successors / developed family) is in scope; genuinely *other* methods get at most a line or two for contrast, never a focus. *Improvement directions* is surveyed but **left blank in the default report** (answered on request).
+**Method-focused, not problem-focused.** Every concern is about *this method* (and the contributor's own codes), never a menu of alternative methods for the same problem — e.g. *software & tools* lists what implements this method, not what else could solve the problem. The method's own lineage (its successors / developed family) is in scope; genuinely *other* methods get at most a line or two for contrast, never a focus.
+
+**Gaps come from the paper, not the agent.** A gap is filled **only** from what the paper states or shows in its own data — each pinned to a location, never the agent's outside knowledge or a guess. A candidate the paper does not support is **demoted to an interview target**, not asserted. The *directions* that would close a gap come from the expert, so they too stay as interview targets, not filled.
 
 ## Flow
 
@@ -38,14 +41,14 @@ Sweep each paper through these concerns; only populated ones reach the output.
 2. **Resolve corpus.** Find the expert's *method-relevant* papers (from the given source, else web-search the name + method). Rank by relevance + impact; keep a working set (~15–25).
 3. **Confirm papers before downloading.** Print a table — `Paper | Authors | Method usage | Year` — with the **chosen expert's name bolded** in each author list (this also disambiguates identity). Ask the user to confirm or trim the set. Download nothing until confirmed.
 4. **Download** the confirmed set via `/download-ref` into `.knowledge/literature/<method>/`.
-5. **Sweep & extract.** Read each paper through the lens; pull the technical *moves* (the "how", not the results), each with its evidence location. Method-level concerns — typical cases, software & tools, implementation difficulty — may need a brief survey beyond the corpus (web, parallel subagents); mark anything the sources don't state as an interview target rather than inventing it.
+5. **Sweep & extract.** Read each paper through the lens; pull the technical *moves* (the "how", not the results) and the **open problems the paper flags**, each with its evidence location. Method-level concerns — typical cases, software & tools, implementation difficulty — may need a brief survey beyond the corpus (web, parallel subagents); mark anything the sources don't state as an interview target rather than inventing it. Gaps in particular come only from the paper's own statements or data.
 6. **Select by importance.** Apply the four tests; drop the trivial.
-7. **Confirm tricks.** Present the survivors one at a time with their evidence; user keeps / cuts / edits.
-8. **Render the dossier** via `/report`, sections in this order: **Scope, tooling & cost** → **Method-usage tricks** → **Scientific tricks** → **Improvement directions** (left blank). Open the HTML.
+7. **Confirm one at a time.** Present each surviving trick — and each candidate **gap** — to the user individually with its evidence; never batch. For a gap, give a **Pro** (how strongly the paper backs it: explicit statement > shown in its own data > a reading of positive framing) and a **Con** (the weakness); the user keeps / cuts / rewords, or **demotes** a weakly-grounded gap to an interview target rather than asserting it.
+8. **Render the dossier** via `/report`, sections in this order: **Scope, tooling & cost** → **Method-usage tricks** → **Scientific tricks** → **Open problems & improvement directions**. Open the HTML.
 
 ## Output shape
 
-One webpage at `docs/<method-group>/<method-abbrev>-<expert>-distillation.html` (e.g. `docs/peps/ltrg-weili-distillation.html`). The group dir matches the existing `docs/<method>/` convention (those dirs already hold `interview.html` / `review.html`); the filename prefixes the specific method variant and the expert, both fixed at intake. Four sections (the last left blank), scientific-report register — declarative and impersonal, abbreviations spelled out, no colloquialisms.
+One webpage at `docs/<method-group>/<method-abbrev>-<expert>-distillation.html` (e.g. `docs/peps/ltrg-weili-distillation.html`). The group dir matches the existing `docs/<method>/` convention (those dirs already hold `interview.html` / `review.html`); the filename prefixes the specific method variant and the expert, both fixed at intake. Four sections, scientific-report register — declarative and impersonal, abbreviations spelled out, no colloquialisms.
 
 **Scope, tooling & cost** — one table (only rows with real content; method-level rows may be surveyed beyond the corpus):
 
@@ -64,9 +67,11 @@ One webpage at `docs/<method-group>/<method-abbrev>-<expert>-distillation.html` 
 | Trick | What it is | Why it matters | Evidence |
 |---|---|---|---|
 
-**Improvement directions** — a final section left **blank** by default (a dashed placeholder; answered on request).
+**Open problems & improvement directions** — a final section pairing the paper-sourced **gaps** (a table — *Open problem (from the paper)* · *Why it matters* · *Evidence* — each row a statement or datum the paper itself supplies) with an **Interview targets** list (the directions that would close them, plus any candidate demoted for weak grounding). The gaps are filled; the directions are not.
 
 Evidence is the location in the paper (figure / equation / section). Mark the scannable keypoints with `==…==` (renders as a yellow highlight) and bold each trick name, so a human can skim the page. Keep `$…$` math **outside** `==…==` and `**…**` spans — a highlight or bold span cannot contain math and will silently fail to render.
+
+For readability, give each table a `widths` list that keeps the label and *Evidence* columns narrow so the prose columns get the room, and mark the *Evidence* column `muted` so citations recede. The page's section navigation (a left rail / chip-bar that tracks the active section) is added by `/report` automatically — no work needed here.
 
 Build the sections as `/report` `table` blocks, then render and place the page:
 
