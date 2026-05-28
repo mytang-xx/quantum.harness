@@ -66,3 +66,6 @@ skills/scientific-visualization
 docs/superpowers/
 skills/arxiv-search
 skills/survey
+
+# Git worktrees
+.worktrees/
