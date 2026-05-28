@@ -21,6 +21,7 @@ draws whatever pieces it is handed, in order.
 Math convention:
   - an `equation` block's `tex` is a LaTeX equation (no delimiters), display math.
   - any string may carry inline LaTeX in $…$ (or display in $$…$$).
+  - any string may carry **bold** (→ <strong>) and ==highlight== (→ <mark>) spans for keypoints.
 The LaTeX→MathML converter below is stdlib-only and covers the physics subset
 (sub/superscripts, groups, \\frac, \\sqrt, sums/products/integrals with limits,
 Greek, \\mathbf/\\vec, common operators). Unknown commands render literally.
@@ -217,19 +218,27 @@ def _mathml(latex, display=False):
 
 
 _MATH = re.compile(r"\$\$(.+?)\$\$|\$(.+?)\$", re.DOTALL)
+_EMPH = re.compile(r"\*\*(.+?)\*\*")
+_MARK = re.compile(r"==(.+?)==")
+
+
+def _emph(escaped):
+    """Render ==highlight== and **bold** spans in escaped, math-free text."""
+    s = _MARK.sub(r"<mark>\1</mark>", escaped)
+    return _EMPH.sub(r"<strong>\1</strong>", s)
 
 
 def mathify(x):
-    """Escape text, converting $…$ / $$…$$ spans to inline MathML."""
+    """Escape text, converting $…$ / $$…$$ to MathML and **…** to <strong>."""
     if x is None:
         return ""
     s, out, last = str(x), [], 0
     for m in _MATH.finditer(s):
-        out.append(esc(s[last:m.start()]))
+        out.append(_emph(esc(s[last:m.start()])))
         disp = m.group(1) is not None
         out.append(_mathml(m.group(1) if disp else m.group(2), display=disp))
         last = m.end()
-    out.append(esc(s[last:]))
+    out.append(_emph(esc(s[last:])))
     return "".join(out)
 
 
@@ -250,6 +259,7 @@ body{line-height:1.55}
 a{color:var(--accent);text-decoration:none;border-bottom:1px solid transparent}
 a:hover{border-bottom-color:var(--accent)}
 code{font-family:var(--mono);font-size:.9em;background:var(--code-bg);padding:1px 5px;border-radius:3px}
+mark{background:#fde68a;color:var(--ink);padding:1px 5px;border-radius:3px;font-weight:600;box-decoration-break:clone;-webkit-box-decoration-break:clone}
 math{font-family:var(--serif);font-size:1.04em}
 math[display="block"]{font-size:1.2em;margin:2px 0}
 .wrap{max-width:880px;margin:0 auto;padding:46px 40px 100px}

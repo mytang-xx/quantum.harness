@@ -1,0 +1,63 @@
+{
+  "title": "Wei Li · LTRG — Method Distillation",
+  "eyebrow": "/distill · expert-interview prep",
+  "url": "https://arxiv.org/abs/1011.0155",
+  "lede": "Method-usage tricks of the Linearized Tensor Renormalization Group (LTRG) as practiced by Wei Li, distilled from the originating paper (Li et al., PRL 2010).",
+  "sections": [
+    {
+      "title": "Scope, tooling & cost",
+      "note": "Cases, tooling, and limits are surveyed across the LTRG family (LTRG → XTRG → tanTRG); the tricks below derive from the 2010 LTRG paper.",
+      "blocks": [
+        {
+          "kind": "table",
+          "columns": ["Item", "Content", "Evidence"],
+          "rows": [
+            ["**What it does**", "==Finite-temperature thermodynamics== — free energy, internal energy, specific heat — of one- and two-dimensional quantum lattice models, reaching the ==thermodynamic limit== (an effectively infinite system) in one dimension.", "abstract; Eq.(2)–(3)"],
+            ["**Typical cases**", "Benchmarked on one-dimensional XY and Heisenberg chains (this paper); the successors XTRG and tanTRG extend it to ==two-dimensional cylinders of width 8–10== (square-, triangular-, and kagome-lattice magnets) and to the two-dimensional Hubbard model at ==temperatures of a few percent of the hopping energy==.", "arXiv:1011.0155, 1801.00142, 2212.11973"],
+            ["**Best-fit**", "Two-dimensional systems at finite temperature for which quantum Monte Carlo is obstructed by the ==sign problem== (negative sampling weights).", "closing summary; honeycomb test"],
+            ["**Boundary**", "In two dimensions the accessible ==cylinder width (≈8–10)== is set by the bond dimension $D_c$ rather than the total site count, and quantitative validation is restricted to the ==sign-problem-free regime==.", "Fig. 5; XTRG / tanTRG"],
+            ["**Software & tools**", "No general open-source LTRG implementation exists: LTRG and its successors (XTRG, tanTRG) are distributed only in the authors' QMagen package (MATLAB), and are otherwise ==implemented in-house== on a tensor / SVD library. The controlling parameters are intrinsic to LTRG — the bond dimension $D_c$ (retained states) and the imaginary-time step.", "QMagen; method papers"],
+            ["**Implementation**", "A one-dimensional core is ==≈300–800 lines== on a tensor / SVD library (≈1.5–3k for full XTRG / tanTRG). The principal difficulties are ==maintaining a stable truncation toward low temperature== and implementing symmetry-resolved tensor contractions.", "method papers"],
+            ["**Compute cost (CPU core-hours)**", "Each imaginary-time step scales as $O(D^6 D_c^3)$ — $D$ = ==local state dimension== (2 for spin-½), $D_c$ = bond dimension. Total cost ≈ this × number of imaginary-time steps × number of temperature points. ==Absolute core-hours are not reported== and remain an interview target.", "Fig. 2 caption"]
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Method-usage tricks",
+      "note": "Techniques for executing the method reliably.",
+      "blocks": [
+        {
+          "kind": "table",
+          "columns": ["Trick", "What it is", "Why it matters", "Evidence"],
+          "rows": [
+            ["**Linear decimation**", "The transfer-matrix network is decimated ==one row per imaginary-time step==, discarding only $D_c$ singular values per step — versus the older coarse-graining renormalization (TRG), which discards substantially more.", "Origin of LTRG's ==accuracy and scalability== over TRG.", "after Eq.(6); Fig. 2 caption"],
+            ["**Normalization-factor accumulation**", "Singular values are rescaled by their largest element at each step to ==prevent divergence== of the imaginary-time evolution; the free energy is reconstructed from the accumulated normalization factors.", "==The discarded norms encode the free energy==.", "free-energy paragraph (Fig. 3)"],
+            ["**Error-source attribution by regime**", "Independent variation of the imaginary-time step and the bond dimension $D_c$ isolates the error source: at ==high temperature== it saturates in $D_c$ (time-discretization–limited); at ==low temperature== it decreases with $D_c$ (truncation-limited).", "Identifies ==which parameter limits accuracy== in each regime.", "Fig. 4"],
+            ["**Thermodynamic limit via pairwise contraction**", "Pairwise contraction of $2^p$ matrices over $p$ steps yields $2^p$ sites — here $2^{100}$, ==effectively the thermodynamic limit== — at a cost growing only with $p$.", "==Removes finite-size error== at negligible cost in one dimension.", "free-energy paragraph"]
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Scientific tricks",
+      "note": "Physical insights underlying the calculation.",
+      "blocks": [
+        {
+          "kind": "table",
+          "columns": ["Trick", "What it is", "Why it matters", "Evidence"],
+          "rows": [
+            ["**Quantum-to-(D+1) classical mapping**", "A Trotter–Suzuki decomposition recasts the $D$-dimensional quantum model as a ==classical tensor network in one higher dimension==; the thermal density operator becomes a matrix product operator (a one-dimensional tensor chain).", "Reduces thermodynamics to a ==tensor-network contraction==.", "intro; Eq.(2)–(3)"],
+            ["**Impurity-tensor observables**", "The internal energy is read from a ==local impurity tensor== inserted in the network, cross-validated against the temperature derivative of the free energy.", "A measurement intrinsic to the network, ==not finite differencing==.", "internal-energy paragraph"]
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Improvement directions",
+      "blocks": [
+        { "kind": "note", "style": "pending", "text": "—" }
+      ]
+    }
+  ]
+}
