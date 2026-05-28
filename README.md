@@ -1,5 +1,10 @@
 # quantum.harness
 
+> **Warning**
+> This harness system is in a very early stage. Contributors are welcome, but
+> the project is not ready for general users yet. A formal release is planned
+> for August 2026.
+
 A computational quantum research harness. It helps an AI agent to run the simulation of quantum systems.
 Each method is curated by world-leading experts in that computational approach, so the guidance reflects real research practice: what to compute, which checks matter, and where common failures happen.
 
