@@ -18,13 +18,13 @@ and `.figures/` directories inside each method folder.
 
 - `mps-based-algorithm/` - DMRG, TEBD, and matrix-product-state references.
 - `peps-based-algorithm/` - CTMRG and PEPS-based references.
+- `ltrg/` - linearized tensor renormalization group (finite-temperature) references.
 - `quantum-monte-carlo/` - quantum Monte Carlo references.
 - `variational-monte-carlo-neural-quantum-states/` - variational Monte Carlo and neural quantum state references.
 - `quantum-circuit-simulation/` - tensor-network / VQE-style circuit simulation references.
 - `anderson-impurity/` - Anderson/Kondo impurity solver references.
 - `dmft/` - DMFT references mentioned as adjacent/future methodology.
 - `ed/` - exact diagonalization references.
-- `magic/` - non-stabilizerness / SRE references.
 
 `ref.bib` lives at this directory's root. To regenerate it from the rendered
 markdown (e.g. after a manual edit drift) run

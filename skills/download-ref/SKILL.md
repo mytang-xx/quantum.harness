@@ -57,19 +57,19 @@ This layout matches sci-brain's KB conventions closely enough that
 sci-brain tools (`download-ref`, `ideas`, `survey`) can operate on any
 single method dir by passing `--kb .knowledge/literature/<method>`.
 
-Method slugs MUST match an existing method card slug under
-`.knowledge/methods/<method>` when one exists. Use these canonical slugs:
+Method slugs MUST match an existing literature dir
+`.knowledge/literature/<method>` when one exists. Use these canonical slugs:
 
 ```text
 mps-based-algorithm
 peps-based-algorithm
+ltrg
 quantum-monte-carlo
 variational-monte-carlo-neural-quantum-states
 quantum-circuit-simulation
 ed
 anderson-impurity
 dmft
-magic
 ```
 
 Introduce a new slug only when no existing method card matches the
