@@ -50,7 +50,7 @@ Model slots (from the model / problem layer):
 | Slot | Meaning | Constraint | Setup strategy |
 |---|---|---|---|
 | `Lx,Ly,Lz` | sites per axis (supercell) | positive integers | a `1` axis collapses (its `t`, `k` ignored); for the thermodynamic limit run a size series and extrapolate energy/site vs `1/L²` |
-| `N_up,N_dn` | up / down electron counts | non-neg int, `≤ 2·Lx·Ly·Lz` | filling `(N_up+N_dn)/N_sites`; half-filling at `N_up=N_dn=N_sites/2` |
+| `N_up,N_dn` | up / down electron counts | non-neg int, `≤ Lx·Ly·Lz` per spin (validation.m only caps at `2·N_sites`, but the trial WF needs `≤ N_sites`) | filling `(N_up+N_dn)/N_sites`; half-filling at `N_up=N_dn=N_sites/2` |
 | `kx,ky,kz` | twist angle `θ = π·k` (TABC) | each in `(−1,1]` | PBC `(0,0,0)` has large finite-size / shell error → twist-average over random twists; collapsed-axis component is ignored |
 | `U` | on-site Hubbard repulsion | `U ≥ 0` (repulsive only) | sets correlation strength `U/t`; constrained-path bias grows with `U` |
 | `tx,ty,tz` | nearest-neighbor hopping | `≥ 0` | usually `t = 1` as the energy unit; collapsed-axis hopping is ignored |
@@ -72,9 +72,9 @@ Run / sampling slots (from the method / reproduction layer):
 
 ### Reference runs (published — scale references, not defaults)
 
-Sampling-parameter sets the authors actually used. They are listed only to anchor the scale of a sensible run; **do not copy them as defaults**. Each was tuned for the system and target shown, and still requires the per-slot convergence checks above (`Δτ → 0`, `N_wlk` bias, block decorrelation, `τ_eq`) on your own system. Note how the authors changed `itv_pc` (40 → 5) and `itv_modsvd` (5 → 1) between systems — evidence that these are tuned, not fixed.
+Sampling-parameter sets the authors actually used (the `U` and lattice in each row are the scientific target, not part of the recipe — Fig. 4 in fact scans `U = 0–8`). They are listed only to anchor the scale of a sensible run; **do not copy them as defaults**. Each was tuned for the system and target shown, and still requires the per-slot convergence checks above (`Δτ → 0`, `N_wlk` bias, block decorrelation, `τ_eq`) on your own system. Note how the authors changed `itv_pc` (40 → 5) and `itv_modsvd` (5 → 1) between systems — evidence that these are tuned, not fixed.
 
-| Source | System (`U=4`, `t=1`) | `deltau` | `N_wlk` | `N_blksteps` | `N_eqblk` | `N_blk` | `itv_modsvd` | `itv_pc` | `itv_Em` |
+| Source | System (`t=1`) | `deltau` | `N_wlk` | `N_blksteps` | `N_eqblk` | `N_blk` | `itv_modsvd` | `itv_pc` | `itv_Em` |
 |---|---|---|---|---|---|---|---|---|---|
 | `sample.m` tutorial | 2×1, 1↑1↓ | 0.01 | 100 | 40 | 2 | 20 | 5 | 10 | 20 |
 | §V timing | 4×4 5↑5↓ … 128×1 65↑63↓ | 0.01 | 1000 | 40 | 10 | 50 | 5 | 40 | 40 |
@@ -98,7 +98,7 @@ The scientific values — model, lattice, couplings, sectors, run parameters, es
 Estimate runtime only after the run parameters are set.
 
 - Built-in cost heuristic (`validation.m`): `N_wlk·N_blksteps·(N_eqblk+N_blk)·Lx·Ly·(N_up+N_dn) > 1e11` warns of a run longer than a day.
-- Cost scales roughly as `size³`; memory `∝ basis × electrons × walkers`. MATLAB is ~30× slower than a FORTRAN production code (§V).
+- Cost scales roughly as `size³`; memory `∝ basis × electrons × walkers`. MATLAB is much slower than a FORTRAN production code by a system-dependent factor — ≈32× for 4×4 5↑5↓ (32 vs 1 min), narrowing to ≈2.5× for 128×1 65↑63↓ (460 vs 186 min) (§V).
 - For an uncertain run size, use a short timing probe that measures package step rate only (no scientific claim), then multiply by the caller-specified parameter grid and repeat count.
 - Route to `/using-slurm` when the estimate exceeds local exploratory budget, or when independent points (twists, sizes) can run as an array.
 
