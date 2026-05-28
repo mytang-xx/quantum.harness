@@ -24,7 +24,7 @@ QMC is the stochastic sampling track. Use it to decide whether the target is sig
 
 Invoke `/using-sse` after an SSE route is chosen. `/using-sse` owns thermalization, sweeps, chains, bins, beta/temperature grid, autocorrelation checks, sign checks, MPI setup, and time estimate.
 
-Invoke `/using-cpmc-lab` after a CPMC/AFQMC package route is chosen. `/method-qmc` owns method parameters such as walkers, blocks, timesteps, trial state, population control, and stochastic checks; `/using-cpmc-lab` owns Matlab setup, official package installation, batch invocation, `.mat` outputs, and package-level time probing.
+Invoke `/using-cpmc-lab` after a CPMC/AFQMC package route is chosen. `/using-cpmc-lab` owns the package mechanics: MATLAB setup, official package installation, batch invocation, `.mat` outputs, and package-level time probing. The scientific run parameters are caller-supplied (from the model and reproduction protocol), not set by this card.
 
 ## Details
 
@@ -46,7 +46,7 @@ Use this card for:
   convergence.
 - Large-size checks where ED is impossible and DMRG geometry would bias a 2D
   result.
-- Constrained-path / phaseless AFQMC ground states of fermionic Hubbard-type
+- Constrained-path / phaseless AFQMC ground states of fermionic lattice
   models, through the CPMC-Lab package route (`/using-cpmc-lab`).
 
 Do not use this card for:
