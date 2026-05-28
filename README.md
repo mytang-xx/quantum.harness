@@ -14,8 +14,7 @@ The Harness provides:
 - **Supporting skills** for research survey, report writing, paper reproduction.
 - **Cluster support** for calculations too large for a laptop.
 
-<img alt="image" src="https://github.com/user-attachments/assets/30c5dc11-f7e8-4b15-a161-0e78ddfecfad" />
-
+<img alt="harness-c" src="https://github.com/user-attachments/assets/5b624046-099b-4743-8fee-ca39aa68b09b" />
 
 ## Start Here
 
