@@ -74,19 +74,25 @@ Two moments, same file, per figure:
 
 ### Showing figures and opening the report
 
-- **Discussion stage** — once the target figure/panel is identified (step 0), show the user the paper's figure being reproduced so they see the target while deciding. On the app, embed it inline as a markdown image link to the figure file (`![Fig 2a — from the paper](path/to/figure.png)`); in a terminal, open the image file instead (`open` / `xdg-open`). Surface is the AGENTS.md → Equation Rendering signal (`CLAUDE_CODE_ENTRYPOINT`). No run files are written yet.
+- **Discussion stage** — once the target figure/panel is identified (step 0), show the user the paper's figure being reproduced so they see the target while deciding. Embed the **local extracted file** from `.figures/` (guaranteed by step 0), **never a remote URL** — a remote link makes the user open it manually instead of seeing it inline. On the app, embed it inline as a markdown image (`![Fig 2a — from the paper](path/to/figure.png)`); in a terminal, open the file (`open` / `xdg-open`). Decide terminal vs app from the AGENTS.md → Equation Rendering surface signal (per agent; if unknown, open the file). Don't skip it. No run files are written yet.
 - **When the report is built or rebuilt** (the proposal at step 5, then again after results) — auto-open `report.html`, which carries the figs-to-reproduce beside our reproduction, in a browser on both terminal and app (`open` on macOS, `xdg-open` on Linux). Open it; don't merely offer.
 
 ## Flow — the workflow spine
 
 ### Step 0 — Clarify the problem
 
-Brainstorm each drift-relevant decision one at a time; keep choices pending (no files yet). Cover:
+Once you know which paper this is, make sure it is available locally **before** showing any figure or writing files:
+
+1. **Check the knowledge base** — `grep` the arXiv id / title across `.knowledge/literature/`, and check for *both* the rendered `.md` *and* its extracted figures under the method's `.figures/`.
+2. **Run `/download-ref` if either is missing** — the paper not rendered at all, *or* rendered as `.md` but with no `.figures/` extracted (a common state). It fetches the PDF, renders, and extracts the figures; the figure you show in the discussion stage comes from that extraction.
+
+Then brainstorm each drift-relevant decision one at a time; keep choices pending (no files yet). Cover:
 
 - **Description** — is the target clear enough to reproduce? When the user invokes this skill without a paper or figure, ask what to reproduce with **no** recommended option (include known targets if a prior handoff named them; for an unknown target use a neutral option like `Another paper — track unknown until the paper is named`; do not read track READMEs here — `/track-starter` owns track-paper selection).
 - **Problem setup** — model + couplings, lattice, boundary; system size; symmetry sector; interaction strength; initial/state selection. These are mostly paper-stated facts → confirm, don't fork.
 - **Output** — which figure(s)/panel(s) (one computation can feed several); and **per figure**: the observable plotted (y-axis) + normalization + which states it uses; the x-axis (parameter swept, range, spacing); what we expect to see and what would count as reproduced.
-- **Per-problem-type extras — confirm what this kind of problem needs.** A finite-temperature target needs the temperature / β grid (and, for an imaginary-time method, the Trotter step); a stochastic target needs sample/sweep counts and seeds; a tensor-network target needs the bond-dimension target. Surface the ones the chosen method will need (the `/method-*` card lists them) and confirm them as part of the setup.
+- **Method parameters** — the parameters that method needs, whatever knobs it actually has (e.g. the symmetry sector for ED, the bond dimension for DMRG). The `/method-*` card lists the full set; confirm the ones the paper fixes and surface the rest as drift-relevant.
+- **Per-problem-type extras — confirm what this kind of problem needs.** A finite-temperature target needs the temperature / β grid (and, for an imaginary-time method, the Trotter step); a stochastic target needs sample/sweep counts and seeds; a tensor-network target needs the bond-dimension target. Surface the ones the chosen method will need and confirm them as part of the setup.
 
 Once the target figure/panel is identified, **show the user that paper figure** (see *Showing figures and opening the report*).
 
@@ -117,7 +123,7 @@ These three steps are owned by the method and tool skills; this spine only enfor
 
 **Step 2 — select software.** From the method skill's *Select software* section, present the recommended tool as "Use /<tool-skill>" with a concrete reason, then 1–2 real alternatives. **Tool introduction is mandatory** — what the package is, who maintains it, what it does, and why it suits *this* problem; do the same (shorter) for alternatives. One option must be `Search web for official paper code / setup` unless the user forbade web access or official code is already verified this turn. Each option shows setup state (`ready`, `needs install`, `needs web check`, `official code unavailable`) and a one-line consequence. Don't recommend a tool just because it is installed, and don't silently switch tools on an install error — say so and let the user choose. Flag the effort honestly when it differs: most routes run an existing package, but some (e.g. LTRG) have no package and mean implementing the algorithm from the `/method-*` card's `## Details` with the tool's primitives — a larger, more error-prone job to choose with eyes open.
 
-**Step 3 — configure.** Guide parameters one at a time, skipping any already pinned by the paper or user. Pull **method-side knobs** (tricks, what each controls, how it affects results) from the `/method-*` *Method setup* section, and **software parameter values** from the `/using-*` *Parameter setup* / *Knobs* sections. Each question states: the parameter, why it matters for reproducing this figure, the paper-stated value if one exists, its source, and the consequence of each option. Record each gloss in `method.note` so the report carries it. *(Method-specific care travels with the method card — e.g. `/method-ed` requires naming every symmetry and flagging any approximation; `/method-qmc` requires the sign / equilibration checks; `/method-ltrg` requires the normalization bookkeeping.)* Finish with a compact configuration summary table (`Parameter`, `Value`, `Source`).
+**Step 3 — configure (mandatory).** This is the bridge between what the paper did and what this run will actually do, and it is never skipped. Guide parameters strictly **one at a time — one parameter per message; wait for the answer before asking the next, and never present a batch of knobs at once.** Skip any already pinned by the paper or user. Pull **method-side knobs** (tricks, what each controls, how it affects results) from the `/method-*` *Method setup* section, and **software parameter values** from the `/using-*` *Parameter setup* / *Knobs* sections. Each question states: the parameter, why it matters for reproducing this figure, the paper-stated value if one exists, its source, and 2–3 real options, each with its consequence. Recommend only on tool/setup choices, not scientific ones — scale and scientific choices stay neutral. Record each gloss in `method.note` so the report carries it. *(Method-specific care travels with the method card — e.g. `/method-ed` requires naming every symmetry and flagging any approximation; `/method-qmc` requires the sign / equilibration checks; `/method-ltrg` requires the normalization bookkeeping.)* Finish with a compact configuration summary table (`Parameter`, `Value`, `Source`).
 
 ### Step 4 — Review the plan
 
@@ -152,6 +158,7 @@ Rendering composes with `/report`; a cluster run composes with `/using-slurm` (s
 - No compute before Approve, beyond the one labeled timing probe.
 - No failure-fork, no auto-review, no walls of terminal text.
 - Don't hide downsizing, fallback tools, missing observables, or changes from the paper.
+- Don't show the target figure as a remote URL or a bare link the user must open — embed the local extracted image file inline; if none exists, run `/download-ref` first.
 - Don't duplicate `/method-*` or `/using-*` content here — delegate steps 1–3 and pull their checklists; this spine owns step 0, steps 4–5, and the implementation flow.
 - Don't make the user read internal files to understand the plan — the proposal page is the plain-English surface.
 - Don't keep a second copy of the run's data; `run.json` is the single source.
