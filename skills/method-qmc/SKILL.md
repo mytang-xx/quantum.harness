@@ -10,13 +10,16 @@ QMC is the stochastic-sampling method class. This card owns method selection (st
 Two routes:
 
 - **SSE** — stochastic series expansion for sign-problem-free spin/bosonic lattices, finite-temperature curves (and ground states via large β).
-- **CPMC/AFQMC** — constrained-path / phaseless auxiliary-field QMC for ground states of repulsive Hubbard-type fermions, via the official CPMC-Lab package.
+- **CPMC/AFQMC** — constrained-path / phaseless auxiliary-field QMC for interacting fermions. The survey covers both the **zero-temperature** (ground-state projection) and **finite-temperature** (grand-canonical) forms `{survey}`; the harness route — the official CPMC-Lab package — implements the ground-state form for repulsive Hubbard-type models.
 
 ## Sources
 
 - Track README: `tracks/qmc/README.md`
 - Tool skills: `/using-sse` (SSE route), `/using-cpmc-lab` (CPMC/AFQMC route)
-- Primary literature: Nguyen, Shi, Xu, Zhang, *CPMC-Lab* (2014) `.knowledge/literature/quantum-monte-carlo/1407.7967_cpmc-lab-a-matlab-package-for-constrained-path-monte-carlo-c.md`; Sandvik, *Computational Studies of Quantum Spin Systems* (2010) for SSE; Becca & Sorella (2017).
+- Survey (primary, AFQMC): Zhang, *Auxiliary-Field Quantum Monte Carlo at Zero- and Finite-Temperature* (2019) `.knowledge/literature/quantum-monte-carlo/zhang_2019_auxiliary-field-quantum-monte-carlo.md` — the methodology reference for the CPMC/AFQMC route.
+- Reproduction target + CP algorithm details: Nguyen, Shi, Xu, Zhang, *CPMC-Lab* (2014) `.knowledge/literature/quantum-monte-carlo/1407.7967_cpmc-lab-a-matlab-package-for-constrained-path-monte-carlo-c.md`.
+- SSE methodology: Sandvik, *Computational Studies of Quantum Spin Systems* (2010); QMC textbook: Becca & Sorella (2017).
+- `{survey}` claims below trace to Zhang (2019) for AFQMC and Sandvik (2010) for SSE.
 
 ## Select method — step 1
 
@@ -105,11 +108,12 @@ This card is generic methodology. Paper-specific Hamiltonian choices, figure pro
 - Sign (SSE): average Monte Carlo sign; should stay near 1.
 - Mixed estimator (CPMC): ⟨Ψ_T|O|Φ⟩ / ⟨Ψ_T|Φ⟩ — exact for the energy, biased for observables that do not commute with H (need back-propagation).
 - Constrained path (CPMC): random-walk paths kept on one side of the trial-WF node to tame the sign/phase problem; the resulting energy is non-variational and biased.
+- Phaseless (AFQMC): the complex-auxiliary-field generalization of the constraint (force bias + cosine projection), for systems with a phase problem (Coulomb / ab-initio). `{survey}`
 
 ### Routes
 
 - **SSE:** expand `Z = Tr e^{−βH}` as a power series and sample operator strings; measure finite-T observables in a fixed basis. Sign-freeness needs a bipartite / unfrustrated structure (e.g. a sublattice rotation).
-- **CPMC/AFQMC:** Hubbard-Stratonovich the interaction into auxiliary fields, project the trial WF by an imaginary-time random walk in Slater-determinant space, and keep paths under the constraint. Ground-state energy via the mixed estimator.
+- **CPMC/AFQMC:** Hubbard-Stratonovich the two-body interaction into auxiliary fields, then sample paths in over-complete Slater-determinant space — imaginary-time projection of a trial WF (ground state) or a grand-canonical path integral `det[I + B_L⋯B_1]` with fluctuating particle number (finite T) `{survey}`. The sign/phase problem comes from the |Ψ₀⟩ ↔ −|Ψ₀⟩ symmetry: determinant space splits at the unknown node ⟨Ψ₀|φ⟩ = 0, and paths reaching it contribute only noise. An exact boundary condition (discard paths crossing the node) keeps the estimate exact; in practice the node is approximated by the trial WF — the **constraint** — removing the sign/phase decay at the cost of a bias. Real fields (short-range Hubbard) → sign problem → **CPMC**; complex fields (Coulomb / ab-initio) → phase problem → **phaseless AFQMC** (force bias). Ground-state energy via the mixed estimator.
 
 ## Verification — implementation stage {survey}
 
@@ -128,6 +132,7 @@ This card is generic methodology. Paper-specific Hamiltonian choices, figure pro
 
 ## Citations
 
+- `.knowledge/literature/quantum-monte-carlo/zhang_2019_auxiliary-field-quantum-monte-carlo.md` — Zhang, *AFQMC at Zero- and Finite-Temperature* (2019). Survey: §2 formalism (HS transformation, ground-state projection, §2.3 finite-T grand-canonical), §3 sign/phase problem, exact boundary condition, constrained-path & phaseless approximations.
 - `.knowledge/literature/quantum-monte-carlo/1407.7967_cpmc-lab-a-matlab-package-for-constrained-path-monte-carlo-c.md` — Nguyen, Shi, Xu, Zhang, *CPMC-Lab* (2014). CPMC method, parameters, Table I exact energies, §V timing.
 - `.knowledge/literature/quantum-monte-carlo/1101.3281_computational-studies-of-quantum-spin-systems.md` — Sandvik (2010). SSE methodology.
 - `.knowledge/literature/quantum-monte-carlo/10-1017-9781316417041.md` — Becca & Sorella (2017).
