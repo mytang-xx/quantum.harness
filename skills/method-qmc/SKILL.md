@@ -20,12 +20,13 @@ Two routes:
 - Reproduction target + CP algorithm details: Nguyen, Shi, Xu, Zhang, *CPMC-Lab* (2014) `.knowledge/literature/quantum-monte-carlo/1407.7967_cpmc-lab-a-matlab-package-for-constrained-path-monte-carlo-c.md`.
 - SSE methodology: Sandvik, *Computational Studies of Quantum Spin Systems* (2010); QMC textbook: Becca & Sorella (2017).
 - `{survey}` claims below trace to Zhang (2019) for AFQMC and Sandvik (2010) for SSE.
+- Software landscape (step 2) `{survey · web 2026}`: ipie (`github.com/JoonhoLee-Group/ipie`), QMCPACK AFQMC module, ALF, SmoQyDQMC.jl.
 
 ## Select method — step 1
 
 ### Suited for {survey}
 
-- **CPMC/AFQMC:** ground states of repulsive Hubbard-type fermion models in any dimension, finite supercell with periodic or twisted boundary — the 2D-fermion regime where the sign problem blocks naive QMC. The constraint restores polynomial (~cube-of-size) scaling; it is exact only if the trial wavefunction equals the true ground state. `[High]`
+- **CPMC/AFQMC:** ground states (and, in the grand-canonical form, finite temperature) of interacting many-fermion systems with two-body interactions — in any one-particle basis (lattice sites, plane waves, Gaussians), spanning correlated-electron models, cold Fermi gases, solids, and quantum chemistry `{survey}`. The constraint restores low-polynomial (~cube-of-size) scaling, exact only if the trial wavefunction is exact; production AFQMC routinely treats O(1000) electrons at accuracy comparable to CCSD(T) near equilibrium `{survey}`. **In this harness the only AFQMC tool is CPMC-Lab — single-band repulsive Hubbard ground state**; broader targets need a production code (route out). `[High]`
 - **SSE:** sign-problem-free spin and bosonic lattice models in a fixed basis — finite-temperature observables (susceptibility, magnetization, structure factor, stiffness, energy, Binder ratios), and ground states by taking β large. `[High]`
 - Sizes reached: CPMC-Lab demonstrates 1D chains up to 128 sites (65↑/63↓) and 2D up to 4×4 (5↑5↓, 7↑7↓), any filling; thermodynamic limit via a size series + twist averaging. `[High]` SSE scales to ~10³ sign-free spins. `[Med]`
 
@@ -47,24 +48,31 @@ Two routes:
 
 ## Select software — step 2
 
-### Open-source tools
+### Tools — the route, the maintained SOTA, and a cross-check `{survey · web 2026}`
 
-- **SSE:** StochasticSeriesExpansion.jl on Carlo.jl (Julia) — the harness default for the SSE route.
-- **CPMC/AFQMC:** the official **CPMC-Lab** MATLAB package (pedagogical, ~2850 lines, CPC non-profit license); returns ground-state energy ± standard error for the single-band repulsive Hubbard model, with a free-electron (restricted-HF) trial wavefunction built automatically. It is explicitly a *template* for a production FORTRAN/C AFQMC code, not a production code itself. `[High]`
-- A sign-free SSE result needs no custom code; AFQMC beyond single-band repulsive Hubbard requires CPMC-Lab source edits — route back here.
+- **SSE route:** StochasticSeriesExpansion.jl on Carlo.jl (Julia) — the harness default for sign-free spin/boson SSE.
+- **CPMC/AFQMC — harness tool:** the official **CPMC-Lab** MATLAB package — pedagogical, frozen since 2014, single-band-Hubbard ground-state constrained-path. Easy to read and run, not production-scale. Tool specifics live in `/using-cpmc-lab`. `[High]`
+- **CPMC/AFQMC — maintained production SOTA (not in the harness; route out / install on demand):**
+  - **ipie** (Apache-2.0; Python + C/C++; active through 2026; `github.com/JoonhoLee-Group/ipie`) — the leading phaseless AFQMC code: ground-state and finite-T, lattice **and** ab-initio (PySCF interface), single/multi-determinant and selected-CI trials, back-propagation, GPU + MPI. Best general-purpose choice once CPMC-Lab is outgrown. `[High]`
+  - **QMCPACK AFQMC module** (open / NCSA-style; C++; v4.2.0, 2026) — mature ph-AFQMC, ab-initio focused, NOMSD/PHMSD trials, back-propagated RDM observables, PySCF front end, leadership-HPC scale; GPU for single-determinant trials. `[High]`
+  - PAUXY is deprecated → use ipie.
+- **Independent cross-check (different method, not constrained-path):** unconstrained finite-T determinant QMC — **ALF** (Fortran, lattice) or **SmoQyDQMC.jl** (Julia, very active) — numerically exact but sign-problem-limited; cross-validate, don't substitute. `[Med]`
 
 ### Features to confirm
 
 - SSE: thermalization, sweeps, chains, bins, β/temperature grid, autocorrelation/binning diagnostics, MPI — owned by `/using-sse`.
-- CPMC-Lab: the 21-positional-argument `CPMC_Lab` entry point, `.mat` outputs (per-block energies, trial WF), `matlab -batch` invocation — owned by `/using-cpmc-lab`.
+- CPMC-Lab: signature, parameters, `.mat` outputs, install/run mechanics — all owned by `/using-cpmc-lab`.
 
-### Options & trade-offs {survey}
+### Options & trade-offs `{survey · web 2026}`
 
-| Tool | Ecosystem / examples | Efficiency | When |
-|---|---|---|---|
-| StochasticSeriesExpansion.jl / Carlo.jl | Julia; tutorial (BaNi₂V₂O₈ MagChi vs T) | native, MPI-parallel | SSE route `[Med]` |
-| CPMC-Lab (MATLAB) | official package + `sample.m`, GUI | MATLAB ≈32× slower than production FORTRAN at 4×4, narrowing to ≈2.5× at 128×1 `[High]` | learning / medium AFQMC runs `[High]` |
-| Production AFQMC (Zhang/Qin lineage) | multi-determinant/symmetry trials, back-propagation, phaseless | fast; not in this harness | large / ab-initio `[Low]` |
+| Tool | Maintained | Lang | CP / ph | T=0 / T>0 | Lattice / ab-initio | GPU | Use when |
+|---|---|---|---|---|---|---|---|
+| CPMC-Lab (harness) | frozen 2014 | MATLAB | constrained-path | T=0 | Hubbard | no | learning / small Hubbard ground states |
+| ipie | yes (2026) | Python+C/C++ | phaseless (+ free-proj) | both | both | yes | production AFQMC, ab-initio, GPU |
+| QMCPACK AFQMC | yes (2026) | C++ | phaseless | T=0 | mainly ab-initio | partial | ab-initio at HPC scale |
+| ALF / SmoQyDQMC.jl | yes (2026) | Fortran / Julia | unconstrained DQMC | T>0 | lattice | no | finite-T lattice cross-check (sign-limited) |
+
+The SSE route uses StochasticSeriesExpansion.jl / Carlo.jl (Julia; native, MPI-parallel).
 
 ### Handoff
 
@@ -76,19 +84,17 @@ Two routes:
 
 Conceptual knobs and the tricks behind them. Concrete software values live in `/using-sse` and `/using-cpmc-lab`.
 
-**CPMC/AFQMC** {survey}:
+**CPMC/AFQMC** {survey} — method-level knobs (concrete CPMC-Lab parameter names, defaults, and convergence values live in `/using-cpmc-lab`):
 
-| Knob | Controls | Trick / how it affects results |
+| Knob (method-level) | Controls | Trick / how it affects results |
 |---|---|---|
-| `Δτ` (deltau) | imaginary-time step | Trotter error ∝ Δτ²; extrapolate Δτ→0 (e.g. 0.025/0.05/0.1; production 0.01) `[High]` |
-| `N_wlk` | walker population | too few → population-control bias; bias shrinks as it grows (test 10/20/40/80) `[High]` |
-| `N_eqblk` | equilibration blocks | burn-in τ_eq = Δτ·N_blksteps·N_eqblk must exceed projection-to-ground-state time; read τ_eq off the E-vs-τ plot `[High]` |
-| `N_blksteps` | steps per block | set ≥ autocorrelation time so saved blocks decorrelate `[High]` |
-| `N_blk` | measurement blocks | sample count → error ∝ 1/√N_blk `[High]` |
-| `itv_pc` | population-control interval | comb walkers to stop weight blow-up; introduces a bias that can be extrapolated away `[High]` |
-| `itv_modsvd` | re-orthonormalization interval | modified Gram-Schmidt vs round-off in repeated B-matrix products; smaller is safer/costlier `[High]` |
-| twist `kx,ky` | boundary phase (TABC) | PBC has large finite-size / open-shell error → twist-average; keep size × #twists ≈ const `[High]` |
-| trial wavefunction | the constraint | CP bias is set by trial quality; CPMC-Lab fixes one RHF determinant — multi-determinant/symmetry trials reduce bias (not in CPMC-Lab) `[High/Low]` |
+| Imaginary-time step | Trotter discretization | error ∝ step²; extrapolate step→0. The constraint also carries a small finite-step error `[High]` |
+| Population control | walker-weight stability | stops weight blow-up but biases the result when total weight is modified — a bias/variance trade; extrapolate or carry a weight-history correction `[High]` |
+| Importance sampling / force bias | sampling efficiency | shift the field distribution by the optimal force bias (∝ √step) to minimize weight fluctuation; for complex fields this is the phaseless force bias `[High]` |
+| Trial wavefunction + constraint | the CP / phaseless bias | set by trial quality; lower it via mean-field background subtraction, symmetry restoration, or multi-determinant / symmetry-projected trials `[High]` |
+| Boundary / twist averaging | finite-size error | PBC has large shell effects; twist-average (TABC) to reach the thermodynamic limit faster; keep size × #twists ≈ const `[High]` |
+| Estimator (mixed vs back-propagated) | observable accuracy | mixed is exact for the energy, biased for non-commuting observables → back-propagation for pure estimates `[High]` |
+| Constraint release / self-consistency | systematic bias removal | free-projection to gauge/remove CP bias, or feed the AFQMC density matrix back as a self-consistent constraint `[Med]` |
 
 **SSE** {survey}: β = 1/T grid (a ground-state claim needs a β sweep, not one low-T point); thermalization sweeps (drop early bins); bin size (raise near criticality where autocorrelation grows); sweeps/chains (error bars); MPI chain count. `[High/Med]`
 
@@ -124,9 +130,10 @@ This card is generic methodology. Paper-specific Hamiltonian choices, figure pro
 
 ### Final verification + expert criticism
 
-- Exact small-system cross-check: CPMC vs ED on the same Hamiltonian/boundary (CPMC-Lab Table I gives exact 2-site / 4-site / 2×4 / 4×4 energies at U/t = 4). `[High]`
-- Δτ→0 extrapolation; `N_wlk` population-control-bias check; block decorrelation (vary `binsize` / `N_blksteps`). `[High]`
-- Twist averaging + energy/site vs 1/L² to the thermodynamic limit; benchmark vs Bethe-ansatz / ED (1D E₀/M = −0.5736(1) vs −0.573729). `[High]`
+- Exact small-system cross-check: CPMC vs ED on the same Hamiltonian/boundary (the CPMC-Lab paper tabulates exact small-lattice energies; reproduction values live in `/reproduce-paper`). `[High]`
+- Imaginary-time-step → 0 extrapolation; population-control-bias check (vary walker count); block decorrelation. `[High]`
+- Twist averaging + energy/site vs 1/L² to the thermodynamic limit; benchmark vs Bethe-ansatz / ED where available. `[High]`
+- Constraint-bias control: free-projection / constraint release, a better or symmetry-projected trial, or a self-consistent constraint — the CP energy sitting *below* the exact value is expected, not a correctness guarantee. `{survey}`
 - SSE: β convergence for any ground-state claim; finite-size scaling across several L; compare square-lattice Heisenberg to published reference values. `[High/Med]`
 - **Criticize:** quoting the constrained-path energy as if it were variational (it is not); no Δτ→0 or `N_wlk` extrapolation; non-commuting observables read off the mixed estimator without back-propagation; a single-determinant trial with no symmetry restoration and no release/free-projection check on the constraint bias; PBC-only finite-size claims with no twist averaging. `[High/Low]`
 
