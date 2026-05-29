@@ -49,6 +49,13 @@ def method_section(run: dict, meth: dict, scope: dict) -> dict:
         {"kind": "text", "text": meth["note"]} if meth.get("note") else None,
     ) if b]
     blocks = [{"kind": "card", "title": "Approach", "blocks": approach}]
+    params = run.get("params") or []
+    if params:
+        blocks.append({"kind": "table",
+                       "columns": ["Parameter", "Value", "Source", "Why this value", "Risk & implication", "Mitigation / fix"],
+                       "widths": ["13%", "11%", "13%", "22%", "25%", "16%"],
+                       "rows": [[p.get("name"), p.get("value"), p.get("source"),
+                                 p.get("why"), p.get("risk"), p.get("fix")] for p in params]})
     est = run.get("estimate") or []
     if est:
         act = {a.get("point"): a for a in (run.get("actual") or [])}
