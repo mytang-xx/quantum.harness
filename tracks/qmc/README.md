@@ -4,13 +4,7 @@
 
 Nguyen, Shi, Xu, Zhang, "CPMC-Lab: A Matlab package for Constrained Path Monte Carlo calculations," *Computer Physics Communications* **185**, 3344 (2014), [doi:10.1016/j.cpc.2014.08.003](https://doi.org/10.1016/j.cpc.2014.08.003), [arXiv:1407.7967](https://arxiv.org/abs/1407.7967).
 
-The official MATLAB constrained-path QMC (CPMC) package for the single-band repulsive Hubbard model; the paper documents the CPQMC algorithm in detail. Reproduce:
-
-1. **Fig. 1** — the sign problem: free-projection energy fluctuations grow with imaginary time while the constrained-path energy stays stable and converges (4×4, U/t = 4).
-2. **Fig. 4** — CPMC total / kinetic / potential energy vs interaction strength U for a 16-site ring (5↑, 7↓), benchmarked against exact diagonalization.
-3. **Fig. 5** — ground-state energy per site vs inverse lattice size for the half-filled 1D Hubbard model (U/t = 4), PBC vs twist-averaged, extrapolated to the thermodynamic limit.
-
-(Figs. 6–7 — spin and charge gaps vs inverse size — extend the same finite-size-scaling computation.)
+The official MATLAB constrained-path QMC (CPMC) package for the single-band repulsive Hubbard model; the paper documents the CPQMC algorithm in detail. CPMC controls the fermion sign problem by constraining the random walk with a trial wavefunction — trading an exact-but-exponentially-hard sign problem for a polynomial-cost, *systematically biased* (non-variational) ground-state energy whose size is set by trial-wavefunction quality. Which of the paper's figures to reproduce — the sign problem and constrained-path stability, energy vs interaction strength benchmarked against exact diagonalization, or finite-size scaling to the thermodynamic limit — is decided interactively when the track is started.
 
 ## References
 
