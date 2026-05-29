@@ -16,13 +16,14 @@ It does **not** own method selection, QMC theory, the method-level "why" (Trotte
 - Install + smoke target: `make install cpmc-lab`
 - Parameter guidance, small-system exact energies (Table I), and timing: `.knowledge/literature/quantum-monte-carlo/1407.7967_cpmc-lab-a-matlab-package-for-constrained-path-monte-carlo-c.md` (§II.6–8, §IV.2, §V)
 
-## What CPMC-Lab is — step 2 (the handoff target) {survey}
+## What CPMC-Lab is — step 2 (the handoff target)
 
 What `/method-qmc` routes here for, and what to confirm before running.
 
-- **The package.** The official CPMC-Lab MATLAB package: pedagogical, ~2850 lines, Computer Physics Communications Non-Profit Use License. It returns ground-state energy `E ± standard error` for the **single-band repulsive Hubbard model**, with a free-electron (restricted-HF) Slater-determinant trial wavefunction built automatically. It is explicitly a *template* for a production FORTRAN/C AFQMC code, not a production code itself. `[High]`
-- **Ships with it.** `sample.m` runs a real 2-site calculation (use it as the functional smoke test); `GUI.m` is a standalone interactive entry (ignore for batch runs). `[High]`
-- **Efficiency.** MATLAB is much slower than a FORTRAN production code by a system-dependent factor — ≈32× for 4×4 5↑5↓ (32 vs 1 min), narrowing to ≈2.5× for 128×1 65↑63↓ (460 vs 186 min) (§V). `[High]` Production AFQMC (Zhang/Qin lineage) adds multi-determinant / symmetry-projected trials, back-propagation, and the phaseless approximation — none of which are in CPMC-Lab. `[Low]`
+- **The package.** The official CPMC-Lab MATLAB package: pedagogical, ~2850 lines, Computer Physics Communications Non-Profit Use License. It returns ground-state energy `E ± standard error` for the **single-band repulsive Hubbard model**, with a free-electron (restricted-HF) Slater-determinant trial wavefunction built automatically. It is explicitly a *template* for a production FORTRAN/C AFQMC code, not a production code itself.
+- **Ships with it.** `sample.m` runs a real 2-site calculation (use it as the functional smoke test); `GUI.m` is a standalone interactive entry (ignore for batch runs).
+- **Implements (fixed algorithm choices).** Discrete Hirsch spin Hubbard-Stratonovich transformation, second-order Trotter split, importance-sampled open-ended random walk with combing population control and modified Gram-Schmidt stabilization; energy via the mixed estimator (the program outputs the total ground-state energy only).
+- **Efficiency.** MATLAB is much slower than a FORTRAN production code by a system-dependent factor — ≈32× for 4×4 5↑5↓ (32 vs 1 min), narrowing to ≈2.5× for 128×1 65↑63↓ (460 vs 186 min) (§V). Production AFQMC (Zhang/Qin lineage) adds multi-determinant / symmetry-projected trials, back-propagation, and the phaseless approximation — none of which are in CPMC-Lab. It is single-core MATLAB — no MPI, GPU, or threading — so the only parallelism is farming independent runs (twists, sizes, Δτ values) as array jobs (`/using-slurm`).
 - **Confirm it fits before routing here** (these are fixed by the package, not adjustable without editing it):
   - **Repulsive single-band Hubbard only** (`U ≥ 0`). Other Hamiltonians require code changes → back to `/method-qmc`.
   - **Energy via the mixed estimator** — exact for the energy, but observables that do not commute with `H` are biased (need back-propagation, not built in).
@@ -52,9 +53,9 @@ Entry point is the function in `CPMC_Lab.m`, called with 21 positional arguments
 
 Returns `E_ave` (ground-state energy), `E_err` (standard error), `savedFileName`. The saved `.mat` also holds `E` (per-block energies), `time`, `E_nonint_v` (non-interacting levels), and `Phi_T` (trial wavefunction). There is no built-in parameter sweep — loop `CPMC_Lab` externally to vary a slot.
 
-## Parameters — step 3 (software) {survey}
+## Parameters — step 3 (software)
 
-Meaning, hard constraint (enforced by `validation.m`), and the package's documented setup strategy. The method-level "why" lives in `/method-qmc`; the scientific values come from the caller.
+Meaning, hard constraint (enforced by `validation.m`), and the documented setup strategy — for each knob, a **starting point** where one is sensible (otherwise the **choosing principle**, since most of these have no system-independent default), how to converge it, and how it moves the result. Numerical knobs you tune and converge; scientific (model) slots come from the caller and stay neutral. The method-level "why" lives in `/method-qmc`.
 
 Model slots (from the model / problem layer):
 
@@ -74,16 +75,16 @@ Run / sampling slots (from the method / reproduction layer):
 | `N_wlk` | walker population | positive int | population-control bias shrinks as it grows (try 10/20/40/80); fewer walkers need more blocks for the same statistics |
 | `N_blksteps` | random-walk steps per block | positive int | set `≥` autocorrelation time so saved blocks decorrelate; find the minimum that does |
 | `N_eqblk` | equilibration (burn-in) blocks | non-neg int | burn-in time `τ_eq = deltau·N_blksteps·N_eqblk` must exceed the projection-to-ground-state time; read `τ_eq` off the E-vs-τ plot |
-| `N_blk` | measurement blocks | positive int | sets the sample count → error bar `∝ 1/√N_blk` |
+| `N_blk` | measurement blocks | positive int | sets the sample count → error bar `∝ 1/√N_blk`; raise until the error bar is small enough for the target |
 | `itv_modsvd` | re-orthonormalization interval | positive int; `> N_blksteps` ⇒ none | re-orthonormalize (modified Gram-Schmidt) often enough to stay numerically faithful; smaller is safer but costlier |
 | `itv_pc` | population-control interval | positive int; `> N_blksteps` ⇒ none | comb walkers periodically to stop weight blow-up; introduces a bias that can be extrapolated away |
-| `itv_Em` | energy-measurement interval | positive int, `≤ N_blksteps` | how often to measure energy within a block |
+| `itv_Em` | energy-measurement interval | positive int, `≤ N_blksteps` | how often to measure energy within a block; measuring is cheap, so keep it small for better statistics |
 
 `suffix` — char string appended to the saved `.mat` filename; use a timestamp or run-id to disambiguate batch runs.
 
-### Reference runs (published — scale references, not defaults) {survey}
+### Reference runs (published — scale references, not defaults)
 
-Sampling-parameter sets the authors actually used (the `U` and lattice in each row are the scientific target, not part of the recipe — Fig. 4 in fact scans `U = 0–8`). They anchor the *scale* of a sensible run; **do not copy them as defaults**. Each still requires the per-slot convergence checks above (`Δτ → 0`, `N_wlk` bias, block decorrelation, `τ_eq`) on your own system. Note how the authors changed `itv_pc` (40 → 5) and `itv_modsvd` (5 → 1) between systems — evidence that these are tuned, not fixed. `[High]`
+Sampling-parameter sets the authors actually used (the `U` and lattice in each row are the scientific target, not part of the recipe — Fig. 4 in fact scans `U = 0–8`). They anchor the *scale* of a sensible run; **do not copy them as defaults**. Each still requires the per-slot convergence checks above (`Δτ → 0`, `N_wlk` bias, block decorrelation, `τ_eq`) on your own system. Note how the authors changed `itv_pc` (40 → 5) and `itv_modsvd` (5 → 1) between systems — evidence that these are tuned, not fixed.
 
 | Source | System (`t=1`) | `deltau` | `N_wlk` | `N_blksteps` | `N_eqblk` | `N_blk` | `itv_modsvd` | `itv_pc` | `itv_Em` |
 |---|---|---|---|---|---|---|---|---|---|
@@ -95,12 +96,12 @@ Sampling-parameter sets the authors actually used (the `U` and lattice in each r
 
 The scientific values — model, lattice, couplings, sectors, run parameters, estimator, figure mapping, validation target — are caller-supplied. Where a value is open, resolve it via the step-4 brainstorm using the documented strategy above; defer model-physics choices to the model card and the run-design rationale to `/method-qmc`. This skill turns agreed values into a reproducible CPMC-Lab invocation; it does not originate them.
 
-## Time estimate — feeds step 4 {survey}
+## Time estimate — feeds step 4
 
 Estimate runtime only after the run parameters are set; the result feeds `/reproduce-paper`'s step-4 resource confirmation.
 
-- Built-in cost heuristic (`validation.m`): `N_wlk·N_blksteps·(N_eqblk+N_blk)·Lx·Ly·(N_up+N_dn) > 1e11` warns of a run longer than a day. `[High]`
-- Cost scales roughly as `size³`; memory `∝ basis × electrons × walkers`. The MATLAB-vs-FORTRAN slowdown (≈32× at 4×4 → ≈2.5× at 128×1, §V) bounds how far a local run reaches. `[High]`
+- Built-in cost heuristic (`validation.m`): `N_wlk·N_blksteps·(N_eqblk+N_blk)·Lx·Ly·(N_up+N_dn) > 1e11` warns of a run longer than a day.
+- Cost scales roughly as `size³`; memory `∝ basis × electrons × walkers`. The MATLAB-vs-FORTRAN slowdown (≈32× at 4×4 → ≈2.5× at 128×1, §V) bounds how far a local run reaches.
 - For an uncertain run size, use a short timing probe that measures package step rate only (no scientific claim), then multiply by the caller-specified parameter grid and repeat count.
 - Route to `/using-slurm` when the estimate exceeds local exploratory budget, or when independent points (twists, sizes) can run as an array.
 
