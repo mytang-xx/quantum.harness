@@ -16,7 +16,7 @@ MCRG computes the critical behavior of a classical spin model by repeatedly **co
 
 **Two variants.** *Swendsen MCRG* reads exponents from Monte-Carlo-measured correlation functions without building H′ (truncation uncontrolled). *Variational MCRG* (this card's focus) builds the best H′ within the kept couplings by convex optimization — removing critical slowing down and making the truncation error estimable.
 
-> **When this card is invoked, before any choice, orient the user in plain language (no jargon) with this table, filling the right column with *their* actual problem — their Hamiltonian, lattice, and setup. If those aren't fixed yet, use the table to elicit them; if the user has no specific problem in mind, fall back to 2D Ising (square, nearest-neighbor) as the illustration. Gloss each term on first use.**
+> **When this card is invoked, before any choice, orient the user with this table (interaction principles below), filling the right column with *their* actual problem — their Hamiltonian, lattice, and setup. If those aren't fixed yet, use the table to elicit them; if the user has no specific problem in mind, fall back to 2D Ising (square, nearest-neighbor) as the illustration.**
 
 | Ingredient | What it is | Your setup |
 |---|---|---|
@@ -51,7 +51,7 @@ All from the variational MCRG lineage; rendered papers in `.knowledge/literature
 
 | Ref | Model | Problem type | Scale | Calculated |
 |---|---|---|---|---|
-| 1707.08683 | 2D Ising, square | critical exponents | b=3 (3×3 majority); L=45–300; 13 couplings (7 even+6 odd); ~10⁶ sweeps; 16 walkers | even/odd Jacobian eigenvalues → thermal & magnetic exponents; renormalized couplings |
+| 1707.08683 | 2D Ising, square | critical exponents | b=3 (3×3 majority); L=45–300; 13 even (7 two-spin + 6 four-spin) + 5 odd couplings; ~10⁶ sweeps; 16 walkers | even/odd Jacobian eigenvalues → thermal & magnetic exponents; renormalized couplings |
 | 1903.08231 | 2D Ising, square | critical-manifold tangent space + curvature | b=2; L=256; n=4–5; 16×3×10⁶ sweeps | tangent-space normal vectors + curvature of the critical manifold |
 | 1903.08231 | 3D Ising, cubic | tangent space | b=2; L=64; n=3; 16×3×10⁵ sweeps | tangent space in 8-coupling space |
 | 1903.08231 | 2D anisotropic Ising | tangent space (marginal operator) | b=2; 4 couplings | tangent space with a marginal operator |
@@ -66,7 +66,7 @@ References: the rendered files under `.knowledge/literature/monte-carlo-renormal
 
 MCRG fits only when the target is **critical-point data** (exponents or renormalized couplings), or a quantum model mapped to classical.
 
-> **When the user's goal falls outside this, interact by these principles:** recognize it before any setup; explain *what fits better and why* in a short table (what / why); use plain language, no jargon, precise and concise; stay warm — guide, don't dismiss.
+> **When the user's goal falls outside this:** recognize it before any setup; explain *what fits better and why* in a short table (what / why); stay warm — guide, don't dismiss. (Interaction principles above.)
 
 ### Options & trade-offs
 
@@ -77,7 +77,7 @@ MCRG fits only when the target is **critical-point data** (exponents or renormal
 
 ### Routing — surface to the user
 
-> **When routing, present the choice to the user as a table** — precise, concise, plain language: which variant, when to choose it, and which fits their case. Draw the *why* from Options & trade-offs above, and make the user feel the one consequence that actually decides it: **critical slowing down** — on a large lattice near the critical point, Swendsen's sampling crawls and may never converge, while the variational bias keeps it fast — or, when reproducing, which variant the paper used. Don't decide silently; let them see the choice.
+> **When routing, present the choice to the user as a table:** which variant, when to choose it, and which fits their case (why from Options & trade-offs above). Make the user feel the one consequence that actually decides it: **critical slowing down** — on a large lattice near the critical point, Swendsen's sampling crawls and may never converge, while the variational bias keeps it fast — or, when reproducing, which variant the paper used.
 
 ## Select software — step 2
 
@@ -94,7 +94,7 @@ The compute is a custom classical Monte Carlo (Metropolis/Wolff) sampling multip
 
 ### Surface to the user
 
-> **Surface the software choice to the user — don't default silently.** In plain language, a short what/why table: (1) there's no off-the-shelf MCRG tool, so this is a **from-scratch build** — be honest about the cost (more code to write, and it must be validated against known/exact answers); (2) the route is **JAX**, because the work is sampling many walkers over many sweeps, which `vmap` + `jit` make fast — plain Python would crawl at large L. Even with no competing option, let the user feel *why* this is the deliberate choice, not an accident.
+> **Surface the software choice to the user** as a short what/why table (interaction principles above): (1) there's no off-the-shelf MCRG tool, so this is a **from-scratch build** — be honest about the cost (more code to write, and it must be validated against known/exact answers); (2) the route is **JAX**, because the work is sampling many walkers over many sweeps, which `vmap` + `jit` make fast — plain Python would crawl at large L. Even with no competing option, let the user feel *why* this is the deliberate choice, not an accident.
 
 ### Handoff
 Invoke **/using-jax** once the route is fixed — it owns JAX CPU/GPU setup, jit/vmap/PRNG mechanics, and runtime troubleshooting. This card owns the algorithm (`## Details`), the operator basis, and the convergence plan.
@@ -114,7 +114,12 @@ Each knob with its default and a consolidated principle/effect (with scaling whe
 | **Optimizer** | averaged SGD (Bach–Moulines), µ = 5×10⁻⁵→5×10⁻⁶ (L-dependent) | build the bias from the running mean J̄, not instantaneous J; shrink µ as L grows for stability; reset the running mean at 10%/20% to drop its lag; averaged SGD converges ~ O(1/steps); stop at the J̄ plateau |
 | **Spin update** | single-spin Metropolis | local Metropolis on σ under weight e^{−(H+V(τ(σ)))}; rely on the bias (not cluster moves) to kill the correlation time, which otherwise diverges as τ ~ ξ^z near T_c |
 
-> **Confirm the setup with the user before running — one knob at a time, never batched. Required, not optional; never accept a silent default.** Open by sketching the algorithm idea in plain language (from Details → The idea) and tie each knob to its role in it — the bias potential V that flattens the block spins toward a uniform target (target distribution), the optimization of V (optimizer + sampling budget), the finite operator set retained (operator basis & truncation), the block map (block size & rule), and the fixed point where the exponents live (locating K_c) — so the user feels the algorithm and the setup together. Then, for each consequential knob, present the choice in Superpowers brainstorming style: 2–3 real options, each a one-line pro/con drawn from the Default and Principle columns above, the recommended option first and labeled "(Recommended)" when there is a technical reason (the paper's value when reproducing). Ask one question, wait for the answer, then move to the next — so the user feels each trade-off. The two that most decide the result: (1) **operator basis & truncation** — the accuracy lever; too few interactions bias the exponents, the fix is to enlarge until the leading eigenvalues stop moving; (2) **block size & rule** — a larger block needs fewer steps but costs more, and the rule must respect the model's symmetry (majority works; decimation fails).
+> **Confirm the setup with the user before running — one knob per turn, never batched (interaction principles above).** Run this loop:
+>
+> 1. **Orient once.** Open with a one-sentence plain hook — e.g. *"Add a gentle push (bias) on the blocked spins so they look random and are fast to sample; the push you need turns out to be the renormalized model itself — so one fit gives both fast sampling and the answer."* Then tie each knob to its role: the bias potential V flattening block spins toward a uniform target (target distribution), the optimization of V (optimizer + sampling budget), the finite operator set kept (operator basis & truncation), the block map (block size & rule), the fixed point where the exponents live (locating K_c) — so the user feels the algorithm and the setup together. Keep the KL / convex-Ω[V] / partial-trace detail (Details → The idea) as your own backing, not a user line.
+> 2. **Then loop, one knob per turn.** Send ONE message: the recommended option first, labeled "(Recommended)" when there's a technical reason (the paper's value when reproducing), with a one-line why, then 1–2 real alternatives each with a one-line pro/con from the Default and Principle columns.
+> 3. **Ask one question, then STOP and wait for the answer before the next knob.** Never batch; never accept a silent default.
+> 4. **Walk the knobs leading with the two that decide the result:** (1) **operator basis & truncation** — the accuracy lever; too few interactions bias the exponents, fix is to enlarge until the leading eigenvalues stop moving; (2) **block size & rule** — a larger block needs fewer steps but costs more, and the rule must respect the model's symmetry (majority works; decimation fails). Then the rest.
 
 ## Details
 
