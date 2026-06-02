@@ -162,3 +162,18 @@ Swendsen's classic MCRG is the **zero-bias corner**: take the target to be the m
 
 8. **Locate K_c and evaluate there.** Bracket K_c by the flow direction of the couplings across iterations (grow → ordered, shrink → disordered); at K_c they stay constant (paper: window 0.4355–0.4365, b=3; fixed at 0.436). Evaluate the Jacobian at K_c — e.g. couplings after iteration 1 = K_α, after iteration 2 = K′_α; an accurate K_c lets a single coarsening step suffice.
 
+## Verification
+
+### Intermediate (mid-run)
+- **Optimization converged.** The running-average J̄ curves flatten to a plateau — read it *after* the periodic running-average resets (those are deliberate, non-physical jumps, not coupling flow). A J̄ still drifting at the trajectory's end = not converged. Per-step gradient/Hessian noise is expected.
+- **Critical slowing down removed.** Block-averaged standard error vs block size (Flyvbjerg–Petersen) plateaus at small block size in the biased ensemble — far later in the unbiased one. A biased curve that plateaus slowly, or whose plateau grows with system size, means the bias isn't decorrelating → eigenvalues won't converge.
+- **Bias adequate (truncation monitor).** The biased block-spin distribution approaches the target — equivalently ⟨S_α⟩_V → ⟨S_α⟩_pt operator by operator (gradient → 0). A persistent gap → the operator basis is too truncated.
+- **Coupling flow.** Monotonic drift away from K_c (grow above, shrink below), constant at K_c. Near K_c the direction is noise-sensitive — don't over-read a single close pair.
+
+### Final verification + expert criticism
+- **Benchmark.** The leading even (thermal) and odd (magnetic) Jacobian eigenvalues reproduce the model's known exponents via λ = b^y, *simultaneously*. A few-percent residual at fixed basis is truncation, not finite size, so it need not shrink with system size.
+- **Fixed point & bracketing.** Renormalized couplings stay constant across iterations at K_c (drift → off the fixed point → biased exponents); the bracketing window — flow reversing across K_c — is consistent across sizes.
+- **Convergence & cross-checks.** Enlarge the operator basis until the leading eigenvalues stop moving; cross-check biased vs unbiased (consistent up to a small truncation offset; the unbiased fails to converge at large size). Error bars from block averaging and the spread over walkers.
+
+> **Criticize:** eigenvalues read at an un-converged K_c (couplings still drifting); too-small basis with no eigenvalue-convergence test; reading instantaneous instead of running-average coefficients, or stopping before the plateau; single-lattice finite-size bias (the L and L/b lattices carry different errors — use two lattices to cancel); sign error K′ = −J_min; mistaking the running-average resets for coupling flow; mistaking noise-driven flow inversion near K_c for a K_c shift; trusting an unbiased eigenvalue at large size; conflating the truncation-error-free tangent space with the truncation-sensitive exponents.
+
