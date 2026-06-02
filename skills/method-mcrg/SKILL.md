@@ -29,7 +29,7 @@ MCRG computes the critical behavior of a classical spin model by repeatedly **co
 
 ## Sources
 
-- Tool skill: *(set in Step 2 — software routing)*
+- Tool skill: `/using-jax` — the algorithm is implemented from scratch on JAX (see Step 2).
 - Primary literature (rendered in `.knowledge/literature/monte-carlo-renormalization-group/`):
   - **1707.08683** — Wu & Car, PRL 119, 220602 (2017) — variational MCRG, 2D Ising.
   - **1903.08231** — Wu & Car, PRE 100, 022138 (2019) — critical-manifold tangent space + curvature.
@@ -76,3 +76,23 @@ MCRG fits only when the target is **critical-point data** (exponents or renormal
 ### Routing — surface to the user
 
 > **When routing, present the choice to the user as a table** — precise, concise, plain language: which variant, when to choose it, and which fits their case. Draw the *why* from Options & trade-offs above, and make the user feel the one consequence that actually decides it: **critical slowing down** — on a large lattice near the critical point, Swendsen's sampling crawls and may never converge, while the variational bias keeps it fast — or, when reproducing, which variant the paper used. Don't decide silently; let them see the choice.
+
+## Select software — step 2
+
+### No canonical open-source code
+There is **no canonical open-source code repository** for MCRG — the variational method's original code was never released, and no maintained package implements it. **Implement from scratch.** The algorithm lives in `## Details`; the primitives that express it live in `/using-jax`.
+
+### Route — Python + JAX
+The compute is a custom classical Monte Carlo (Metropolis/Wolff) sampling multiple walkers over many sweeps, plus stochastic optimization of the bias potential and a small Jacobian eigensolve. The two JAX features that matter:
+
+- **`vmap`** — run the multiple walkers together in one vectorized pass.
+- **`jit`** — compile the Metropolis/Wolff sweep so sampling is fast.
+
+(Autodiff is *not* the reason for JAX — the optimization gradients are Monte Carlo estimators, not differentiated.)
+
+### Surface to the user
+
+> **Surface the software choice to the user — don't default silently.** In plain language, a short what/why table: (1) there's no off-the-shelf MCRG tool, so this is a **from-scratch build** — be honest about the cost (more code to write, and it must be validated against known/exact answers); (2) the route is **JAX**, because the work is sampling many walkers over many sweeps, which `vmap` + `jit` make fast — plain Python would crawl at large L. Even with no competing option, let the user feel *why* this is the deliberate choice, not an accident.
+
+### Handoff
+Invoke **/using-jax** once the route is fixed — it owns JAX CPU/GPU setup, jit/vmap/PRNG mechanics, and runtime troubleshooting. This card owns the algorithm (`## Details`), the operator basis, and the convergence plan.
