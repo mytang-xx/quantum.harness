@@ -40,21 +40,21 @@ MCRG computes the critical behavior of a classical spin model by repeatedly **co
 ## Select method — step 1
 
 ### Suited for
-- Extracting **critical exponents** (thermal, magnetic, correction-to-scaling — from RG eigenvalues via y = ln λ / ln b) and **renormalized coupling constants** of lattice models at/near a critical fixed point.
+- Extracting **critical exponents** (thermal, magnetic, correction-to-scaling — from the eigenvalues of the **RG Jacobian** ∂K′/∂K, the matrix of how each renormalized coupling K′ responds to each bare coupling K, via y = ln λ / ln b) and **renormalized coupling constants** of lattice models at/near a critical fixed point. Spin-flip symmetry splits the couplings (and the Jacobian) into **even** (symmetric under flipping all spins → thermal) and **odd** (antisymmetric → magnetic) sectors.
 - Real-space and configuration-based: works directly from Monte-Carlo-sampled configurations (the variational variant samples inside a bias-potential optimization).
 - **Variational variant** when critical slowing down blocks large systems, or when you want the truncation error estimated.
 - Validated mainly in **2D and 3D**; the formalism is dimension-general.
 
 ### Worked examples
 
-All from the variational MCRG lineage; rendered papers in `.knowledge/literature/monte-carlo-renormalization-group/`. **Use this with the user: anchor their problem to the nearest row and quote its scale as a concrete reference point** (e.g. "closest to 2D Ising critical exponents — they reached L=300 with 16 walkers").
+All from the variational MCRG lineage; rendered papers in `.knowledge/literature/monte-carlo-renormalization-group/`. **Use this with the user: anchor their problem to the nearest row and quote its scale as a concrete reference point** — *walkers* are the independent Monte-Carlo chains run in parallel (e.g. "closest to 2D Ising critical exponents — they reached L=300 with 16 walkers").
 
 | Ref | Model | Problem type | Scale | Calculated |
 |---|---|---|---|---|
 | 1707.08683 | 2D Ising, square | critical exponents | b=3 (3×3 majority); L=45–300; 13 even (7 two-spin + 6 four-spin) + 5 odd couplings; ~10⁶ sweeps; 16 walkers | even/odd Jacobian eigenvalues → thermal & magnetic exponents; renormalized couplings |
 | 1903.08231 | 2D Ising, square | critical-manifold tangent space + curvature | b=2; L=256; n=4–5; 16×3×10⁶ sweeps | tangent-space normal vectors + curvature of the critical manifold |
 | 1903.08231 | 3D Ising, cubic | tangent space | b=2; L=64; n=3; 16×3×10⁵ sweeps | tangent space in 8-coupling space |
-| 1903.08231 | 2D anisotropic Ising | tangent space (marginal operator) | b=2; 4 couplings | tangent space with a marginal operator |
+| 1903.08231 | 2D anisotropic Ising | tangent space (marginal operator: RG eigenvalue 1, neither grows nor shrinks) | b=2; 4 couplings | tangent space with the marginal operator |
 | 1903.08231 | 2D tricritical Ising (Blume–Capel) | tangent space, co-dim 2 | b=2; L=256; n=5; 5–6 couplings | tangent space confirming co-dimension 2 |
 | 1810.09579 | 2D dilute Ising | disorder critical exponent | b=2; L=128(+256); Metropolis+Wolff; 3 couplings | leading even eigenvalue → disorder critical exponent |
 | 1810.09579 | 2D & 3D RFIM | disorder RG flow | b=2; L=64(+128) 2D | RG flow to the disorder fixed point |
@@ -105,9 +105,9 @@ Each knob with its default and a consolidated principle/effect (with scaling whe
 
 | Knob | Default | Principle, effect & scaling |
 |---|---|---|
-| **Block size & rule** | 3×3 majority rule, b=3 (Ising; ties random) | compose several small-b steps to a net rescaling b^n rather than one big block — fewer steps at fixed b^n means less accumulated truncation + finite-size error; the rule must respect the model's symmetry (majority for Ising; decimation proliferates couplings and fails) |
+| **Block size & rule** | 3×3 majority rule, b=3 (Ising) | compose several small-b steps to a net rescaling b^n rather than one big block — fewer steps at fixed b^n means less accumulated truncation + finite-size error; the rule must respect the model's symmetry (majority for Ising; decimation proliferates couplings and fails) |
 | **Operator basis & truncation** | 13 even (pruned from 26) + 5 odd chosen directly (Ising even/odd sectors) | start from a generous symmetry-allowed set, prune operators with small variational coefficient (\|coupling\| < 0.001), enlarge until the leading eigenvalues stop moving; the dominant accuracy lever — too few biases the exponents; optimization cost grows ~linearly in the number of coefficients; the residual p_V vs target gauges the truncation error |
-| **Target distribution p_t** | uniform | choose p_t with analytic averages; uniform makes block spins uncorrelated → removes critical slowing down; p_t = the model's own block distribution recovers Swendsen (a Gaussian for continuous variables) |
+| **Target distribution p_t** | uniform | choose p_t with analytic averages; uniform makes block spins uncorrelated → removes critical slowing down; p_t = the model's own block distribution recovers Swendsen; for continuous/unbounded variables a Gaussian p_t is the convenient target choice |
 | **Coarsening steps** | 5 per run + 1 preliminary (this paper) | enough steps to read the coupling flow; near a known K_c one step gives the Jacobian; each step compounds truncation + finite-size error; at K_c the couplings stay constant (the convergence signature) |
 | **Sampling budget** | trajectory 3000→1240 steps, 20 sweeps/step, 16 walkers (this paper) | keep sweeps/step small — the trajectory averages per-step noise out; statistical error on the biased averages ~ 1/√samples and averaging over the walkers (the independent Monte-Carlo chains run in parallel) cuts variance ~ 1/(number of walkers), so lengthen the trajectory or add walkers to tighten the exponents |
 | **Locating K_c** | K_c ≈ 0.436 (2D Ising, b=3; exact 0.4407) | bracket by the coupling flow direction — couplings grow above K_c, shrink below; a tighter bracket → more accurate exponents and lets one small-b step give the Jacobian; near K_c the optimization is noise-sensitive |
@@ -127,9 +127,9 @@ Wall time is **one measured rate × a fixed amount of work**: the work (flip cou
 
 | Axis | Scaling |
 |---|---|
-| **Compute (FLOPs)** | ∝ (total sweeps) × Lᵈ × n_w flips; per flip O(1) for ΔH + occasional O(operator support) for ΔV when a block vote tips; plus one n_op-operator lattice pass and an n_op×n_op covariance (Hessian) per step |
+| **Compute (FLOPs)** | ∝ (total sweeps) × Lᵈ × n_w flips; per flip O(1) for ΔH + occasional O(operator support — how many spins an operator spans, its footprint) for ΔV when a block vote tips; plus one n_op-operator lattice pass and an n_op×n_op covariance (Hessian) per step |
 | **Memory** | O(Lᵈ·n_w) spins + O(n_op²) Hessian — small, rarely the constraint |
-| **Throughput** | `vmap` over walkers is clean; the bias couples fine spins across each operator's block neighborhood, **breaking the simple checkerboard** → within-lattice vectorization capped. The dominant 1–2 order-of-magnitude unknown; settle it with one jit timing probe |
+| **Throughput** | `vmap` over walkers is clean; the bias couples fine spins across each operator's block neighborhood, **breaking the simple checkerboard** (the usual trick of updating each interleaved sublattice in parallel) → within-lattice vectorization capped. The dominant 1–2 order-of-magnitude unknown; settle it with one jit timing probe |
 | **Wall time** | flips ÷ updater rate, × number of optimizations (locate K_c bracket + the coarsening iterations the Jacobian needs) |
 
 *2D Ising illustration (b=3, n_op≈18, n_w=16): at the paper's budget the flip count runs ~3×10¹⁰ (L=45) to ~7×10¹¹ (L=300) — small L laptop-feasible (minutes–hours CPU, ~10× faster GPU), the largest L wants a GPU/cluster (`/using-slurm`).*
