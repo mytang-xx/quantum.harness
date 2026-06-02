@@ -96,3 +96,21 @@ The compute is a custom classical Monte Carlo (Metropolis/Wolff) sampling multip
 
 ### Handoff
 Invoke **/using-jax** once the route is fixed — it owns JAX CPU/GPU setup, jit/vmap/PRNG mechanics, and runtime troubleshooting. This card owns the algorithm (`## Details`), the operator basis, and the convergence plan.
+
+## Method setup — step 3
+
+Conceptual knobs and the trick behind each. Values are from 1707.08683 (2D Ising, square). Software-side values (JAX device, JIT boundary) live in `/using-jax`. *(Math is unicode/plain per AGENTS.md; surface it as LaTeX on an app, plain in a terminal.)*
+
+| Knob | Controls | Value in the paper | Trick / effect |
+|---|---|---|---|
+| **Block size & rule** | the rescaling factor b (linear shrink per step) and how each block maps to one coarse spin | 3×3 majority rule (b=3); also 2×2, 16×16 | larger b → fewer coarsening steps, less accumulated truncation + finite-size error, but costlier; majority rule = sign of the block's spin sum; decimation-type rules proliferate couplings and fail |
+| **Operator basis & truncation** | which interaction terms the renormalized (coarse) Hamiltonian is expanded in, and how many are kept | 26 initial (13 two-spin + 13 four-spin; only even-parity terms, by the zero-field Ising symmetry) → keep 13 (drop any renormalized coupling below 0.001 after one preliminary step) | dominant accuracy lever; the drop is variational — a near-zero optimized coefficient flags an unimportant operator; too small a basis biases the exponents, so enlarge until the leading eigenvalues converge |
+| **Target distribution** | the block-spin distribution the bias potential forces | uniform (flat) | a uniform target decorrelates the block spins → removes critical slowing down (sampling stalls near the critical point); also makes the target-side averages analytic and lets the renormalized couplings be read straight off the optimized bias |
+| **Coarsening steps** | number of successive coarse-grainings per run | 5 (+1 preliminary to set the truncation) | deeper flow vs accumulating per-step error; all steps reuse the initial lattice |
+| **Sampling budget** | the Monte Carlo effort behind each optimization step | 1240 optimization steps × 20 sweeps × 16 walkers (independent parallel runs); ~10⁶ sweeps total, 5×10⁵ at L=300 | more walkers lower the variance of the biased averages; the averaged stochastic-gradient optimizer tolerates the residual noise |
+| **Locating the critical coupling K_c** | K_c — the coupling at which the system is exactly critical (the fixed point where couplings stop flowing), where the exponents are defined | bracket 0.4355–0.4365 (b=3); fix K_c=0.436 | bracket by the flow direction of the renormalized couplings (grow → ordered, shrink → disordered); at K_c they stay constant; an accurate K_c lets a single coarsening step give the Jacobian |
+| **Optimizer** | the stochastic minimization of the bias potential's (convex) cost function | averaged stochastic gradient descent (Bach–Moulines); step size in the Supplement | constant-step averaged SGD handles the Monte Carlo noise in the gradient and curvature estimates; exact settings are in the unavailable Supplement |
+| **Spin update** | the Monte Carlo move sampling the biased ensemble | Metropolis | local updates suffice — the bias potential, not cluster moves, removes critical slowing down |
+
+> **Surface the consequential knobs to the user loudly, not silently.** Two decide the result and must be felt: (1) the **operator basis & truncation** — the main accuracy lever; keeping too few interactions biases the exponents, and the fix is to enlarge the set until the leading eigenvalues stop moving; (2) the **block size & rule** — a larger block needs fewer coarsening steps but costs more, and the rule must be sensible (majority works; decimation-type rules fail). Present each with its consequence and the paper's value, and let the user choose.
+
