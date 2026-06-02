@@ -225,6 +225,7 @@ Match equation notation to the reader's surface — **chat messages only** (repo
 - **Default UTF-8 unicode math** — renders in any surface: `⟨ψ|H|ψ⟩`, `E₀/N = −0.4438`, `J₂/J₁ ≈ 0.5`, `gap Δ`, `S=½`, `Σ ∏ √ ⊗ † ≤ ≥ ± ∞`.
 - **LaTeX (`$…$`) only on a math-rendering app** (KaTeX/MathJax): `$E_0/N = -0.4438$`. Never in a terminal — it shows literal `$` and backslashes.
 - **Detect once per session; unknown → UTF-8** (the universal-safe default). Claude: `CLAUDE_CODE_ENTRYPOINT` (`cli` = terminal, `claude-desktop`/web/IDE = app). Codex: CLI = terminal, markdown-math cloud/IDE = app. Generic test: does the surface render `$x^2$` as math?
+- **Skill cards and reference docs store math in unicode/plain** (the universal-safe form, e.g. `K_c`, `S_α`, `⟨·⟩_V`), never `$…$`. When surfacing that math to a user, convert to their surface: LaTeX on an app, unicode/plain in a terminal.
 
 ## Agent guidelines
 
