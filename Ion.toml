@@ -36,6 +36,8 @@ method-ed = { type = "local" }
 method-mps = { type = "local" }
 method-peps = { type = "local" }
 method-qmc = { type = "local" }
+method-ltrg = { type = "local" }
+method-mcrg = { type = "local" }
 method-vmc = { type = "local" }
 method-qcs = { type = "local" }
 method-mf = { type = "local" }

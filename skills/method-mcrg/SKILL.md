@@ -177,3 +177,13 @@ Swendsen's classic MCRG is the **zero-bias corner**: take the target to be the m
 
 > **Criticize:** eigenvalues read at an un-converged K_c (couplings still drifting); too-small basis with no eigenvalue-convergence test; reading instantaneous instead of running-average coefficients, or stopping before the plateau; single-lattice finite-size bias (the L and L/b lattices carry different errors — use two lattices to cancel); sign error K′ = −J_min; mistaking the running-average resets for coupling flow; mistaking noise-driven flow inversion near K_c for a K_c shift; trusting an unbiased eigenvalue at large size; conflating the truncation-error-free tangent space with the truncation-sensitive exponents.
 
+## Citations
+
+Rendered under `.knowledge/literature/monte-carlo-renormalization-group/`:
+
+- `1707.08683_variational-approach-to-monte-carlo-renormalization-group.md` + `1707.08683_SM_supplementary-material.md` — Wu & Car, PRL 119, 220602 (2017) — variational MCRG; the primary source for Details, Step 3, and Verification (with its Supplementary Material).
+- `1903.08231_determination-of-the-critical-manifold-tangent-space-and-cur.md` — Wu & Car, PRE 100, 022138 (2019) — critical-manifold tangent space + curvature.
+- `1810.09579_monte-carlo-renormalization-group-for-systems-with-quenched.md` — Wu & Car, arXiv:1810.09579 (2018) — MCRG for quenched disorder.
+- Foundational classic MCRG (not yet in `.knowledge`; pull with `/download-ref`): Swendsen, PRL 42, 859 (1979) and PRL 52, 1165 (1984).
+- JAX setup, primitives, and runtime live in `/using-jax`.
+
