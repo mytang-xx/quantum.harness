@@ -5,6 +5,8 @@ skills-dir = "skills"
 # Research workflow
 arxiv-search = { source = "yorkeccak/scientific-skills/arxiv-search" }
 survey = { source = "QuantumBFS/sci-brain/skills/survey" }  # topic survey → .knowledge/ base (BibTeX)
+ideas = { source = "QuantumBFS/sci-brain/skills/ideas" }    # two-agent brainstorm grounded in a survey (for /challenge)
+idea-writer = { source = "QuantumBFS/sci-brain/skills/idea-writer" }  # write a chosen idea into a structured proposal (for /challenge)
 download-ref = { type = "local" }
 
 # Problem-solving primitives (generic; topic-agnostic)
@@ -49,6 +51,7 @@ method-polyopt = { type = "local" }
 # UX
 onboard = { type = "local" }
 solve = { type = "local" }
+challenge = { type = "local" }   # post-reproduction challenge journey: ideate → help-desk go/no-go → attempt → /challenge-report
 
 # Problem dispatchers (auto-triggered; read cards under .knowledge/{models,physics}/<name>/)
 model = { type = "local" }
