@@ -37,9 +37,10 @@ Each method is curated by world-leading experts in that computational approach.
 | Exact diagonalization | [Chen Cheng (程晨)](https://scholar.google.com/citations?user=LZpS-T0AAAAJ) | `/method-ed` |
 | MPS / DMRG / TEBD | [Wei Li (李伟)](https://scholar.google.com/citations?user=7wiebe8AAAAJ) | `/method-mps` |
 | PEPS / CTMRG | [Hai-Jun Liao (廖海军)](https://scholar.google.com/citations?user=_8KbQtEAAAAJ) | `/method-peps` |
-| Quantum Monte Carlo | [Ming-Pu Qin (秦明普)](https://scholar.google.com/citations?user=ikqa-0IAAAAJ), [Kun Chen (陈锟)](https://scholar.google.com/citations?user=YItDGoIAAAAJ) | `/method-qmc` |
+| Quantum Monte Carlo | [Ming-Pu Qin (秦明普)](https://scholar.google.com/citations?user=ikqa-0IAAAAJ) | `/method-qmc` |
 | Monte Carlo renormalization group | [Yan-Tao Wu (武琰涛)](https://scholar.google.com/citations?user=D8sgaMwAAAAJ) | `/method-mcrg` |
-| Quantum circuit simulation | [Shi-Xin Zhang (张士欣)](https://scholar.google.com/citations?user=Ut8nVqIAAAAJ), [Jin-Guo Liu (刘金国)](https://scholar.google.com/citations?user=4edw228AAAAJ) | `/method-qcs` |
+| Quantum circuit simulation | [Shi-Xin Zhang (张士欣)](https://scholar.google.com/citations?user=Ut8nVqIAAAAJ) | `/method-qcs` |
+| AI agent and knowledge base (智能体与数据库) | [Kun Chen (陈锟)](https://scholar.google.com/citations?user=YItDGoIAAAAJ), [Jin-Guo Liu (刘金国)](https://scholar.google.com/citations?user=4edw228AAAAJ) | [`tracks/agent-kb`](tracks/agent-kb/) |
 
 ## Example Prompts
 
