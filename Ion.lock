@@ -57,14 +57,6 @@ commit = "f2cbfbefebbfef77321e4c9abc9e949826bea9d7"
 checksum = "sha256:932d23af11a3eb2b758f5b1d9aec7b6d28ddd26658328414f87f34dff7179d19"
 
 [[skill]]
-name = "idea-writer"
-source = "https://github.com/QuantumBFS/sci-brain.git"
-kind = "git"
-path = "skills/idea-writer"
-commit = "0597866af6802e465026beb84fd507774935ccc2"
-checksum = "sha256:2d368342a751ffe127409db098fd9fe7f7d5866b42771b527e5382cbb04ad8f6"
-
-[[skill]]
 name = "ideas"
 source = "https://github.com/QuantumBFS/sci-brain.git"
 kind = "git"

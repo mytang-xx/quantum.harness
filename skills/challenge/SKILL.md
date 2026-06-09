@@ -22,7 +22,8 @@ time, and unblocks them when they're stuck. That *is* the value.
   maps; the feasibility / time-box guard; the advisor digest + help-desk handoff; the
   graded-hint mentor behavior; the handoff to reporting.
 - **Delegates ideation** to the sci-brain pipeline — `/survey` (literature) → `/ideas`
-  (brainstorm) → `/idea-writer` (write-up). Do not reimplement these.
+  (brainstorm). Do not reimplement these. The write-up is owned here (Step 3's digest),
+  not delegated — it is the help-desk one-pager, not a full ideas report.
 - **Delegates the attempt** to `/solve` and the run machinery (script → `tracks/<track>/`,
   plot + intermediate output). Do not write a second run loop.
 - **Delegates the report** to `/challenge-report` (which gates submission cleanliness).
@@ -42,7 +43,6 @@ resume; never reconstruct state from conversation memory. Representative shape:
   "days_left": 2.5,
   "survey_registry": "<path from /survey>",
   "ideas_log": "<path from /ideas>",
-  "ideas_report": "<path from /idea-writer>",
   "candidates": [
     { "title": "…", "question": "…", "wall_band": "~hours on a laptop",
       "compute": "local | cluster", "feasible": true, "why": "…" }
@@ -103,10 +103,12 @@ page. Run the sci-brain pipeline, seeded with the track context from Step 0:
 2. **`/ideas`** — brainstorm challenges grounded in that survey. Frame the brief explicitly
    as *"hackathon challenges that go one concrete step beyond <reference paper>, doable in
    ~`days_left`"* so the Ideator stays scoped. The output is a ranked shortlist.
-3. **`/idea-writer`** — write the chosen direction into a structured proposal: research
-   question, **minimum-viable experiment**, success / hope / pivot signals.
 
-Record the registry, ideas-log, and report paths in `challenge.json`, and the shortlist as
+The structured write-up (research question, **minimum-viable experiment**, success / hope /
+pivot signals) is **not** a separate skill — it is the help-desk digest written in Step 3,
+drawn straight from the `/ideas` output. Keep it a one-pager, not a full ideas report.
+
+Record the registry and ideas-log paths in `challenge.json`, and the shortlist as
 `candidates`. Keep the student steering throughout (these skills already do one-at-a-time);
 `/challenge` only adds the hackathon-feasibility lens. Set `step: "guard"`.
 
@@ -130,8 +132,9 @@ signals) and set `step: "advisor"`.
 
 ### Step 3 — Advisor digest + help-desk go/no-go
 
-Condense the proposal into a **one-page digest** the student can hand to a human advisor —
-crisp enough to make them look prepared:
+Write the **one-page digest** the student can hand to a human advisor — drawn straight from
+the `/ideas` output and the Step 2 verdict (this is the proposal write-up; there is no
+separate idea-report step). Crisp enough to make them look prepared:
 
 | Digest row | Content |
 |---|---|
@@ -187,7 +190,7 @@ for their presentation. `/challenge` stops here — it does not build the report
 
 - Don't auto-solve the challenge or take over the keyboard — guide, hint, let the student
   decide and type. Pedagogy is the primary acceptance criterion.
-- Don't reimplement ideation (`/survey` `/ideas` `/idea-writer`), the run loop (`/solve`),
+- Don't reimplement ideation (`/survey` `/ideas`), the run loop (`/solve`),
   or the report (`/challenge-report`) — delegate and compose.
 - Don't start the attempt before a recorded help-desk `go`.
 - Don't let scope exceed the time left — refuse and offer the scoped-down MVP.
