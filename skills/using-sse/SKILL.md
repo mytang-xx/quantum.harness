@@ -69,7 +69,7 @@ job = JobInfo(
 start(job, ARGS)
 ```
 
-Run locally with `julia --project=julia-env scripts/<job>.jl run`. Run under MPI only inside the selected remote allocation (the `sse:cpu_mpi` profile; `sse:cpu` for single-process); cluster modules, partitions, and `mpirun`/`srun` details live in `skills/using-slurm/profiles/<profile>.md`.
+Run locally with `julia --project=julia-env scripts/<job>.jl run`. Run under MPI only inside the selected remote allocation (the `sse:cpu_mpi` profile; `sse:cpu` for single-process); cluster modules, partitions, and `mpirun`/`srun` details live in `skills/using-slurm/profiles/<profile>.toml`.
 
 ```
 mpirun -n <ranks> julia --project=julia-env scripts/<job>.jl run

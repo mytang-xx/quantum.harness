@@ -20,7 +20,7 @@ ZLP := zlp
 
 INSTALLABLE := quimb quspin julia itensors xdiag jax tensorcircuit-ng netket netket-gpu mpskit tenpy sse pepskit nctssos qmbcertify cpmc-lab classical-repro pdf-render
 
-.PHONY: skills clean help install $(addprefix install-,$(INSTALLABLE))
+.PHONY: skills clean help install test $(addprefix install-,$(INSTALLABLE))
 .PHONY: zulip-whoami zulip-pull zulip-send zulip-topics zulip-messages zulip-config
 
 help: ## Show available targets and installable tools
@@ -29,6 +29,11 @@ help: ## Show available targets and installable tools
 	@echo ""
 	@echo "Installable tools — run 'make install <name>':"
 	@for t in $(INSTALLABLE); do echo "  $$t"; done
+
+test: ## Run the Python script test suite with coverage
+	python3 -m pytest scripts/tests/ -q \
+		--cov=cluster_profile --cov=cluster_guardrail --cov=parameter_scan --cov=scaling_fit \
+		--cov-report=term-missing
 
 skills: ## Install or sync Ion-managed skills
 	@set -e; \

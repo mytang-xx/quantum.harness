@@ -9,7 +9,7 @@
 # performs the fixed operations and parses their output.
 #
 # It hard-codes NO cluster specifics. Connection details come from the active
-# cluster profile (skills/using-slurm/profiles/active.md or
+# cluster profile (skills/using-slurm/profiles/active.toml or
 # $HARNESS_CLUSTER_PROFILE) or from explicit overrides:
 #   --alias / $HARNESS_SSH_ALIAS         ssh handle (wins over the profile)
 #   --repo  / $HARNESS_REPO_REMOTE       remote repo checkout path
@@ -33,7 +33,8 @@
 
 set -euo pipefail
 
-PROFILE_DEFAULT="skills/using-slurm/profiles/active.md"
+PROFILE_DEFAULT="skills/using-slurm/profiles/active.toml"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SINFO_FMT='%P %a %.10l %.6D %.6t'
 SACCT_FMT='JobID,State,ExitCode,MaxRSS,Elapsed'
 
@@ -44,34 +45,31 @@ die() { echo "harness_slurm: $*" >&2; exit 1; }
 profile_path() {
   if [[ -n "${HARNESS_PROFILE_FILE:-}" ]]; then echo "$HARNESS_PROFILE_FILE"; return; fi
   if [[ -n "${HARNESS_CLUSTER_PROFILE:-}" ]]; then
-    echo "skills/using-slurm/profiles/${HARNESS_CLUSTER_PROFILE}.md"; return
+    echo "skills/using-slurm/profiles/${HARNESS_CLUSTER_PROFILE}.toml"; return
   fi
   echo "$PROFILE_DEFAULT"
 }
 
-# Tolerantly pull a named field's value out of the markdown profile. The schema
-# names fields like `ssh.alias` and `repo_path_remote`; the textual form is not
-# pinned, so we grab the first non-markdown token after the field name.
+# Read a dotted field (e.g. `connection.ssh.alias`) out of the TOML profile.
+# Parsing lives in Python (cluster_profile.py) — bash stays mechanics-only and
+# never parses TOML itself. Returns non-zero if the field is unset/file absent.
 profile_field() {
   local field="$1" file="$2"
   [[ -f "$file" ]] || return 1
-  grep -iE "${field}" "$file" 2>/dev/null \
-    | sed -E "s/.*${field}//I" \
-    | sed -E 's/^[][\`:=>*_ )(-]+//; s/[\`,*].*$//' \
-    | awk 'NF{print $1; exit}'
+  python3 "$SCRIPT_DIR/cluster_profile.py" --field "$field" --profile "$file" 2>/dev/null
 }
 
 resolve_alias() {
   if [[ -n "${HARNESS_SSH_ALIAS:-}" ]]; then echo "$HARNESS_SSH_ALIAS"; return; fi
-  local v; v="$(profile_field 'ssh\.alias' "$(profile_path)" || true)"
-  [[ -n "$v" ]] || die "no ssh alias: set --alias, \$HARNESS_SSH_ALIAS, or ssh.alias in $(profile_path)"
+  local v; v="$(profile_field 'connection.ssh.alias' "$(profile_path)" || true)"
+  [[ -n "$v" ]] || die "no ssh alias: set --alias, \$HARNESS_SSH_ALIAS, or connection.ssh.alias in $(profile_path)"
   echo "$v"
 }
 
 resolve_repo() {
   if [[ -n "${HARNESS_REPO_REMOTE:-}" ]]; then echo "$HARNESS_REPO_REMOTE"; return; fi
-  local v; v="$(profile_field 'repo_path_remote' "$(profile_path)" || true)"
-  [[ -n "$v" ]] || die "no remote repo path: set --repo, \$HARNESS_REPO_REMOTE, or repo_path_remote in $(profile_path)"
+  local v; v="$(profile_field 'connection.repo_path_remote' "$(profile_path)" || true)"
+  [[ -n "$v" ]] || die "no remote repo path: set --repo, \$HARNESS_REPO_REMOTE, or connection.repo_path_remote in $(profile_path)"
   echo "$v"
 }
 
@@ -177,13 +175,20 @@ cmd_submit() {
       *) die "submit: unknown flag $1" ;;
     esac
   done
-  [[ -n "$run_spec" ]] || die "submit: --run-spec is required"
-  [[ -n "$command" || -n "$entrypoint" ]] || die "submit: --command or --entrypoint is required"
+  [[ -n "$script" ]] || die "submit: --script is required"
+  # Two paths: a harness array/run-spec job, or a plain single-script job
+  # (the /cluster-jobs student case). The array contract injects HARNESS_*;
+  # a plain job just ships the script with the resource flags.
+  local exports="ALL"
+  if [[ -n "$run_spec" ]]; then
+    [[ -n "$command" || -n "$entrypoint" ]] || die "submit: --command or --entrypoint is required with --run-spec"
+    exports="ALL,HARNESS_RUN_SPEC=${run_spec}"
+    [[ -n "$command" ]] && exports="${exports},HARNESS_COMMAND=${command}"
+    [[ -n "$entrypoint" ]] && exports="${exports},HARNESS_ENTRYPOINT=${entrypoint}"
+  elif [[ -n "$array" ]]; then
+    die "submit: --array requires --run-spec; use a plain --script for single jobs"
+  fi
   local alias repo; alias="$(resolve_alias)"; repo="$(resolve_repo)"
-
-  local exports="ALL,HARNESS_RUN_SPEC=${run_spec}"
-  [[ -n "$command" ]] && exports="${exports},HARNESS_COMMAND=${command}"
-  [[ -n "$entrypoint" ]] && exports="${exports},HARNESS_ENTRYPOINT=${entrypoint}"
 
   local sbatch="sbatch"
   [[ -n "$partition" ]] && sbatch="$sbatch --partition=$partition"

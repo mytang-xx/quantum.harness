@@ -10,6 +10,8 @@ Submit and monitor Slurm jobs from the local agent via `ssh`, `rsync`/`git`, `sb
 
 For parameter grids, compose with `/parameter-scan`. `/parameter-scan` owns cell decomposition; `/using-slurm` submits the resulting job or array.
 
+This skill is agent-facing (harness array sweeps with run-spec manifests). **Students running their own scripts should use `/cluster-jobs`**, which adds preview-and-confirm guardrails on resources, paths, and credentials.
+
 ## Binding Rules
 
 <checklist name="binding">
@@ -23,7 +25,7 @@ For parameter grids, compose with `/parameter-scan`. `/parameter-scan` owns cell
 ## Inputs
 
 - *Script* — sbatch script or compute script plus the active cluster profile's array template.
-- *Cluster profile* — `skills/using-slurm/profiles/active.md` or `HARNESS_CLUSTER_PROFILE=<name>`, providing ssh alias, remote repo path, scheduler idioms, partitions, modules, queue commands.
+- *Cluster profile* — `skills/using-slurm/profiles/active.toml` or `HARNESS_CLUSTER_PROFILE=<name>`, providing ssh alias, remote repo path, scheduler idioms, partitions, modules, queue commands.
 - *Software stack* — optional stack id/profile from `skills/<stack>/stack.toml`.
 - *Cell map* — optional `results/<run>/run_spec.json`.
 - *Ship strategy* — `git` or `rsync`.
@@ -55,7 +57,7 @@ scripts/harness_slurm.sh pending-cells <run> [--success-field F --success-value 
 
 ## Cluster Profile
 
-Consult the active profile from `skills/using-slurm/profiles/active.md` or
+Consult the active profile from `skills/using-slurm/profiles/active.toml` or
 `HARNESS_CLUSTER_PROFILE=<name>` before submission. Required fields:
 
 - `ssh.alias`, `repo_path_remote`

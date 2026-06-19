@@ -65,7 +65,7 @@ non-paper compute workflow.
 
 <checklist name="cluster-setup">
 
-Skip this stage if `skills/using-slurm/profiles/active.md` already exists (user has a profile from a prior session — idempotent).
+Skip this stage if `skills/using-slurm/profiles/active.toml` already exists (user has a profile from a prior session — idempotent).
 
 Otherwise, ask one warm gate via `AskUserQuestion`. Most paper-grade calculations end up on a remote cluster eventually, and even a quick setup now persists the profile so future sessions ship/submit/monitor/fetch automatically without re-asking:
 
@@ -85,58 +85,22 @@ Options:
 - "Yes, capture cluster config now (Recommended — persists for every future session)"
 - `"Local-only for now"` — "No cluster config saved. Future remote runs will re-ask before they can ship."
 
-If the user picks "local-only", continue to step 3. If "yes", continue inside this stage:
+If the user picks "local-only", continue to step 3. If "yes", hand off to `/setup-cluster`:
 
 </checklist>
 
-#### 2a. Path to profile
+#### 2a. Delegate to `/setup-cluster`
 
-> *"What's the easiest way for you to share your cluster's setup? Either paste your docs URL — I'll pull out the partitions, walltime caps, and how Julia is provided — or run through 4 quick questions. Either way takes about a minute."*
+Profile creation lives in one place: the `/setup-cluster` skill. Dispatch it now
+— it builds the unified TOML profile (from the cluster's docs URL via a thorough
+subagent crawl, or a ≤4-question walk-through), probes live resources, seeds the
+student safety `[limits]`, and writes `skills/using-slurm/profiles/<name>.toml`
+plus the `active.toml` symlink. Stay warm: frame the why, offer the escape hatch,
+let `/setup-cluster` own the questions.
 
-Options:
-- Text field for docs URL (the user pastes; the skill `WebFetch`'s it)
-- "Walk me through the 4 questions"
-
-#### 2b. From URL — dispatch a subagent for a thorough crawl
-
-A single `WebFetch` rarely captures everything — most cluster docs sites have a sidebar with 5-10+ sub-pages (connection / scheduler / partitions / filesystem / modules / data) that each carry one piece of the profile. Dispatch an **Agent subagent** (`model: "opus"`, `subagent_type: "general-purpose"`, max-effort framing in the prompt) to crawl the docs site comprehensively.
-
-<brief name="cluster-docs-crawl">
-
-**Subagent brief**:
-- Input: the cluster docs root URL the user provided (e.g., `https://docs.hpc.hkust-gz.edu.cn/en/docs/hpc12/`).
-- Job:
-  1. Fetch the root page; identify the sidebar / nav menu; enumerate every sub-page relevant to: **login & connection**, **scheduler & job submission**, **partitions / queues / resource limits**, **environment setup / modules / `.bashrc`**, **filesystem layout**, **network reach** (internet from login / from compute).
-  2. Fetch each relevant sub-page; extract verbatim instructions (sbatch examples, partition tables, module load lines, ssh hostnames, etc.).
-  3. Synthesize into the cluster profile schema declared in `skills/using-slurm/references/cluster-profiles.md`.
-  4. **Identify harness-side gotchas not explicit in the docs**: e.g., non-interactive ssh sessions not sourcing `/etc/profile` (so scheduler binaries are off PATH); two scheduler binaries on the system (`/usr/bin/sbatch` Ubuntu default vs `/opt/using-slurm/bin/sbatch` cluster's own); login-shell-only quirks. These are inferred from "the docs assume X, our harness uses Y" reasoning.
-- Output:
-  - The full **sub-page URL index** for the cluster (table: URL → what it documents). This goes into the profile's "Documentation" section so the harness has complete coverage, not a single-link fallback.
-  - The proposed `skills/using-slurm/profiles/<short-name>.md` content matching the schema.
-  - A **"Harness-side gotchas"** section capturing inferred issues + their workarounds (e.g., "ssh with `bash -l -c '...'` to get a login shell so `/opt/using-slurm/bin` is on PATH").
-  - Anything the subagent could *not* extract from the docs — flagged for fallback to step **2c** (interactive questions) on those specific fields only, not the whole profile.
-
-**Coverage, not filtering.** Report every relevant sub-page URL, every partition row, every module-load line, every harness-side gotcha you spot — including ones you are unsure about or judge minor. Silently dropping a partition or a gotcha is the failure mode, not over-reporting.
-
-</brief>
-
-Display the proposed `skills/using-slurm/profiles/<short-name>.md` content inline as a fenced markdown block, then dispatch one `AskUserQuestion` with options: Accept and save, Edit then save, Discard and use walk-through (2c) instead. Write to disk only after the user picks Accept or completes an edit.
-
-If the subagent fails outright (docs site is paywalled / JS-only with no API / 403 on subpages), fall through to **2c** (questions).
-
-#### 2c. Walk-through fallback (≤4 questions, each warm)
-
-Pre-amble:
-> *"OK, let's walk through 4 things — each one fills in a field of your cluster profile."*
-
-1. *"Paste the ssh command you use to reach the login node — e.g., `ssh -i ~/.ssh/id_rsa user@host`. A `~/.ssh/config` stanza works too."* Parse `host` / `user` / `identity_file` (and optional `port`) from the single input; default the alias to the cluster short-name. One paste → four fields, no question pile.
-2. AskUserQuestion: *"Which workload manager does the cluster use?"* with options: `Slurm` / `PBS / Torque` / `LSF` / `Plain ssh, no scheduler` / `Not sure — I'll probe`.
-3. *"What's your default queue or partition? You can override per job — this is just where jobs go if nothing else is specified."*
-4. AskUserQuestion: *"Which region is the cluster in?"* with options: `Mainland China (mirrors will be set up downstream)` / `Outside mainland China (default mirrors)` / `Air-gapped / no internet from login` / `Not sure`.
-
-Write the profile to `skills/using-slurm/profiles/<short-name>.md`, symlink `skills/using-slurm/profiles/active.md → <short-name>.md`. Confirm one line: *"Cluster profile saved at `skills/using-slurm/profiles/<name>.md`. Future jobs will use it automatically."*
-
-Do NOT bootstrap Julia or instantiate environments here — that's `/setup-julia`'s job, dispatched on demand by `/using-slurm` when the first cluster Julia run happens.
+Do NOT bootstrap Julia or instantiate environments here — that's `/setup-julia`'s
+job, dispatched on demand by `/using-slurm` when the first cluster Julia run
+happens.
 
 ### 3. Problem intake — skippable
 

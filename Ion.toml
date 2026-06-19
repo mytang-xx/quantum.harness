@@ -14,6 +14,8 @@ parameter-scan = { type = "local" }     # multi-axis sweeps (subsumes finite-siz
 scaling-fit = { type = "local" }
 cross-method-check = { type = "local" }
 using-slurm = { type = "local" }        # cluster mechanism (agent-does-ssh)
+cluster-jobs = { type = "local" }       # student-facing safe submit/manage/download (preview+confirm)
+setup-cluster = { type = "local" }      # build unified TOML profile + probe resources + seed safety limits
 setup-julia = { type = "local" }        # Julia install + mirror + project env (local or remote)
 reproduce-paper = { type = "local" }    # beginner-facing paper reproduction (brainstorm-first)
 track-starter = { type = "local" }      # choose a challenge-track paper, then hand off to reproduce-paper
