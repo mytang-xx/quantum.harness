@@ -32,13 +32,16 @@
   .pick .n{color:var(--accent);font-weight:700;font-size:.8rem}
 
   .tabs{display:flex;gap:6px;margin-top:30px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-  .tab{appearance:none;background:none;border:none;cursor:pointer;text-align:left;
-       color:var(--mut);font-family:var(--sans);padding:13px 18px;border-radius:10px 10px 0 0;
-       border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s,border-color .15s,background .15s}
+  .tab{appearance:none;background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:9px;
+       white-space:nowrap;color:var(--mut);font-family:var(--sans);font-size:.95rem;font-weight:600;
+       padding:14px 16px;border-radius:10px 10px 0 0;border-bottom:2px solid transparent;
+       margin-bottom:-1px;transition:color .15s,border-color .15s,background .15s}
   .tab:hover{color:var(--ink);background:var(--panel)}
   .tab.active{color:var(--ink);border-bottom-color:var(--accent);background:var(--panel)}
-  .tab .tn{display:block;color:var(--accent);font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
-  .tab .tt{display:block;font-weight:700;font-size:1.02rem;margin-top:2px}
+  .tnum{display:inline-flex;align-items:center;justify-content:center;width:21px;height:21px;flex:none;
+        border-radius:50%;background:var(--line);color:var(--mut);font-family:var(--mono);
+        font-size:.72rem;font-weight:700}
+  .tab.active .tnum{background:var(--accent);color:#fff}
   .tabpanel{display:none}
   .tabpanel.active{display:block;animation:fade .2s ease}
   @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
@@ -129,16 +132,13 @@
 
   <div class="tabs" role="tablist">
     <button class="tab active" role="tab" aria-controls="panel-summer" id="tab-summer">
-      <span class="tn">Workflow 1 · Summer school</span>
-      <span class="tt">Reproduce, then challenge</span>
+      <span class="tnum">1</span> Summer school: reproduce &amp; challenge
     </button>
     <button class="tab" role="tab" aria-controls="panel-solve" id="tab-solve">
-      <span class="tn">Workflow 2 · Computational methods</span>
-      <span class="tt">Bring your own problem</span>
+      <span class="tnum">2</span> Computational methods: solve a model
     </button>
     <button class="tab" role="tab" aria-controls="panel-scibrain" id="tab-scibrain">
-      <span class="tn">Workflow 3 · sci-brain</span>
-      <span class="tt">Scientific research skills</span>
+      <span class="tnum">3</span> sci-brain: survey &amp; brainstorm ideas
     </button>
   </div>
 </header>
