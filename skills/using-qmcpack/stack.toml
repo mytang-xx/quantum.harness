@@ -1,0 +1,26 @@
+id = "qmcpack"
+name = "QMCPACK (Slater-Jastrow VMC/DMC)"
+language = "c++"
+canonical_for = ["qmcpack", "dmc", "vmc", "first-principles-qmc", "slater-jastrow"]
+default_profile = "cpu_mpi"
+
+[profiles.cpu_mpi]
+label = "MPI CPU"
+default = true
+install = "site"
+smoke = "cpu_mpi"
+
+[profiles.cpu_mpi.requirements]
+allocation = "compute"
+mpi = true
+
+[install.site]
+command = "command -v qmcpack_complex"
+notes = "Use matched site-provided QE and complex QMCPACK builds. Record executable paths, versions, compiler/MPI/HDF5 stack, and pseudopotential sources before production."
+
+[smoke.cpu_mpi]
+where = "compute"
+command = "qmcpack_complex --version"
+
+[docs]
+qmcpack = "https://qmcpack.readthedocs.io/"
