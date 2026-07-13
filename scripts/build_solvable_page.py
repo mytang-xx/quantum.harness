@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import html
 import re
+import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -57,6 +58,29 @@ HOOKS = {
     "x-cube": "fracton order; subextensive degeneracy 6L−3",
     "haah-code": "cubic code; number-theoretic ground-space rank",
     "cluster-spt": "cluster stabilizers; SPT with protected edge modes",
+    "ising-2d-onsager": "transfer matrix; Onsager free energy, Kaufman finite-torus Z",
+    "ising-triangular": "frustrated AFM; Wannier residual entropy",
+    "dimer-kasteleyn": "Pfaffian dimer counting; exact tiling entropy",
+    "six-vertex": "ice rule; Lieb Bethe-ansatz free energy",
+    "eight-vertex": "Yang–Baxter elliptic solution; varying exponents",
+    "hard-hexagons": "corner transfer matrix; Rogers–Ramanujan densities",
+    "heisenberg-xxx": "coordinate Bethe ansatz; real roots, E/N = 1/4 − ln 2",
+    "xxz-chain": "Bethe ansatz; Δ-tuned e0 integral/series, Néel gap",
+    "xyz-chain": "Baxter eight-vertex; exact XXZ/XY limits, ED-extrapolated generic",
+    "zamolodchikov-fateev-spin1": "integrable spin-1 (Takhtajan–Babujian β=−1); c=3/2, gapless",
+    "haldane-shastry": "1/r² exchange; Gutzwiller-RVB GS, E0=−(π²/24)(N+5/N)",
+    "inozemtsev-chain": "elliptic exchange; interpolates XXX ↔ Haldane–Shastry",
+    "hubbard-1d-lieb-wu": "nested Bethe ansatz; Mott gap opens at any U>0",
+    "susy-t-j": "J=2t su(2|1) supersymmetry; cross-sector supermultiplets",
+    "lieb-liniger": "δ-Bose gas; Lieb equation e(γ), γ→∞ gives π²/3",
+    "tonks-girardeau": "Bose–Fermi mapping; e=π²/3, g₂(0)=0",
+    "yang-gaudin": "nested Bethe ansatz; balanced fermions, π²/12→π²/3",
+    "calogero-sutherland": "1/sin² ring; closed-form spectrum, E0=(π/L)²λ²N(N²−1)/3",
+    "chiral-potts": "superintegrable Z_N; Onsager algebra, genus>1 rapidity curve",
+    "richardson-pairing": "reduced BCS; Richardson roots complexify at pairing collisions",
+    "gaudin-central-spin": "rational Gaudin magnet; commuting charges, ED-exact GS",
+    "kondo-bethe": "s–d Bethe ansatz; Wilson ratio R=2, ln 2→0",
+    "anderson-impurity-bethe": "symmetric SIAM Bethe ansatz; ⟨n_d⟩=1, R_W=2",
 }
 
 TIER_TITLES = {
@@ -517,11 +541,20 @@ def main(argv=None) -> None:
     args = ap.parse_args(argv)
 
     entries = parse_index(INDEX_MD.read_text(encoding="utf-8"))
+    techs_seen = set()
     for e in entries:
         e["hook"] = HOOKS.get(e["slug"], "")
+        techs_seen.add(e["technique"])
         if e["built"]:
             card_md = REPO / ".knowledge" / "solvable" / e["slug"] / "ORACLE.md"
             e["card"] = parse_card(card_md.read_text(encoding="utf-8"))
+            if not e["hook"]:
+                print(f"warning: built slug '{e['slug']}' has no HOOKS entry",
+                      file=sys.stderr)
+    for code in techs_seen:
+        if not SUBTITLES.get(code):
+            print(f"warning: technique '{code}' has no SUBTITLES entry",
+                  file=sys.stderr)
 
     page = render(entries)
     args.out.write_text(page, encoding="utf-8")

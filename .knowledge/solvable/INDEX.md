@@ -64,34 +64,34 @@ built `ORACLE.md` where available.
 
 | Model | Tier | Script | Status | Card |
 |---|---|---|---|---|
-| `ising-2d-onsager` | A | S | wave 2 | — |
-| `ising-triangular` | A | S | wave 2 | — |
-| `dimer-kasteleyn` | A | S | wave 2 | — |
-| `six-vertex` | B | S | wave 2 | — |
-| `eight-vertex` | B | P | wave 2 | — |
-| `hard-hexagons` | B | P | wave 2 | — |
+| `ising-2d-onsager` | A | S | ✓ wave 2 | [ORACLE](./ising-2d-onsager/ORACLE.md) |
+| `ising-triangular` | A | S | ✓ wave 2 | [ORACLE](./ising-triangular/ORACLE.md) |
+| `dimer-kasteleyn` | A | S | ✓ wave 2 | [ORACLE](./dimer-kasteleyn/ORACLE.md) |
+| `six-vertex` | B | S | ✓ wave 2 | [ORACLE](./six-vertex/ORACLE.md) |
+| `eight-vertex` | B | P | ✓ wave 2 | [ORACLE](./eight-vertex/ORACLE.md) |
+| `hard-hexagons` | B | P | ✓ wave 2 | [ORACLE](./hard-hexagons/ORACLE.md) |
 
 ## T3 Bethe ansatz / Yang–Baxter
 
 | Model | Tier | Script | Status | Card |
 |---|---|---|---|---|
-| `heisenberg-xxx` | B | S | wave 2 | — |
-| `xxz-chain` | B | S | wave 2 | — |
-| `xyz-chain` | B | P | wave 2 | — |
-| `zamolodchikov-fateev-spin1` | B | T | wave 2 | — |
-| `haldane-shastry` | B | S | wave 2 | — |
-| `inozemtsev-chain` | B | T | wave 2 | — |
-| `hubbard-1d-lieb-wu` | B | S | wave 2 | — |
-| `susy-t-j` | B | P | wave 2 | — |
-| `lieb-liniger` | B | S | wave 2 | — |
-| `tonks-girardeau` | A | S | wave 2 | — |
-| `yang-gaudin` | B | S | wave 2 | — |
-| `calogero-sutherland` | B | P | wave 2 | — |
-| `kondo-bethe` | B | T | wave 2 | — |
-| `anderson-impurity-bethe` | B | T | wave 2 | — |
-| `richardson-pairing` | B | S | wave 2 | — |
-| `gaudin-central-spin` | B | S | wave 2 | — |
-| `chiral-potts` | B | T | wave 2 | — |
+| `heisenberg-xxx` | B | S | ✓ wave 2 | [ORACLE](./heisenberg-xxx/ORACLE.md) |
+| `xxz-chain` | B | S | ✓ wave 2 | [ORACLE](./xxz-chain/ORACLE.md) |
+| `xyz-chain` | B | P | ✓ wave 2 | [ORACLE](./xyz-chain/ORACLE.md) |
+| `zamolodchikov-fateev-spin1` | B | T | ✓ wave 2 | [ORACLE](./zamolodchikov-fateev-spin1/ORACLE.md) |
+| `haldane-shastry` | B | S | ✓ wave 2 | [ORACLE](./haldane-shastry/ORACLE.md) |
+| `inozemtsev-chain` | B | T | ✓ wave 2 | [ORACLE](./inozemtsev-chain/ORACLE.md) |
+| `hubbard-1d-lieb-wu` | B | S | ✓ wave 2 | [ORACLE](./hubbard-1d-lieb-wu/ORACLE.md) |
+| `susy-t-j` | B | P | ✓ wave 2 | [ORACLE](./susy-t-j/ORACLE.md) |
+| `lieb-liniger` | B | S | ✓ wave 2 | [ORACLE](./lieb-liniger/ORACLE.md) |
+| `tonks-girardeau` | A | S | ✓ wave 2 | [ORACLE](./tonks-girardeau/ORACLE.md) |
+| `yang-gaudin` | B | S | ✓ wave 2 | [ORACLE](./yang-gaudin/ORACLE.md) |
+| `calogero-sutherland` | B | P | ✓ wave 2 | [ORACLE](./calogero-sutherland/ORACLE.md) |
+| `kondo-bethe` | B | T | ✓ wave 2 | [ORACLE](./kondo-bethe/ORACLE.md) |
+| `anderson-impurity-bethe` | B | T | ✓ wave 2 | [ORACLE](./anderson-impurity-bethe/ORACLE.md) |
+| `richardson-pairing` | B | S | ✓ wave 2 | [ORACLE](./richardson-pairing/ORACLE.md) |
+| `gaudin-central-spin` | B | S | ✓ wave 2 | [ORACLE](./gaudin-central-spin/ORACLE.md) |
+| `chiral-potts` | B | T | ✓ wave 2 | [ORACLE](./chiral-potts/ORACLE.md) |
 
 ## T4 Commuting projector / stabilizer
 
@@ -142,5 +142,6 @@ built `ORACLE.md` where available.
 
 ## Totals
 
-63 models — 20 built (wave 1: T1 + T4), 23 wave 2 (T2 + T3), 20 wave 3
-(T5 + T6 + T7). Script-flag totals: **46 S · 10 P · 7 T**.
+63 models — 43 built (wave 1 complete: 20 T1 + T4 cards; wave 2
+complete: 23 of 23 T2 + T3 cards), 20 wave 3 rows remaining (T5 + T6 +
+T7). Script-flag totals: **46 S · 10 P · 7 T**.
