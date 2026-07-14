@@ -35,7 +35,7 @@ SUBTITLES = {
     "T7": "exact maps between models and exactly evolvable dynamics — Kramers–Wannier to dual-unitary circuits",
 }
 
-# 3–8-word summary-row hooks for the built (wave-1) cards, written from each
+# 3–8-word summary-row hooks for the built cards, written from each
 # card's scope/solvability content.
 HOOKS = {
     "tfim-chain": "Jordan–Wigner free fermions; gap 2|J−h|",
@@ -81,6 +81,26 @@ HOOKS = {
     "gaudin-central-spin": "rational Gaudin magnet; commuting charges, ED-exact GS",
     "kondo-bethe": "s–d Bethe ansatz; Wilson ratio R=2, ln 2→0",
     "anderson-impurity-bethe": "symmetric SIAM Bethe ansatz; ⟨n_d⟩=1, R_W=2",
+    "aklt-chain": "exact VBS/MPS ground state; string order −4/9",
+    "majumdar-ghosh": "two dimer coverings; exact E/L = −3/8",
+    "shastry-sutherland-dimer": "orthogonal-dimer product; exact for all J/J'",
+    "rk-quantum-dimer": "equal-weight RVB; RK point ↔ classical dimers",
+    "motzkin-fredkin": "uniform Motzkin walks; ½ ln n entanglement",
+    "eta-pairing-hubbard": "exact excited η-tower; ODLRO, E=mU",
+    "pxp-scars": "exact ±√2 MPS scars; ETH outliers",
+    "aklt-honeycomb": "spin-3/2 VBS; frustration-free, proven gap",
+    "lmg": "collective j=N/2 block; mean-field-exact, N^{−1/3} gap",
+    "curie-weiss-tfim": "fully-connected TFIM; mean-field exact in N→∞",
+    "jaynes-cummings": "RWA dressed states; vacuum Rabi splitting 2g",
+    "dicke-tavis-cummings": "excitation-number blocks; superradiant λ_c=√(ωω₀)/2",
+    "quantum-rabi": "Braak G-function roots; exact transcendental spectrum",
+    "random-matrix-stats": "Wigner/Atas surmises; ⟨r̃⟩ GOE/GUE/GSE, Kramers doubling",
+    "syk": "melonic large-N; N mod 8 class, S₀≈0.2324 entropy",
+    "falicov-kimball-dinf": "DMFT-exact in d=∞; checkerboard CDW, sign-free",
+    "kramers-wannier": "Ising self-duality; sinh2K·sinh2K*=1 fixes Kc",
+    "jw-duality-dictionary": "mapping index: JW, KW, dimers, six-vertex↔XXZ",
+    "dual-unitary-circuits": "space-time-unitary gates; exact light-cone correlators",
+    "kicked-ising-floquet": "self-dual KIM; exact SFF ramp K(t)=2t−1",
 }
 
 TIER_TITLES = {

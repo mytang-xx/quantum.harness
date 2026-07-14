@@ -109,39 +109,45 @@ built `ORACLE.md` where available.
 
 | Model | Tier | Script | Status | Card |
 |---|---|---|---|---|
-| `aklt-chain` | C | S | wave 3 | — |
-| `aklt-honeycomb` | C | P | wave 3 | — |
-| `majumdar-ghosh` | C | S | wave 3 | — |
-| `shastry-sutherland-dimer` | C | S | wave 3 | — |
-| `rk-quantum-dimer` | C | S | wave 3 | — |
-| `motzkin-fredkin` | C | S | wave 3 | — |
-| `eta-pairing-hubbard` | C | S | wave 3 | — |
-| `pxp-scars` | C | S | wave 3 | — |
+| `aklt-chain` | C | S | ✓ wave 3 | [ORACLE](./aklt-chain/ORACLE.md) |
+| `aklt-honeycomb` | C | P | ✓ wave 3 | [ORACLE](./aklt-honeycomb/ORACLE.md) |
+| `majumdar-ghosh` | C | S | ✓ wave 3 | [ORACLE](./majumdar-ghosh/ORACLE.md) |
+| `shastry-sutherland-dimer` | C | S | ✓ wave 3 | [ORACLE](./shastry-sutherland-dimer/ORACLE.md) |
+| `rk-quantum-dimer` | C | S | ✓ wave 3 | [ORACLE](./rk-quantum-dimer/ORACLE.md) |
+| `motzkin-fredkin` | C | S | ✓ wave 3 | [ORACLE](./motzkin-fredkin/ORACLE.md) |
+| `eta-pairing-hubbard` | C | S | ✓ wave 3 | [ORACLE](./eta-pairing-hubbard/ORACLE.md) |
+| `pxp-scars` | C | S | ✓ wave 3 | [ORACLE](./pxp-scars/ORACLE.md) |
 
 ## T6 Collective / large-N / random
 
 | Model | Tier | Script | Status | Card |
 |---|---|---|---|---|
-| `lmg` | A | S | wave 3 | — |
-| `dicke-tavis-cummings` | B | S | wave 3 | — |
-| `jaynes-cummings` | A | S | wave 3 | — |
-| `quantum-rabi` | B | S | wave 3 | — |
-| `syk` | D | P | wave 3 | — |
-| `curie-weiss-tfim` | D | S | wave 3 | — |
-| `random-matrix-stats` | A | S | wave 3 | — |
-| `falicov-kimball-dinf` | D | T | wave 3 | — |
+| `lmg` | A | S | ✓ wave 3 | [ORACLE](./lmg/ORACLE.md) |
+| `dicke-tavis-cummings` | B | S | ✓ wave 3 | [ORACLE](./dicke-tavis-cummings/ORACLE.md) |
+| `jaynes-cummings` | A | S | ✓ wave 3 | [ORACLE](./jaynes-cummings/ORACLE.md) |
+| `quantum-rabi` | B | S | ✓ wave 3 | [ORACLE](./quantum-rabi/ORACLE.md) |
+| `syk` | D | P | ✓ wave 3 | [ORACLE](./syk/ORACLE.md) |
+| `curie-weiss-tfim` | D | S | ✓ wave 3 | [ORACLE](./curie-weiss-tfim/ORACLE.md) |
+| `random-matrix-stats` | A | S | ✓ wave 3 | [ORACLE](./random-matrix-stats/ORACLE.md) |
+| `falicov-kimball-dinf` | D | T | ✓ wave 3 | [ORACLE](./falicov-kimball-dinf/ORACLE.md) |
 
 ## T7 Dualities & solvable dynamics
 
 | Model | Tier | Script | Status | Card |
 |---|---|---|---|---|
-| `kramers-wannier` | A | S | wave 3 | — |
-| `jw-duality-dictionary` | — | T | wave 3 | — |
-| `dual-unitary-circuits` | A | S | wave 3 | — |
-| `kicked-ising-floquet` | A | S | wave 3 | — |
+| `kramers-wannier` | A | S | ✓ wave 3 | [ORACLE](./kramers-wannier/ORACLE.md) |
+| `jw-duality-dictionary` | — | T | ✓ wave 3 | [ORACLE](./jw-duality-dictionary/ORACLE.md) |
+| `dual-unitary-circuits` | A | S | ✓ wave 3 | [ORACLE](./dual-unitary-circuits/ORACLE.md) |
+| `kicked-ising-floquet` | A | S | ✓ wave 3 | [ORACLE](./kicked-ising-floquet/ORACLE.md) |
 
 ## Totals
 
-63 models — 43 built (wave 1 complete: 20 T1 + T4 cards; wave 2
-complete: 23 of 23 T2 + T3 cards), 20 wave 3 rows remaining (T5 + T6 +
-T7). Script-flag totals: **46 S · 10 P · 7 T**.
+63 of 63 models built — catalog complete (waves 1–3). Wave 1: 20 T1 + T4
+cards. Wave 2: 23 T2 + T3 cards. Wave 3: 20 cards across T5, T6, T7 —
+T5 (8): `aklt-chain`, `aklt-honeycomb`, `majumdar-ghosh`,
+`shastry-sutherland-dimer`, `rk-quantum-dimer`, `motzkin-fredkin`,
+`eta-pairing-hubbard`, `pxp-scars`; T6 (8): `lmg`, `curie-weiss-tfim`,
+`jaynes-cummings`, `dicke-tavis-cummings`, `quantum-rabi`, `syk`,
+`random-matrix-stats`, `falicov-kimball-dinf`; T7 (4): `kramers-wannier`,
+`jw-duality-dictionary`, `dual-unitary-circuits`, `kicked-ising-floquet`.
+Script-flag totals: **46 S · 10 P · 7 T**.
